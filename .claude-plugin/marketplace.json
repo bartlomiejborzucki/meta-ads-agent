@@ -1,0 +1,27 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "meta-ads-agent",
+  "description": "Agent-native Meta (Facebook/Instagram) Ads toolkit built on Meta's official Ads MCP, with a narrow Marketing API fallback for the few capabilities that server does not expose.",
+  "owner": {
+    "name": "meta-ads-agent contributors"
+  },
+  "plugins": [
+    {
+      "name": "meta-ads-agent",
+      "description": "Audit a Meta ad account, plan and build campaigns paused-by-default, preview every placement before launch, report on equal-length periods, and diagnose before changing anything. Nine skills, a validated campaign plan, resumable state, and an approval gate on anything that spends.",
+      "author": {
+        "name": "meta-ads-agent contributors"
+      },
+      "category": "marketing",
+      "keywords": [
+        "meta-ads",
+        "facebook-ads",
+        "instagram-ads",
+        "advertising",
+        "mcp"
+      ],
+      "source": ".",
+      "homepage": "https://github.com/OWNER/meta-ads-agent"
+    }
+  ]
+}

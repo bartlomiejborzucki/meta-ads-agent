@@ -1,0 +1,51 @@
+name: Upstream check
+
+on:
+  schedule:
+    # Weekly, Monday morning UTC. Frequent enough to notice a plugin-format
+    # change, rare enough not to be noise.
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Compare tracked upstreams against their reviewed versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install
+        run: uv sync --extra dev
+
+      - name: Check upstreams
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run python scripts/check_upstreams.py --output /tmp/report.md
+
+      - name: Open or update the drift issue
+        if: steps.check.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          title="Upstream drift: $(date -u +%Y-%m-%d)"
+          existing=$(gh issue list --label upstream-drift --state open \
+            --json number --jq '.[0].number' || true)
+          if [ -n "${existing:-}" ] && [ "${existing}" != "null" ]; then
+            gh issue comment "$existing" --body-file /tmp/report.md
+            echo "commented on issue #$existing"
+          else
+            gh issue create --title "$title" \
+              --label upstream-drift \
+              --body-file /tmp/report.md
+          fi
+
+      - name: No drift
+        if: steps.check.outputs.drift != 'true'
+        run: echo "All tracked upstreams match their reviewed versions."

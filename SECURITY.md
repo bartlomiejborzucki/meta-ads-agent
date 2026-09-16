@@ -1,0 +1,143 @@
+# Security
+
+## Reporting a vulnerability
+
+**Do not open a public issue.** Use
+[GitHub's private advisory form](https://github.com/OWNER/meta-ads-agent/security/advisories/new).
+
+Please include what you found, how to reproduce it, and what an attacker could
+achieve. If a credential of yours was exposed while finding it, rotate it first.
+
+We will acknowledge, investigate, and credit you unless you would rather not be.
+
+## What counts as a vulnerability here
+
+This project has an unusual threat model: it operates an ad account with real
+money in it, on behalf of a non-deterministic agent. The highest-severity
+issues are not the usual ones.
+
+**Critical**
+
+- A way to make money move without the user's explicit approval - an
+  activation, a budget increase, or anything that starts delivery.
+- A credential leak: an access token or app secret reaching a log, an error
+  message, a state file, the action log, or terminal output.
+- Customer data leaking, being logged, or being persisted.
+- A path that lets the CLI bypass an approval gate.
+
+**High**
+
+- Command injection, or `shell=True` reached with user-controlled input.
+- Path traversal through a plan, workspace, or asset path.
+- Arbitrary code execution through a config file - for example, unsafe YAML
+  loading.
+- A way to make the agent operate on the wrong ad account.
+
+**Moderate**
+
+- Overwriting a change a human made in Ads Manager without reporting the
+  mismatch.
+- Duplicate object creation after a partial failure.
+- A validation rule that can be bypassed with crafted input.
+
+## What this project already does
+
+Stated so you know what to test, and what the intended behaviour is.
+
+**Credentials**
+
+- Read from the environment only. Never from a workspace file, never from a
+  conversation.
+- Never written to campaign state, the asset manifest, or the action log. A
+  test asserts that no field name in those models contains `token`, `secret`,
+  `password`, or `credential`, and the state writer scrubs secret-shaped values
+  on the way to disk.
+- Never printed. `doctor` reports a configured secret as a SHA-256 prefix and a
+  length, not a value prefix - a truncated token is still part of a credential.
+- Graph API URLs have their query string replaced before display, because Graph
+  puts `access_token` in the query.
+- `.env` is gitignored, `.env.example` contains no real-looking values, and CI
+  runs a pinned Gitleaks against both the working tree and the full history.
+
+**Subprocesses**
+
+- `shell=True` is never used.
+- The only subprocesses are `ffprobe` and version probes of `claude` / `codex`,
+  all invoked with a fixed argument list and an absolute path resolved through
+  `shutil.which`.
+
+**Config parsing**
+
+- `yaml.safe_load` only. Never `yaml.load`. A workspace file could come from
+  anywhere, and full-loader YAML can construct arbitrary Python objects. A test
+  asserts a `!!python/object/apply` payload is rejected.
+- Everything read from disk is validated against a Pydantic model that rejects
+  unknown fields.
+
+**File writes**
+
+- State is written atomically - temp file plus `os.replace` - so a crash cannot
+  truncate the record of objects that already exist on Meta.
+
+**Write safety**
+
+- New campaigns, ad sets, and ads are created PAUSED. The plan model has no
+  field for anything else.
+- Activation, budget increases, deletion, bulk changes, and customer-list
+  uploads require explicit approval.
+- Deletion requires `--approved` **and** a stated reason, and refuses an ACTIVE
+  object.
+- There is no generic "run any Graph call" command. Adding one would void every
+  guardrail here.
+
+**Network**
+
+- No backend, no telemetry, no analytics. The only network destinations are
+  Meta's MCP endpoint and the Marketing API.
+- Asset uploads go through the official SDK; we do not follow redirects
+  ourselves.
+
+## Known limitations
+
+Stated plainly, because a security policy that only lists strengths is not
+useful.
+
+**The approval model is advisory.** Meta's MCP write tools execute immediately,
+and they belong to Meta's server. This project shapes agent behaviour through
+skills; it cannot gate a transport it does not own. A sufficiently confused
+agent can still call `ads_activate_entity`. Mitigating this properly would mean
+proxying Meta's MCP, which was considered and rejected for 0.1.0 - see
+[ADR-001](docs/architecture/adr/ADR-001-mcp-first.md) and
+[ADR-004](docs/architecture/adr/ADR-004-write-safety.md).
+
+If this matters for your use, grant your token or OAuth session read-only
+scopes. `ads_read` without `ads_management` makes the whole write surface
+unavailable, which is a real guarantee rather than an advisory one.
+
+**Your agent host sees your conversation.** Account data the agent read, and
+anything you pasted, are subject to your host's data policy. Never paste an
+access token into a chat.
+
+**The workspace is unencrypted.** `.meta-ads/` holds account ids, performance
+data, and campaign state in plain files. It is gitignored by default; it is not
+protected from anything with read access to your disk.
+
+**Live tests need a real token.** They are opt-in, marked `live`, excluded from
+CI, and documented in [`tests/live/README.md`](tests/live/README.md). CI sets
+`META_ACCESS_TOKEN=""` so a stray live test fails rather than picking up a
+credential.
+
+## If you leaked a token
+
+1. Revoke it. For a user token, remove the app's access in your Facebook
+   security settings. For a system user token, revoke it in Business Settings.
+2. Check the ad account's activity log for changes you did not make.
+3. Check the account spending limit.
+4. Generate a new token and put it in `.env`, not in a conversation.
+
+Assume anything pasted into a transcript, an issue, or a screenshot has leaked.
+
+## Supported versions
+
+0.1.0 is an initial development release and is **not production-ready**. Fixes
+land on `main`. There is no backport policy yet.

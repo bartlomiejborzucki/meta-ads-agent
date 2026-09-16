@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Belt and braces: no live Meta call should be reachable from CI, and these
+  # make a stray attempt fail loudly rather than silently pick up a secret.
+  META_ACCESS_TOKEN: ""
+  META_APP_SECRET: ""
+  META_ADS_LIVE_TESTS: "0"
+
+jobs:
+  lint-and-test:
+    name: Lint, type-check, test (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
+
+      - name: Install
+        run: uv sync --extra dev
+
+      - name: Format check
+        run: uv run ruff format --check src tests
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Type check
+        run: uv run mypy
+
+      - name: Unit tests
+        # Live tests are excluded by marker, not only by their env guard.
+        run: uv run pytest -m "not live" --cov=meta_ads_agent --cov-report=term-missing
+
+  package:
+    name: Build and install the wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build
+        run: uv build
+
+      - name: Install the built wheel in a clean environment
+        run: |
+          uv venv /tmp/clean
+          uv pip install --python /tmp/clean/bin/python dist/*.whl
+
+      - name: The CLI works without the optional api extra
+        run: |
+          /tmp/clean/bin/meta-ads-agent --version
+          /tmp/clean/bin/meta-ads-agent capabilities --validate
+          /tmp/clean/bin/meta-ads-agent doctor --json > /tmp/doctor.json
+          python -c "import json;d=json.load(open('/tmp/doctor.json'));assert d['api_fallback_ready'] is False"
+
+      - name: Packaged data files are present in the wheel
+        # capabilities.yaml and the templates must ship, or an installed
+        # package cannot run init or route a capability.
+        run: |
+          /tmp/clean/bin/python - <<'PY'
+          from pathlib import Path
+          import meta_ads_agent
+          root = Path(meta_ads_agent.__file__).parent / "_data"
+          assert (root / "capabilities.yaml").is_file(), "capabilities.yaml missing from wheel"
+          assert (root / "templates" / "brand" / "brand.yaml").is_file(), "templates missing from wheel"
+          print("packaged data ok")
+          PY
+
+      - name: init works from the installed wheel
+        run: |
+          mkdir -p /tmp/proj && cd /tmp/proj
+          /tmp/clean/bin/meta-ads-agent init --brand "CI Test"
+          /tmp/clean/bin/meta-ads-agent init --check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  manifests:
+    name: Validate plugin manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate the Claude Code plugin
+        run: claude plugin validate . --strict
+
+      - name: Validate the marketplace
+        run: claude plugin validate .claude-plugin/marketplace.json
+
+      - name: Validate the Codex manifest structurally
+        # Codex has no published validator we can run here, so this checks the
+        # manifest against OpenAI's documented plugin.json specification.
+        run: python3 scripts/validate_codex_plugin.py
+
+      - name: One canonical skills directory
+        # ADR-003: skills/ is the only home for skill content.
+        run: python3 scripts/check_single_skills_tree.py
+
+  examples:
+    name: Validate templates and examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install
+        run: uv sync --extra dev
+
+      - name: Every shipped template and example validates
+        # A template that does not validate is worse than no template: the user
+        # copies it, edits it, and blames their edit.
+        run: uv run python scripts/validate_examples.py

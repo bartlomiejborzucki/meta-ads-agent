@@ -1,0 +1,62 @@
+name: Meta MCP capability change
+description: A Meta Ads MCP tool appeared, disappeared, or changed shape
+labels: [capability-map]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Meta's official Ads MCP has no public repository and publishes no
+        schemas, so we cannot watch it automatically. Reports like this are how
+        the capability map stays honest.
+
+        **A new tool that closes one of our fallback gaps is especially
+        welcome** - it means one fewer reason for anyone to hold an access
+        token. See `docs/reference/capability-refresh.md`.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What changed
+      options:
+        - A new tool exists
+        - A tool was removed or renamed
+        - A tool's parameters changed
+        - A tool now covers something we fall back for
+        - Our documentation is wrong about a tool
+    validations:
+      required: true
+
+  - type: input
+    id: tool
+    attributes:
+      label: Tool name
+      placeholder: ads_upload_video
+    validations:
+      required: true
+
+  - type: input
+    id: date
+    attributes:
+      label: Date observed
+      placeholder: 2026-11-04
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >
+        How you observed it: a tool listing from a live session, the tool's
+        description, a successful call, or a validation error listing supported
+        fields. Please distinguish what you **verified** from what you assume.
+    validations:
+      required: true
+
+  - type: input
+    id: gap
+    attributes:
+      label: Does this close a fallback gap?
+      description: >
+        Run `meta-ads-agent capabilities --gaps`. If this covers one, name it.
+      placeholder: local_video_upload

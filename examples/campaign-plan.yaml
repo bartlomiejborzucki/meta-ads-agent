@@ -1,0 +1,156 @@
+# ---------------------------------------------------------------------------
+# Example campaign plan — a validated .meta-ads/campaigns/<slug>/plan.yaml
+# ---------------------------------------------------------------------------
+# All ids are fake. Three genuinely different angles in one ad set, ABO budget,
+# EU transparency fields present, everything PAUSED.
+#
+# Validate:
+#   meta-ads-agent validate-plan examples/campaign-plan.yaml --skip-assets
+#
+# Blank template with every field annotated:
+#   templates/campaign/campaign-plan.yaml
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+slug: acme-webinar-q4
+ad_account_id: act_0000000000000001
+brand: Acme Analytics
+offer: webinar
+
+notes: >
+  Three distinct angles, not three rewordings: time recovered, error risk, and
+  being the bottleneck. One ad set so they compete on the same audience -
+  splitting them across ad sets at this budget would give none of them enough
+  volume to read. ABO because we want a guaranteed 70 PLN/day on this test
+  rather than Meta choosing a favourite early.
+
+campaign:
+  name: "Acme Analytics | OUTCOME_LEADS | 2026-09-16"
+  objective: OUTCOME_LEADS
+  conversion_location: website
+  buying_type: AUCTION
+  budget: null                    # ABO: budget sits on the ad set
+
+  schedule:
+    start: null
+    end: null
+
+  special_ad_categories: []       # a claim we are making, not a default
+
+  dsa:
+    beneficiary: Acme Analytics Sp. z o.o.
+    payor: Acme Analytics Sp. z o.o.
+
+  ad_sets:
+    - name: "PL - broad 25-55"
+      optimization_goal: OFFSITE_CONVERSIONS
+      billing_event: IMPRESSIONS
+      bid_amount: null
+      bid_strategy: null
+
+      budget:
+        level: ad_set
+        type: daily
+        amount: 70                # seventy zloty. Not 7000.
+        currency: PLN
+
+      schedule:
+        start: null
+        end: null
+
+      targeting:
+        countries: [PL]
+        age_min: 25
+        age_max: 55
+        genders: all
+        interests: []
+        custom_audience_ids: []
+        excluded_custom_audience_ids: []
+        # false because the age bounds are deliberate: this offer does not
+        # land with people who do not own the reporting task.
+        advantage_audience: false
+        raw: {}
+
+      placements:
+        mode: automatic
+        positions: []
+
+      tracking:
+        dataset_id: "120000000000001"
+        conversion_event: LEAD
+        custom_conversion_id: null
+        attribution_window: 7d_click_1d_view
+        utm:
+          utm_source: meta
+          utm_medium: paid_social
+          utm_campaign: webinar_2026-09-16
+
+      ads:
+        - name: "angle-a-time-recovered"
+          creative:
+            mode: single_image
+            destination_url: https://acme.example.com/webinar
+            display_link: acme.example.com
+            page_id: "100000000000001"
+            instagram_account_id: "170000000000001"
+            post_id: null
+            assets:
+              - local_path: ./creatives/angle-a.jpg
+            variants:
+              - angle: time recovered
+                primary_text: >-
+                  Friday afternoon used to belong to the weekly report.
+                  Copy a number, check it, copy the next one, and suddenly it
+                  is six o'clock. We are running a live session on the setup
+                  that assembles it instead.
+                headline: Get your Friday afternoon back
+                description: Live session, 45 minutes
+                cta_type: SIGN_UP
+            advantage:
+              enhancements:
+                standard_enhancements: false
+              note: >
+                Disabled because the creative is a product screenshot and
+                automatic cropping obscures the interface we are showing.
+
+        - name: "angle-b-error-risk"
+          creative:
+            mode: single_image
+            destination_url: https://acme.example.com/webinar
+            page_id: "100000000000001"
+            instagram_account_id: "170000000000001"
+            assets:
+              - local_path: ./creatives/angle-b.jpg
+            variants:
+              - angle: error risk
+                primary_text: >-
+                  Nobody double-checks the weekly report. It is assembled by
+                  hand, once a week, under time pressure, and then decisions
+                  get made on it. We are showing what it looks like when the
+                  numbers come straight from the source.
+                headline: Numbers nobody has to double-check
+                cta_type: SIGN_UP
+            advantage:
+              enhancements:
+                standard_enhancements: false
+
+        - name: "angle-c-bottleneck"
+          creative:
+            mode: single_image
+            destination_url: https://acme.example.com/webinar
+            page_id: "100000000000001"
+            instagram_account_id: "170000000000001"
+            assets:
+              - local_path: ./creatives/angle-c.jpg
+            variants:
+              - angle: being the bottleneck
+                primary_text: >-
+                  Four people are waiting on your report before they can plan
+                  their week. That is not a reporting problem, it is a
+                  dependency problem. Live session on removing yourself from
+                  the middle of it.
+                headline: Stop being the report
+                cta_type: SIGN_UP
+            advantage:
+              enhancements:
+                standard_enhancements: false
