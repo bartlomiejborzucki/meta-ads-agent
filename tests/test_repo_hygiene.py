@@ -350,3 +350,54 @@ class TestUpstreams:
         document = yaml.safe_load((REPO / "upstreams.yaml").read_text(encoding="utf-8"))
         sdk = next(e for e in document["upstreams"] if e.get("package") == "facebook-business")
         assert sdk["vendored"] is False
+
+
+class TestPublishingPlaceholders:
+    """The repository ships unowned. Keep the placeholder consistent.
+
+    A half-replaced placeholder is worse than a fully unreplaced one: an
+    install command pointing at the wrong owner looks correct and fails
+    confusingly.
+    """
+
+    PLACEHOLDER = "OWNER/meta-ads-agent"
+
+    def _url_files(self) -> list[Path]:
+        tracked = subprocess.run(
+            ["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True
+        ).stdout.splitlines()
+        suffixes = {".md", ".json", ".toml", ".yml", ".yaml"}
+        return [REPO / path for path in tracked if Path(path).suffix in suffixes]
+
+    def test_github_urls_use_the_placeholder_or_a_real_owner_consistently(self) -> None:
+        # Only THIS project's URLs. The third-party projects credited in the
+        # provenance review legitimately have other owners.
+        pattern = re.compile(r"github\.com/([A-Za-z0-9._-]+)/meta-ads-agent\b")
+        owners: set[str] = set()
+        for path in self._url_files():
+            owners.update(pattern.findall(path.read_text(encoding="utf-8")))
+        assert len(owners) <= 1, (
+            f"project URLs point at several owners: {sorted(owners)}. "
+            "Run scripts/set_repo_owner.py to make them consistent."
+        )
+
+    def test_the_owner_script_reports_the_placeholder_count(self) -> None:
+        import sys
+
+        result = subprocess.run(  # noqa: S603 - fixed argv, repo-local script
+            [sys.executable, str(SCRIPTS / "set_repo_owner.py"), "someone", "--check"],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        # Exit 1 while unowned, 0 once replaced. Both are valid states; what
+        # must hold is that the script runs and reports.
+        assert result.returncode in (0, 1), result.stderr
+        assert "placeholder" in result.stdout
+
+    def test_publishing_is_documented(self) -> None:
+        doc = (REPO / "docs" / "reference" / "publishing.md").read_text(encoding="utf-8")
+        assert "gh repo create" in doc
+        assert "set_repo_owner.py" in doc
+        assert "git remote add origin" in doc

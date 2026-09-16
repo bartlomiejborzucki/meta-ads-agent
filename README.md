@@ -315,7 +315,7 @@ Stated rather than discovered:
 - **The approval model is advisory** (above). Use a read-only session for a hard
   guarantee.
 - **The Codex path is less tested** than the Claude Code path.
-- **No live integration tests ship.** 520 offline tests give 90% line coverage of
+- **No live integration tests ship.** 523 offline tests give 90% line coverage of
   the Python package, but nothing confirms Meta accepts the request *shapes*.
   Doing that responsibly needs a designated test account —
   [`tests/live/README.md`](tests/live/README.md).
@@ -345,6 +345,9 @@ Full list: [CHANGELOG.md](CHANGELOG.md#limitations-in-010).
 | [CLI reference](docs/reference/cli.md) | every command |
 | [Capability refresh](docs/reference/capability-refresh.md) | keeping the map honest |
 | [API versioning](docs/reference/api-versioning.md) | Graph version policy |
+| [Workspace](docs/reference/workspace.md) | what `.meta-ads/` holds, and what to version |
+| [Privacy](docs/reference/privacy.md) | what is stored, and what never is |
+| [Publishing](docs/reference/publishing.md) | exact commands to push this to GitHub |
 | [Contributing](CONTRIBUTING.md) | including where things go, and why |
 
 ## Relationship to upstream projects
@@ -386,6 +389,11 @@ customer data is the highest-priority class of bug here.
 
 It works, it is tested, and it is honest about what it has not proven. Use it on
 an account you are willing to watch.
+
+URLs in this repository contain an `OWNER` placeholder until it has a home.
+`python3 scripts/set_repo_owner.py <owner>` fixes all 26 of them;
+[docs/reference/publishing.md](docs/reference/publishing.md) has the rest of the
+steps.
 
 ## License
 
