@@ -8,6 +8,8 @@ Live tests live in ``tests/live/`` and are opt-in.
 from __future__ import annotations
 
 import struct
+import sys
+import types
 import zlib
 from pathlib import Path
 from typing import Any
@@ -163,3 +165,165 @@ def account() -> AccountContext:
         available_dataset_ids=["1234567890"],
         available_conversion_events=["LEAD", "PURCHASE"],
     )
+
+
+# ---------------------------------------------------------------------------
+# A minimal fake SDK
+# ---------------------------------------------------------------------------
+class FakeSdkError(Exception):
+    """Stands in for FacebookRequestError, which exposes ``body()``."""
+
+    def __init__(self, message: str, payload: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self._payload = payload or {}
+
+    def body(self) -> dict[str, Any]:
+        return self._payload
+
+
+class Recorder:
+    """Captures what the fallback asked the SDK to do."""
+
+    def __init__(self) -> None:
+        self.image_uploads: list[str] = []
+        self.video_uploads: list[str] = []
+        self.creatives: list[dict[str, Any]] = []
+        self.deletes: list[str] = []
+        self.status_reads: list[str] = []
+        self.video_status = "ready"
+        self.raise_on_image: Exception | None = None
+        self.raise_on_video: Exception | None = None
+        self.image_hash: str | None = "fake_image_hash_1"
+        self.video_id: str | None = "700000000000001"
+        self.creative_id: str | None = "800000000000001"
+        self.object_fields: dict[str, Any] = {"name": "an ad", "status": "PAUSED"}
+
+
+@pytest.fixture
+def sdk(monkeypatch: pytest.MonkeyPatch) -> Recorder:
+    """Install a fake ``facebook_business`` package for the duration of a test."""
+    recorder = Recorder()
+
+    root = types.ModuleType("facebook_business")
+    root.__version__ = "26.0.1-fake"  # type: ignore[attr-defined]
+    api_module = types.ModuleType("facebook_business.api")
+    objects = types.ModuleType("facebook_business.adobjects")
+
+    class FacebookAdsApi:
+        last_init: dict[str, Any] = {}
+
+        @classmethod
+        def init(cls, **kwargs: Any) -> FacebookAdsApi:
+            cls.last_init = kwargs
+            return cls()
+
+    api_module.FacebookAdsApi = FacebookAdsApi  # type: ignore[attr-defined]
+
+    class AdImage:
+        class Field:
+            filename = "filename"
+            hash = "hash"
+
+        def __init__(self, parent_id: str | None = None, api: Any = None) -> None:
+            self.parent_id = parent_id
+            self._data: dict[str, Any] = {}
+
+        def __setitem__(self, key: str, value: Any) -> None:
+            self._data[key] = value
+
+        def __getitem__(self, key: str) -> Any:
+            return self._data.get(key)
+
+        def remote_create(self) -> None:
+            if recorder.raise_on_image:
+                raise recorder.raise_on_image
+            recorder.image_uploads.append(self._data["filename"])
+            self._data["hash"] = recorder.image_hash
+
+    class AdVideo:
+        class Field:
+            filepath = "filepath"
+
+        def __init__(
+            self, object_id: str | None = None, api: Any = None, parent_id: str | None = None
+        ) -> None:
+            self.object_id = object_id
+            self.parent_id = parent_id
+            self._data: dict[str, Any] = {}
+
+        def __setitem__(self, key: str, value: Any) -> None:
+            self._data[key] = value
+
+        def remote_create(self) -> None:
+            if recorder.raise_on_video:
+                raise recorder.raise_on_video
+            recorder.video_uploads.append(self._data["filepath"])
+
+        def get_id(self) -> str | None:
+            return recorder.video_id
+
+        def api_get(self, fields: list[str] | None = None) -> dict[str, Any]:
+            recorder.status_reads.append(self.object_id or "")
+            return {"status": {"video_status": recorder.video_status}}
+
+        def get_thumbnails(self, fields: list[str] | None = None) -> list[dict[str, Any]]:
+            return [{"uri": "https://scontent.example.com/thumb.jpg", "is_preferred": True}]
+
+    class _Created:
+        def __init__(self, object_id: str | None) -> None:
+            self._id = object_id
+
+        def get_id(self) -> str | None:
+            return self._id
+
+    class AdAccount:
+        def __init__(self, account_id: str, api: Any = None) -> None:
+            self.account_id = account_id
+
+        def get_id_assured(self) -> str:
+            return self.account_id
+
+        def create_ad_creative(self, params: dict[str, Any]) -> _Created:
+            recorder.creatives.append(params)
+            return _Created(recorder.creative_id)
+
+    def _deletable(name: str) -> type:
+        class Deletable:
+            def __init__(self, object_id: str, api: Any = None) -> None:
+                self.object_id = object_id
+
+            def api_get(self, fields: list[str] | None = None) -> dict[str, Any]:
+                return dict(recorder.object_fields)
+
+            def api_delete(self) -> None:
+                recorder.deletes.append(f"{name}:{self.object_id}")
+
+        return Deletable
+
+    submodules = {
+        "facebook_business": root,
+        "facebook_business.api": api_module,
+        "facebook_business.adobjects": objects,
+        "facebook_business.adobjects.adimage": _module("adimage", AdImage=AdImage),
+        "facebook_business.adobjects.advideo": _module("advideo", AdVideo=AdVideo),
+        "facebook_business.adobjects.adaccount": _module("adaccount", AdAccount=AdAccount),
+        "facebook_business.adobjects.campaign": _module(
+            "campaign", Campaign=_deletable("campaign")
+        ),
+        "facebook_business.adobjects.adset": _module("adset", AdSet=_deletable("ad_set")),
+        "facebook_business.adobjects.ad": _module("ad", Ad=_deletable("ad")),
+    }
+    for name, module in submodules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+
+    monkeypatch.setenv("META_ACCESS_TOKEN", FAKE_TOKEN)
+    monkeypatch.delenv("META_APP_ID", raising=False)
+    monkeypatch.delenv("META_APP_SECRET", raising=False)
+    return recorder
+
+
+def _module(name: str, **attrs: Any) -> types.ModuleType:
+    module = types.ModuleType(f"facebook_business.adobjects.{name}")
+    for key, value in attrs.items():
+        setattr(module, key, value)
+    return module

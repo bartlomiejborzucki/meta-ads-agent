@@ -445,7 +445,7 @@ class CampaignPlanDocument(StrictModel):
     """
 
     schema_version: int = 1
-    slug: Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9-]{1,62}$")] = Field(
+    slug: Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9-]{0,62}$")] = Field(
         description="Directory-safe identifier for this campaign's workspace"
     )
     created_at: _dt.datetime = Field(default_factory=lambda: _dt.datetime.now(_dt.UTC))

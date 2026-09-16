@@ -137,6 +137,53 @@ credential.
 
 Assume anything pasted into a transcript, an issue, or a screenshot has leaked.
 
+## Pre-release review record
+
+A security review was performed before the 0.1.0 tag. Recorded so the next
+reviewer knows what was already checked, and so a regression is visible.
+
+**Reviewed 2026-09-16.** Findings and their resolution:
+
+| Area | Result |
+| --- | --- |
+| `shell=True`, `os.system`, `eval`, `exec`, `pickle` | none present anywhere in `src/` or `scripts/` |
+| Subprocess calls | three, all with a fixed argument list. `ffprobe` and host version probes resolve the binary through `shutil.which`; the repo scripts invoke `git` from `PATH` in a developer or CI checkout only. |
+| YAML loading | `yaml.safe_load` exclusively. A test asserts a `!!python/object/apply` payload is rejected. |
+| Network in our own code | none. `urllib.parse` is used for parsing only. All Meta traffic goes through the official SDK or the agent's MCP client. |
+| Credential leakage | tokens never written to state, the asset manifest, or the action log; scrubbed on the way to disk; `doctor` prints a SHA-256 prefix and a length, never a value prefix |
+| Graph URLs in output | query string replaced when it carries a credential |
+| Path traversal via a slug | `slugify` strips `..`, `/`, and `\`; a campaign directory cannot escape the workspace. Tested. |
+| Arbitrary file as an asset | **a bug was found here** — see finding 1 below. Now: only a recognised image or video container header is accepted; an extension and the caller's requested kind are both untrusted. Tested against shell scripts, text, HTML, and passwd-shaped content under image and video extensions. |
+| Symlinked assets | a symlink to a non-media file is rejected; a symlink to a real image is accepted and fingerprints identically to its target |
+| File permissions | state, config, and the workspace `.gitignore` are written `0600` (owner-only) |
+| Temporary files | one site, `tempfile.mkstemp` in the destination directory, `os.replace`d into place, unlinked on failure |
+| Large files | fingerprinted and probed in chunks; never read whole into memory |
+| Unicode and spaces in paths | tested, including the workspace, assets, and the CLI |
+| HTTP redirects on upload | handled by the official SDK; we do not follow redirects ourselves |
+| Arbitrary file upload | only paths a plan names, and only if they pass media detection |
+
+**Three bugs were found and fixed during the review:**
+
+1. **Arbitrary file upload.** `probe_asset` accepted an explicitly requested
+   asset kind without confirming it against the file's contents, and separately
+   treated a video *extension* as proof of a video. Together that meant a plan
+   naming any readable path — a shell script, `/etc/passwd`, an arbitrary text
+   file — could have had that file uploaded to the user's ad account by
+   `api upload-image` or `api upload-video`. The caller's request and the
+   filename are now both treated as untrusted: only a recognised image or video
+   container header counts, with ffprobe as a second opinion for unusual
+   containers. Fixed, with parametrised regression tests for each vector.
+2. A slug of one character was refused, because both the slug pattern and the
+   plan model required at least two. A single-character campaign slug is
+   legitimate. Fixed, with a test.
+3. `probe_asset` read an asset's header with a bare `open()`, which leaked the
+   file handle and let a raw `PermissionError` escape instead of the project's
+   own error type. Fixed, with a test.
+
+A fabricated image header also reported `0x0` dimensions rather than
+"unknown", which would have let downstream code reason about an aspect ratio of
+zero. Now reported as unknown, with a warning.
+
 ## Supported versions
 
 0.1.0 is an initial development release and is **not production-ready**. Fixes

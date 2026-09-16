@@ -315,9 +315,9 @@ Stated rather than discovered:
 - **The approval model is advisory** (above). Use a read-only session for a hard
   guarantee.
 - **The Codex path is less tested** than the Claude Code path.
-- **No live integration tests ship.** 413 offline tests cover every code path,
-  but nothing confirms Meta accepts the request *shapes*. Doing that responsibly
-  needs a designated test account —
+- **No live integration tests ship.** 520 offline tests give 90% line coverage of
+  the Python package, but nothing confirms Meta accepts the request *shapes*.
+  Doing that responsibly needs a designated test account —
   [`tests/live/README.md`](tests/live/README.md).
 - **Carousel creatives are not supported.** Planned.
 - **Lead forms cannot be created or read.** A campaign can use a form id you

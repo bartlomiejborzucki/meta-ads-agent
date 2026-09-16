@@ -113,7 +113,8 @@ readiness separately, and never prints a token.
 ### Project
 
 - MIT licensed. Independent; not affiliated with Meta, OpenAI, or Anthropic.
-- 413 offline tests. The SDK boundary is faked; nothing reaches Meta.
+- 520 offline tests, 90% line coverage. The SDK boundary is faked; nothing
+  reaches Meta.
 - CI: format, lint, types, tests on Python 3.11-3.13, a wheel install check,
   manifest validation, single-skills-tree enforcement, template validation,
   pinned Gitleaks over tree and history, and `.gitignore` assertions.
