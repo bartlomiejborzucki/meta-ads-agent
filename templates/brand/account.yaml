@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------------------
+# Cached account facts
+# ---------------------------------------------------------------------------
+# Written by the agent after reading the ad account from Meta. A cache, not a
+# source of truth: Meta is authoritative, the validator compares against it,
+# and anything here can be stale.
+#
+# Safe to delete. It will be rebuilt on the next account read.
+#
+# `currency_offset` is worth keeping: it is Meta's own minor-unit multiplier
+# for this account, and it OUTRANKS the ISO table this project ships with.
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+read_at: null                  # ISO 8601 timestamp of the read
+
+id: null                       # act_1234567890
+name: null
+currency: null
+currency_offset: null          # 100 for two-decimal currencies, 1 for JPY, ...
+timezone_name: null
+account_status: null           # Meta's numeric status; 1 is active
+has_payment_method: null
+is_queryable: null
+is_ads_mcp_enabled: null
+business_id: null
+business_country_code: null
+
+# Discovered identities and signals. Used by the validator to reject a plan
+# that references something this account cannot actually use.
+available_page_ids: []
+available_instagram_account_ids: []
+available_dataset_ids: []
+available_conversion_events: []
+available_custom_audience_ids: []
+
+# Enum sets discovered at runtime (for example via the field-metadata tool).
+# An EMPTY list means "we did not look", not "nothing is valid" - the validator
+# skips membership checks rather than rejecting values it has not verified.
+valid_objectives: []
+valid_optimization_goals: []
+valid_call_to_action_types: []

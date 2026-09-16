@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------------------
+# Offer brief
+# ---------------------------------------------------------------------------
+# A reusable description of one thing you sell. Save as
+# .meta-ads/offers/<slug>.yaml
+#
+# Kept short on purpose. A brief that takes twenty minutes to fill in does not
+# get filled in.
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+
+name: Live webinar - cut reporting time
+landing_page: https://example.com/webinar
+
+# Who this is for, in plain language. Not a targeting spec - the campaign skill
+# turns this into targeting.
+audience: Marketing leads at 20-200 person B2B companies who still build weekly reports by hand.
+
+# The problem, as the buyer would describe it.
+problem: Every Friday disappears into copying numbers between spreadsheets.
+
+# What changes for them.
+outcome: The weekly report builds itself, and Friday is free.
+
+# Evidence that may be used in copy.
+#
+# THE CREATIVE SKILL MAY CITE ONLY WHAT APPEARS HERE. It will not invent
+# results, statistics, testimonials, or capabilities. If a number is not in this
+# list, it does not go in an ad.
+proof:
+  - 340 attendees at the last session
+  - "Named customers who agreed to be referenced - list them here, or delete this line"
+
+price: Free
+# What must not be said or promised. Compliance limits, guarantees you cannot
+# make, comparisons you will not draw.
+restrictions:
+  - Do not promise a specific hours-saved number; we have not measured it.
+
+cta: SIGN_UP
+creative_notes: Screen recordings of the product beat stock photography for this audience.

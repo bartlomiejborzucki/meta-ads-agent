@@ -1,0 +1,150 @@
+# ---------------------------------------------------------------------------
+# Campaign plan - the source of truth for INTENT
+# ---------------------------------------------------------------------------
+# Written before anything is created on Meta, reviewed by a human, then
+# executed. Once validated, execution reads THIS FILE rather than the
+# conversation that produced it.
+#
+# Saved as .meta-ads/campaigns/<slug>/plan.yaml
+# Created object ids go in state.json next to it.
+#
+# Validate:  meta-ads-agent validate-plan .meta-ads/campaigns/<slug>/plan.yaml
+#
+# Two things to know before editing:
+#
+#   * Budget amounts are DISPLAY amounts in the stated currency. Write 70 for
+#     seventy zloty. Conversion to Meta's minor units happens at the boundary,
+#     in one tested module. Never pre-multiply by 100.
+#
+#   * There is no field for creating something active. Everything is created
+#     PAUSED, and activation is a separate operation that needs explicit
+#     approval after preview and QA.
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+slug: acme-webinar-q4              # lowercase, digits, hyphens - names the state directory
+ad_account_id: act_1234567890
+brand: Acme                        # brand this plan belongs to
+offer: webinar                     # offer slug this plan promotes
+notes: null
+
+campaign:
+  name: "Acme | OUTCOME_LEADS | 2026-09-16"
+
+  # Current Meta objective. Shape-checked only: the valid set changes with every
+  # API version, so discover it with the field-metadata tool rather than
+  # trusting a remembered list.
+  objective: OUTCOME_LEADS
+  conversion_location: website
+  buying_type: AUCTION
+
+  # Campaign-level budget = CBO. Omit this and put budgets on each ad set for
+  # ABO. Meta rejects both at once, and so does the validator.
+  budget: null
+  # budget:
+  #   level: campaign
+  #   type: daily                  # daily | lifetime
+  #   amount: 200
+  #   currency: PLN
+
+  schedule:
+    start: null                    # interpreted in the ACCOUNT's timezone
+    end: null                      # required for a lifetime budget
+
+  # Declare when applicable: credit, employment, housing, social issues,
+  # elections, politics. An empty list asserts none apply - a claim you are
+  # making, not a safe default. Misdeclaring risks account suspension.
+  special_ad_categories: []
+
+  # EU transparency. Required when any ad set targets the EU/EEA. Resolved from
+  # brand.yaml when omitted here. Never invented.
+  dsa:
+    beneficiary: null
+    payor: null
+
+  ad_sets:
+    - name: "PL - broad 25-55"
+
+      # Must be valid for the objective above. Not checked against a local
+      # list - discover the current pairing from the platform.
+      optimization_goal: OFFSITE_CONVERSIONS
+      billing_event: IMPRESSIONS
+      bid_amount: null             # display amount, same currency as the budget
+      bid_strategy: null
+
+      # Ad-set budget = ABO. Omit when the campaign carries the budget.
+      budget:
+        level: ad_set
+        type: daily
+        amount: 70
+        currency: PLN
+
+      schedule:
+        start: null
+        end: null
+
+      targeting:
+        countries: [PL]
+        age_min: 25
+        age_max: 55
+        genders: all               # all | male | female
+        interests: []
+        custom_audience_ids: []
+        excluded_custom_audience_ids: []
+        # null leaves Meta's default, which may expand beyond the bounds above.
+        # Set false when a demographic bound must actually hold.
+        advantage_audience: null
+        raw: {}                    # escape hatch, merged in unvalidated
+
+      placements:
+        mode: automatic            # automatic | manual
+        positions: []              # only with mode: manual
+
+      tracking:
+        dataset_id: "1234567890"   # pixel / dataset
+        conversion_event: LEAD
+        custom_conversion_id: null
+        # Recorded so a later report can state which window its numbers
+        # represent. Never compare periods across different windows.
+        attribution_window: null
+        utm: {}
+
+      ads:
+        - name: "angle-a-time-saved"
+          creative:
+            # single_image | single_video | existing_post | multi_variant
+            mode: single_image
+            destination_url: https://example.com/webinar
+            display_link: null
+            page_id: "1111111111"          # mandatory ad identity
+            instagram_account_id: null
+            post_id: null                  # only with mode: existing_post
+
+            # Exactly one source per asset: local_path, image_hash, or video_id.
+            # A local file is fingerprinted, uploaded once, and reused on every
+            # later run - retries never re-upload.
+            assets:
+              - local_path: ./creatives/time-saved.jpg
+
+            # `angle` is the CONCEPT, not the wording. Two variants with the
+            # same angle and different phrasing are one idea, not two, and the
+            # validator will say so.
+            variants:
+              - angle: time saved
+                primary_text: >-
+                  Friday afternoons used to belong to the weekly report.
+                  Now the report writes itself.
+                headline: Stop rebuilding the same report
+                description: null
+                cta_type: SIGN_UP
+
+            # Meta's automatic creative enhancements. Declared here so the
+            # delivered ad cannot differ from the preview without you knowing.
+            advantage:
+              enhancements: {}
+              note: null
+
+          status: PAUSED
+
+      status: PAUSED
+  status: PAUSED

@@ -1,0 +1,502 @@
+# ---------------------------------------------------------------------------
+# Capability registry
+# ---------------------------------------------------------------------------
+# Which execution layer owns which capability, and what approval it needs.
+#
+# Routing rule (see docs/architecture/adr/ADR-002-api-fallback.md):
+#   1. If the official MCP covers it, use the MCP.
+#   2. Only if it does not, use the fallback.
+#   3. Never use the fallback because it is more convenient.
+#   4. When the fallback is used, say so and name the gap.
+#
+# The fallback is expected to SHRINK. When Meta adds a capability, add a test,
+# flip preferred_provider, mark the fallback deprecated, then delete the code.
+#
+# providers:
+#   official_mcp   Meta's server at https://mcp.facebook.com/ads
+#   api_fallback   `meta-ads-agent api ...` via the facebook-business SDK
+#   none           Not supported in this release
+#
+# risk_level maps to the approval classes in
+# skills/meta-ads-core/references/safety-policy.md:
+#   read · create_paused · update_inactive · update_active · budget_increase
+#   · activate · delete · bulk · pii_upload
+#
+# Validate after editing:  meta-ads-agent capabilities --validate
+# ---------------------------------------------------------------------------
+
+version: 1
+reviewed: 2026-09-16
+graph_api_version: v26.0
+mcp_endpoint: https://mcp.facebook.com/ads
+
+# Tool names are recorded as hints for the agent, not as contracts. Meta can
+# rename them. The core skill instructs the agent to introspect the connected
+# server and to trust a platform validation error over anything written here.
+notes: |
+  Sourced from Meta's published Ads MCP tool reference on 2026-09-16. No live
+  introspection was available on the authoring machine. Re-verify with
+  docs/reference/capability-refresh.md before relying on any single tool name.
+
+capabilities:
+
+  # -- Discovery -----------------------------------------------------------
+  - name: list_ad_accounts
+    area: accounts
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_ad_accounts]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      Returns currency and timezone. Read this before interpreting any budget
+      number. Community-reported eligibility fields worth checking before a
+      write: is_ads_mcp_enabled, is_queryable, has_payment_method.
+
+  - name: list_pages
+    area: pages
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_user_pages, ads_get_ad_account_pages, ads_get_pages_for_business]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: A Facebook Page is mandatory ad identity. Resolve it before planning.
+
+  - name: list_instagram_accounts
+    area: instagram
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_ig_accounts, ads_get_ig_media]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  - name: field_metadata
+    area: diagnostics
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_field_context]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      The supported way to discover current enum values (objectives,
+      optimization goals, CTA types) instead of hardcoding them. Prefer this
+      over any remembered list.
+
+  # -- Campaign structure --------------------------------------------------
+  - name: read_campaign_structure
+    area: campaigns
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_ad_entities]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  - name: create_campaign
+    area: campaigns
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_create_campaign]
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: Documented as created paused. Never override that.
+
+  - name: create_ad_set
+    area: ad_sets
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_create_ad_set]
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      Budget lives here for ABO and on the campaign for CBO; never both.
+      entity_type is spelled ad_set (community-reported).
+
+  - name: create_ad
+    area: ads
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_create_ad]
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  - name: update_entity_inactive
+    area: campaigns
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_update_entity]
+    risk_level: update_inactive
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: Editing a paused entity cannot move money today.
+
+  - name: update_entity_active
+    area: campaigns
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_update_entity]
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: Same tool, different risk. Changing a live entity can shift delivery.
+
+  - name: change_budget
+    area: budgets
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_update_entity]
+    risk_level: budget_increase
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: >
+      Always show current and proposed in account currency, read from Meta.
+      Budgets are minor currency units (community-reported); use
+      meta_ads_agent.money for every conversion.
+
+  - name: activate_entity
+    area: campaigns
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_activate_entity]
+    risk_level: activate
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: Starts spending. Only after preview and QA, and only top-down.
+
+  - name: pause_entity
+    area: campaigns
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_update_entity]
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: >
+      Stops spending rather than starting it, so it is the safe direction. Still
+      confirm the entity list first: pausing the wrong ad is a real loss.
+
+  - name: delete_entity
+    area: campaigns
+    preferred_provider: api_fallback
+    fallback_provider: none
+    mcp_tools: []
+    cli: meta-ads-agent api delete
+    risk_level: delete
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: >
+      GAP. Meta's MCP has no delete tool for campaigns, ad sets, or ads.
+      Prefer pausing: deleted objects lose optimisation history permanently.
+      Requires a stated reason why pause is insufficient.
+
+  # -- Creatives and media -------------------------------------------------
+  - name: create_single_image_creative
+    area: creatives
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_create_creative]
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      MCP covers this. Community-reported to take flat params (page_id,
+      image_hash, link_url, message, headline, call_to_action_type) rather than
+      a nested object_story_spec. Fallback exists only for fields the MCP
+      rejects; check first and say why.
+
+  - name: local_image_upload
+    area: images
+    preferred_provider: api_fallback
+    fallback_provider: none
+    mcp_tools: [ads_get_ad_images]
+    cli: meta-ads-agent api upload-image
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      GAP. ads_get_ad_images only lists what is already uploaded. A community
+      source reports an ads_creative_upload_image tool that accepts URLs only,
+      which still leaves local files unsolved. Deduplicated by SHA-256 through
+      the asset manifest so a retry never re-uploads.
+
+  - name: local_video_upload
+    area: videos
+    preferred_provider: api_fallback
+    fallback_provider: none
+    mcp_tools: [ads_get_ad_videos]
+    cli: meta-ads-agent api upload-video
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      GAP. No MCP upload tool. Uses the SDK's chunked upload and polls
+      processing status before the video is usable in a creative.
+
+  - name: create_video_creative
+    area: creatives
+    preferred_provider: api_fallback
+    fallback_provider: none
+    mcp_tools: []
+    cli: meta-ads-agent api create-creative --video
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      GAP. ads_create_creative is documented as single-image link creatives
+      only. Needs a thumbnail, which we derive from the uploaded video.
+
+  - name: create_existing_post_creative
+    area: creatives
+    preferred_provider: api_fallback
+    fallback_provider: none
+    mcp_tools: [ads_boost_ig_post]
+    cli: meta-ads-agent api create-creative --post
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      PARTIAL GAP. ads_boost_ig_post covers Instagram; use it for IG posts.
+      A Facebook Page post has no MCP equivalent. Promoting the existing post
+      preserves its engagement; creating a lookalike dark post does not.
+
+  - name: create_multi_variant_creative
+    area: creatives
+    preferred_provider: api_fallback
+    fallback_provider: none
+    mcp_tools: []
+    cli: meta-ads-agent api create-creative --variants
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      GAP. Multiple copy variants and placement-specific assets need
+      asset_feed_spec, which the MCP does not expose.
+
+  - name: create_carousel_creative
+    area: creatives
+    preferred_provider: none
+    fallback_provider: none
+    mcp_tools: []
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: NOT IMPLEMENTED in 0.1.0. Second milestone. See CHANGELOG roadmap.
+
+  - name: list_creatives
+    area: creatives
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_creatives, ads_get_creative_ads]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  # -- Preview -------------------------------------------------------------
+  - name: ad_preview
+    area: previews
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_ad_preview]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      Covers our needs, so there is no preview fallback. Render the placements
+      the campaign actually targets, not just Feed.
+
+  # -- Insights and diagnosis ---------------------------------------------
+  - name: insights
+    area: insights
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_get_ad_entities
+      - ads_insights_performance_trend
+      - ads_insights_anomaly_signal
+      - ads_insights_auction_ranking_benchmarks
+      - ads_insights_industry_benchmark
+      - ads_insights_advertiser_context
+      - ads_get_opportunity_score
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  - name: activity_log
+    area: diagnostics
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_account_get_activity_logs]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      Distinguishes "performance drifted" from "someone edited the ad set on
+      Tuesday". Use it in every regression investigation.
+
+  - name: delivery_errors
+    area: diagnostics
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_get_errors, ads_get_help_article]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  # -- Signals -------------------------------------------------------------
+  - name: dataset_health
+    area: pixels
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_get_datasets
+      - ads_get_dataset_details
+      - ads_get_dataset_stats
+      - ads_get_dataset_quality
+      - ads_get_customconversions
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      stats and quality are the difference between "a pixel exists" and
+      "events are arriving". Never claim tracking works from existence alone.
+
+  - name: pixel_rules
+    area: pixels
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_pixel_event_read
+      - ads_pixel_event_create
+      - ads_pixel_event_update
+      - ads_pixel_event_delete
+      - ads_pixel_parameter_read
+      - ads_pixel_parameter_create
+      - ads_pixel_parameter_update
+      - ads_pixel_parameter_delete
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: Event rules are created inactive. Deleting a rule can break reporting.
+
+  # -- Audiences -----------------------------------------------------------
+  - name: read_custom_audiences
+    area: audiences
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_get_ad_account_custom_audiences
+      - ads_get_custom_audience
+      - ads_get_custom_audience_adsets
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+
+  - name: create_custom_audience
+    area: audiences
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_create_custom_audience, ads_update_custom_audience]
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: >
+      A lookalike or website audience contains no PII. A customer-file audience
+      does - see upload_customer_list.
+
+  - name: upload_customer_list
+    area: audiences
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_update_custom_audience_users]
+    risk_level: pii_upload
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: >
+      Highest-risk operation available. Requires explicit instruction and a
+      lawful basis. Hash email and phone before transmission. Never log the
+      data, never write it to state, never commit the source file. We add no
+      fallback here on purpose: one path, maximum scrutiny.
+
+  - name: delete_custom_audience
+    area: audiences
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_delete_custom_audience]
+    risk_level: delete
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: Check ads_get_custom_audience_adsets first - live ad sets may target it.
+
+  # -- Catalogs, experiments, research ------------------------------------
+  - name: catalog_management
+    area: catalogs
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_catalog_get_catalogs, ads_catalog_get_diagnostics, ads_catalog_get_dynamic_ads_health]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      34 ads_catalog_* tools cover catalogs, products, sets, feeds, rules, and
+      event sources. Read-level entries listed; writes are ads_catalog_*
+      create/update/delete and carry update_active or delete risk. MCP-only by
+      design - we add no catalog fallback.
+
+  - name: experiments
+    area: experiments
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_experiment_list_tests
+      - ads_experiment_check_eligibility
+      - ads_experiment_abtest_create_test
+      - ads_experiment_abtest_get_test
+      - ads_experiment_abtest_update_test
+      - ads_experiment_lift_create_test
+      - ads_experiment_lift_get_test
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: A test splits live delivery, so creating one affects spend.
+
+  - name: ad_library_research
+    area: ad_library
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_library_search]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: Research only. Extract themes; never clone a competitor's creative.
+
+  # -- Not supported -------------------------------------------------------
+  - name: lead_forms
+    area: lead_forms
+    preferred_provider: none
+    fallback_provider: none
+    mcp_tools: []
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-16
+    notes: >
+      NOT SUPPORTED in 0.1.0. No MCP tool. Lead-gen campaigns can still use an
+      existing form id supplied by the user; we cannot create or read forms.
+
+  - name: automated_rules
+    area: automation
+    preferred_provider: none
+    fallback_provider: none
+    mcp_tools: []
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-16
+    notes: >
+      NOT SUPPORTED, and out of scope by choice. An autonomous spend optimiser
+      contradicts the approval model. See ADR-004.

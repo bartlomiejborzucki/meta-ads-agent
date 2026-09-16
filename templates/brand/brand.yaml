@@ -1,0 +1,121 @@
+# ---------------------------------------------------------------------------
+# Brand configuration
+# ---------------------------------------------------------------------------
+# Structured facts and defaults. Free-form brand voice lives in voice.md next
+# to this file - keep them separate, because the campaign engine has no business
+# caring about tone and the copywriter has no business caring about billing
+# events.
+#
+# NOTHING HERE IS REQUIRED. Most of it is discoverable from Meta, and
+# duplicating a discoverable value invites drift. Fill in a field when you want
+# to pin a default, or when Meta cannot tell us (voice, banned phrases, DSA
+# beneficiary, your own thresholds).
+#
+# Validate after editing:  meta-ads-agent init --check
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+
+name: Your Brand
+website: https://example.com
+# Used when a plan does not specify one. Defaults to `website` if omitted.
+default_destination_url: https://example.com
+one_liner: One sentence a stranger would understand.
+
+# ---------------------------------------------------------------------------
+# Account defaults
+# ---------------------------------------------------------------------------
+# Meta stays authoritative for currency and timezone. These are a cache so a
+# plan can be drafted before an account read finishes; the validator flags a
+# mismatch rather than trusting them.
+account:
+  ad_account_id: null          # act_1234567890
+  currency: null               # e.g. PLN, USD, EUR
+  timezone: null               # e.g. Europe/Warsaw
+  page_id: null                # Facebook Page - mandatory ad identity
+  instagram_account_id: null
+  dataset_id: null             # pixel / dataset used for conversion optimisation
+  conversion_event: null       # e.g. LEAD, PURCHASE
+  countries: []                # e.g. [PL]
+  cta_type: null               # e.g. LEARN_MORE, SIGN_UP
+  objective: null              # current Meta objective, e.g. OUTCOME_LEADS
+
+# ---------------------------------------------------------------------------
+# Naming
+# ---------------------------------------------------------------------------
+# Tokens: {brand} {objective} {audience} {variant} {offer} {date}
+# Consistent names are what let a later report group results, so the same
+# tokens feed the UTM templates below.
+naming:
+  campaign: "{brand} | {objective} | {date}"
+  ad_set: "{audience}"
+  ad: "{variant}"
+  date_format: "%Y-%m-%d"
+
+utm:
+  source: meta
+  medium: paid_social
+  campaign: "{offer}_{date}"
+  content: "{variant}"
+  term: null
+
+# ---------------------------------------------------------------------------
+# EU transparency (DSA)
+# ---------------------------------------------------------------------------
+# Required for ads delivered in the EU/EEA. These name who paid for the ad and
+# who benefits from it. They must come from you or from the account's defaults -
+# never be invented. A plan targeting the EU without them will not validate.
+dsa:
+  beneficiary: null            # legal entity benefiting from the ad
+  payor: null                  # legal entity paying for it
+  applies_to_eu_delivery: true
+
+# ---------------------------------------------------------------------------
+# Your business rules
+# ---------------------------------------------------------------------------
+# These are YOUR policy - not Meta constraints and not media-buying folklore.
+# A configured threshold is treated as binding; an unset one is treated as
+# absent, never as a default opinion. See
+# docs/architecture/adr/ADR-007-heuristics-vs-constraints.md
+thresholds:
+  max_cpa_display: null        # cost per result you will not exceed
+  min_roas: null
+  target_frequency_ceiling: null
+  # Volume floors before a comparison is treated as signal rather than noise.
+  # Below these the honest answer is "insufficient evidence".
+  min_conversions_for_decision: 30
+  min_clicks_for_decision: 500
+  # How far CTR must fall below an entity's OWN baseline before fatigue becomes
+  # a candidate explanation. A default, not a law.
+  ctr_decline_pct_for_fatigue: 30.0
+
+# ---------------------------------------------------------------------------
+# Creative constraints
+# ---------------------------------------------------------------------------
+# Phrases the creative skill must never produce, verbatim.
+banned_phrases: []
+
+# What you may and may not claim. Treated as binding. The creative skill will
+# not invent evidence to support a claim; if the proof is not in your offer
+# brief, the claim does not get made.
+claims_policy: null
+
+# Declare when your ads fall into a Meta special ad category (credit,
+# employment, housing, social issues, elections, politics). Misdeclaring is an
+# account-suspension risk. An empty list asserts none apply - that is a claim
+# you are making, not a safe default.
+special_ad_category: []
+
+# Meta can alter creatives automatically. Declare your defaults so you are
+# never silently enrolled, and so every plan shows what will happen.
+# Example:
+#   advantage_defaults:
+#     standard_enhancements: false
+advantage_defaults: {}
+
+# conservative | standard | experimental
+# Influences how many variants are proposed and how verbose reports are.
+# It never relaxes an approval gate.
+profile: standard
+
+notes: null
