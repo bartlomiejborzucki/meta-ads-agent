@@ -150,10 +150,22 @@ Stated rather than discovered:
   puts the arithmetic in Python; 0.1.0 does not. Flagged in the skill.
 - **Not published to PyPI.** Install from a clone or a git URL — see
   [ADR-009](docs/architecture/adr/ADR-009-distribution.md).
+- **Nothing in this release has run against a real Meta account.** The MCP path
+  is prose the agent follows; the fallback path has only run against a faked
+  SDK. Request shapes are written from Meta's documentation and are
+  unconfirmed.
+- **Three schema fields are declared but consumed by nothing:**
+  `AssetRef.placement`, `TrackingPlan.utm`, and the `naming` / `utm` token
+  templates in `brand.yaml` — there is no token-substitution code, so naming
+  and UTM consistency is not enforced.
+
+The full, grouped gap list — including what is deliberately out of scope — is in
+the README under [What's missing](README.md#whats-missing).
 
 ### Roadmap
 
-Not commitments; a statement of direction.
+Not commitments; a statement of direction. Kept short here because the reasoning
+lives in the README's [What's missing](README.md#whats-missing).
 
 **Second milestone.** Carousel creatives. Placement-specific assets. Existing
 Instagram post campaigns through `ads_boost_ig_post`. Fatigue signal arithmetic
