@@ -331,7 +331,115 @@ Stated rather than discovered:
 - **Rate limits are undocumented** by Meta for this server, so we quote no
   figure we cannot verify.
 
-Full list: [CHANGELOG.md](CHANGELOG.md#limitations-in-010).
+Those are the caveats that apply to what *is* built. For what is **not**
+built, see [What's missing](#whats-missing) below. Full release notes:
+[CHANGELOG.md](CHANGELOG.md#limitations-in-010).
+
+## What's missing
+
+The honest gap list. Grouped by *kind* of gap, because they need different
+things: the first group needs a test account, the second needs a few hours, the
+third needs a decision about scope.
+
+### Never run against Meta
+
+This is the largest gap and the one to read first.
+
+- **No code in this repository has created a campaign on a real Meta account.**
+  The MCP path is prose the agent follows, so there is no code to run; the
+  fallback path (uploads, creatives, deletion) has only ever run against a
+  faked SDK. The request *shapes* are written from Meta's documentation and
+  the SDK's own resource objects, and they are unconfirmed.
+- **No live integration tests ship.** 523 offline tests give 90% line coverage,
+  which proves our logic and proves nothing about Meta's acceptance. The rules
+  for writing them responsibly are in
+  [`tests/live/README.md`](tests/live/README.md); what is needed is a
+  designated test ad account.
+- **The capability map was read, not introspected.** `config/capabilities.yaml`
+  records Meta's published tool reference as of 2026-09-16. No authenticated
+  session has confirmed it. Three tools a community source reports are kept in
+  a separate, explicitly unverified section of
+  [the capability document](docs/research/current-meta-capabilities.md).
+- **The Codex plugin has not been installed.** Codex was not available on the
+  development machine, so `.codex-plugin/plugin.json` is checked against
+  OpenAI's published specification by
+  [a script](scripts/validate_codex_plugin.py), not by a working install.
+- **CI has not run on GitHub.** Every job's steps were run locally and pass;
+  the workflows themselves are unexercised until the first push.
+
+If you have a test account or a Codex install, this is where help is worth the
+most.
+
+### Declared but not wired
+
+Fields that exist in the schema and are read by nothing. They validate, they
+appear in a plan, and then nothing happens — which is worse than their absence,
+because a plan can look configured when it is not.
+
+| Field | State |
+| --- | --- |
+| `AssetRef.placement` | Lets a plan pin an asset to one placement. Nothing consumes it, so placement-specific assets do not actually work. |
+| `brand.yaml` `naming` / `utm` templates | Documented as "substituted at plan time" with `{brand}`, `{objective}`, `{variant}` tokens. **No substitution code exists** — the agent has to expand them in prose, so consistency is not enforced. |
+| `TrackingPlan.utm` | Carried into the plan and validated, but never assembled into a destination URL. |
+
+Each is a small, self-contained piece of work with an obvious home in
+`src/meta_ads_agent/`.
+
+### Promised as code, still prose
+
+[ADR-008](docs/architecture/adr/ADR-008-deterministic-vs-agent-layer.md) says
+arithmetic belongs in Python and judgement in skills. Two places do not yet
+honour that, and both involve numbers that are easy to get quietly wrong:
+
+- **Creative fatigue signals.** CTR against an entity's own baseline, frequency,
+  spend since decline, creative age. The *conclusion* is judgement and belongs
+  in the skill; the *signals* are arithmetic and should not be. Flagged in
+  [the skill](skills/meta-ads-optimize/references/fatigue-signals.md).
+- **Period comparison.** Equal-length window alignment, noise bands, and volume
+  floors are all described in
+  [the report reference](skills/meta-ads-report/references/metrics-and-comparisons.md)
+  and all computed by the model. There is no `report` module.
+
+### Features not built
+
+Roughly in the order they would be useful.
+
+| | Why it is not here |
+| --- | --- |
+| **Carousel creatives** | Needs `asset_feed_spec` work beyond the multi-variant path. Second milestone. |
+| **Instagram existing-post campaigns** | `ads_boost_ig_post` is in the capability map and named in the campaign skill, but the plan format has no IG-post mode — only the Facebook Page path is modelled. |
+| **Lead forms** | No MCP tool exists to create or read them. A campaign can use a form id you supply; we cannot build or inspect one. |
+| **Catalog / dynamic ads** | Meta's MCP has 34 catalog tools and there is no skill workflow over them. Read-level entries only in the registry. |
+| **A/B tests and lift studies** | `ads_experiment_*` is in the capability map with no workflow. Creating a test splits live delivery, so it needs the approval treatment doing properly. |
+| **Lookalike audience workflows** | Creation is covered by the MCP; there is no guided workflow for source selection and sizing. |
+| **Multi-account operation** | Everything assumes one ad account per workspace. |
+| **Scheduled reporting and monitoring** | Deliberately absent from 0.1.0 — see below. |
+
+### Deliberately out of scope
+
+Not gaps. Decisions, with reasoning, that will not change without an ADR:
+
+- **An autonomous spend optimiser.** Contradicts the approval model
+  ([ADR-004](docs/architecture/adr/ADR-004-write-safety.md)).
+- **A generic "run any Graph call" command.** Would void every guardrail here.
+- **A web dashboard, a database, a background daemon.** The agent is the
+  interface; local files are sufficient
+  ([architecture overview](docs/architecture/overview.md)).
+- **A proxy in front of Meta's MCP.** It would make the approval model
+  enforceable rather than advisory, and was considered and rejected for 0.1.0
+  ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md)). If the advisory model
+  proves insufficient in practice, this is the change to revisit — as an
+  opt-in, not a default.
+- **Growing the API fallback.** The six capabilities are the ones Meta's MCP
+  cannot do. Adding a seventh needs a stated reason
+  ([ADR-002](docs/architecture/adr/ADR-002-api-fallback.md)).
+
+### The one that fixes itself
+
+Every capability Meta adds to its official MCP is one we delete. The fallback
+shrinking is the project working as intended, so a report that a tool now
+covers one of our six gaps is among the most useful things you can send:
+[capability change issue](.github/ISSUE_TEMPLATE/capability_change.yml).
 
 ## Documentation
 
