@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# Credentials. Never commit these.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*_token
+*_token.json
+token.json
+credentials.json
+secrets.yaml
+secrets.yml
+
+# ---------------------------------------------------------------------------
+# The brand workspace. Private by default: it holds account ids, performance
+# exports, creative assets, and campaign state. See docs/reference/workspace.md
+# if you deliberately want to version part of it.
+# ---------------------------------------------------------------------------
+.meta-ads/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ---------------------------------------------------------------------------
+# Local agent state that should not be shared
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
