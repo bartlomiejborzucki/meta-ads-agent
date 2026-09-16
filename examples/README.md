@@ -55,9 +55,11 @@ completed. Three things to notice:
 - The recorded failure is `retry_safe: false`, carrying Meta's error code
   100/1885183. The next step is to **query Meta** for an ad under the ad set,
   not to retry the create.
-- `plan_fingerprint` binds this state to the plan that produced it. Editing the
-  plan now blocks the resume, because continuing would apply a different plan
-  to existing structure.
+- `plan_fingerprint` binds this state to the plan that produced it, and it
+  matches `campaign-plan.yaml` here — so a resume would proceed. Change any
+  meaningful field in the plan and the resume blocks instead, because
+  continuing would apply a different plan to existing structure. Worth trying:
+  edit the budget and re-run `meta-ads-agent state`.
 
 ```bash
 meta-ads-agent state acme-webinar-q4   # from a workspace containing this state
