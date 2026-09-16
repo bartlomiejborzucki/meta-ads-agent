@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a capability or workflow
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two things shape what belongs here:
+
+        - **MCP first.** If Meta's official MCP can already do it, the answer
+          is usually a skill change, not new code. Check
+          `meta-ads-agent capabilities`.
+        - **The fallback is meant to shrink.** A request to add an API fallback
+          capability needs to name the MCP tool you checked and why it is
+          insufficient. See
+          `docs/architecture/adr/ADR-002-api-fallback.md`.
+
+        Out of scope on purpose: a web dashboard, a database, an autonomous
+        spend optimiser, and a generic "run any Graph call" command.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: The task, not the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: today
+    attributes:
+      label: What happens today
+      description: >
+        What you tried, and where it fell short. If Meta's MCP has a tool that
+        nearly does it, name the tool.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Where do you think this belongs
+      options:
+        - A skill (workflow, judgement, advice)
+        - The CLI (validation, state, diagnostics)
+        - The API fallback (a capability Meta's MCP lacks)
+        - Documentation
+        - Not sure
+    validations:
+      required: true

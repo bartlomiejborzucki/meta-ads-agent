@@ -1,3 +1,404 @@
 # meta-ads-agent
 
-Placeholder. Written in full before release.
+**Turn a coding agent into a careful Meta Ads operator.**
+
+Nine skills, a validated campaign plan, resumable state, and an approval gate on
+anything that spends — built on top of Meta's **official** Ads MCP server.
+
+> Meta provides the primitives. This project provides the workflow, memory,
+> brand context, validation, safety, QA, resumability, and reporting around
+> them. When Meta's MCP improves, this project's own API surface gets smaller.
+
+```
+You:    Audit my Meta Ads account.
+Agent:  [reads the account, reports what's broken, changes nothing]
+
+You:    Build a campaign for this webinar. 70 PLN/day, Poland, three angles.
+Agent:  [writes a plan, validates it, shows it to you]
+        [creates campaign, ad set, creative, 3 ads — all PAUSED]
+        [renders previews for Feed, Instagram Feed, Stories, Reels]
+        "Created, all PAUSED. One issue: the Stories crop cuts the headline.
+         Nothing is spending. Fix the crop, or activate as is?"
+```
+
+Nothing becomes active without you saying so, explicitly, after seeing it.
+
+---
+
+## Why MCP first
+
+Meta ships a first-party MCP server at `https://mcp.facebook.com/ads` with
+around **90 tools** — accounts, campaigns, ad sets, ads, creatives, previews,
+insights, audiences, datasets, pixel rules, 34 catalog tools, experiments,
+activity logs, and public Ad Library search. It authenticates through your
+browser with Meta OAuth.
+
+So this project does **not** rebuild the Marketing API. Six of the eleven
+community projects reviewed in [the ecosystem audit](docs/research/ecosystem-audit.md)
+do, and it is now a maintenance treadmill with a shrinking payoff.
+
+What nobody had built is the layer above: a plan you can review before anything
+is created, state that survives a failure, a risk model tied to actual spend,
+brand context that lives outside the tool, and an honest separation between what
+Meta enforces and what a practitioner believes.
+
+**Consequence for you:** a default install needs no access token, no app secret,
+and no Facebook Developer App credentials. Nothing to leak, nothing to rotate.
+
+## Why there is a fallback at all
+
+Meta's MCP lists media already on an account (`ads_get_ad_images`,
+`ads_get_ad_videos`) but has no tool that ingests a **local file**. "Upload this
+MP4 and make it an ad" is a first-session request, and without a fallback the
+honest answer is "upload it in Ads Manager first".
+
+So there is a small optional CLI, built on Meta's official
+[`facebook-business`](https://github.com/facebook/facebook-python-business-sdk)
+SDK, covering exactly six gaps:
+
+| Capability | Why it is not the MCP's job |
+| --- | --- |
+| Local image upload | no MCP tool ingests a file |
+| Local video upload | same, plus asynchronous transcoding to wait for |
+| Video creative | `ads_create_creative` is documented as single-image only |
+| Facebook Page existing-post creative | `ads_boost_ig_post` covers Instagram only |
+| Multi-variant creative | `asset_feed_spec` is not exposed |
+| Delete a campaign / ad set / ad | no MCP delete tool (prefer pausing) |
+
+```bash
+meta-ads-agent capabilities --gaps    # the current list, always authoritative
+```
+
+**This list is meant to shrink.** Every entry is a bet that Meta will not ship
+the feature, and we expect to lose those bets. When Meta adds one, we flip the
+provider, deprecate our code, and delete it —
+[ADR-002](docs/architecture/adr/ADR-002-api-fallback.md).
+
+## Safety model
+
+Nothing spends money without you saying so, about that specific thing.
+
+| Operation | What it needs |
+| --- | --- |
+| Read anything | nothing |
+| Create campaigns / ad sets / ads (**PAUSED**) | you asked for something to be built |
+| Edit a paused entity | you asked for the edit |
+| Edit a **live** entity's delivery | explicit approval |
+| Raise a budget | explicit approval, with old and new shown in account currency |
+| Activate anything | explicit approval, **after** previews and QA |
+| Delete | explicit approval, plus why pausing is not enough |
+| Touch many entities at once | the list shown first, then approval |
+| Upload a customer list | explicit instruction and a lawful basis |
+
+- **Everything is created PAUSED.** The campaign plan format has no field for
+  anything else.
+- **"Launch it" is still staged:** build → preview → QA → ask → activate.
+- **Approval is specific.** "Sounds good" said while reviewing a plan is not
+  permission to spend.
+- **Pause beats delete.** Deleted objects lose their optimisation history
+  permanently; paused objects keep it.
+- **Money is never ambiguous.** The account currency is read from Meta before
+  any budget is interpreted. A bare "70" is never assumed to be dollars.
+
+> **Read this honestly:** the model is **advisory**. Meta's MCP write tools
+> execute immediately and belong to Meta's server; this project shapes agent
+> behaviour through skills, but cannot gate a transport it does not own. For a
+> hard guarantee, authorise a read-only session — `ads_read` without
+> `ads_management` makes the entire write surface unavailable. See
+> [ADR-004](docs/architecture/adr/ADR-004-write-safety.md).
+
+## Supported agents
+
+| Host | Status |
+| --- | --- |
+| **Claude Code** | Supported. Manifest validated with `claude plugin validate --strict` against 2.1.273. |
+| **Codex** | Supported, **less tested.** Codex was not installed on the development machine, so the manifest is validated structurally against OpenAI's published `plugin.json` spec rather than by a live install. |
+| Other MCP clients | The skills are plain Markdown and the MCP endpoint is standard. Nothing is host-specific. |
+
+One canonical `skills/` directory; both manifests are thin wrappers over it, and
+CI fails if a second copy appears —
+[ADR-003](docs/architecture/adr/ADR-003-dual-agent-packaging.md).
+
+---
+
+## Install
+
+### Claude Code
+
+```bash
+claude plugin marketplace add OWNER/meta-ads-agent
+claude plugin install meta-ads-agent@meta-ads-agent
+```
+
+Full guide, including local development installs:
+[docs/getting-started/install-claude-code.md](docs/getting-started/install-claude-code.md).
+
+### Codex
+
+Browse `/plugins` in the Codex CLI, install, then start a new session. Details:
+[docs/getting-started/install-codex.md](docs/getting-started/install-codex.md).
+
+### Connect Meta's official MCP
+
+One command, once:
+
+```bash
+claude mcp add --transport http --client-id <YOUR_META_APP_ID> \
+  meta-ads https://mcp.facebook.com/ads
+```
+
+The plugin deliberately does **not** bundle this server. Meta's OAuth client id
+is the **Meta App ID of an app you control**, so any value shipped here would be
+wrong for everyone —
+[ADR-006](docs/architecture/adr/ADR-006-mcp-connection-is-user-owned.md). A
+copy-paste template for either host is in
+[`integrations/`](integrations/README.md).
+
+You need an App ID (a few minutes, not secret, used only as an OAuth client
+identifier). You do **not** need an access token, an app secret, or to implement
+OAuth. Walkthrough:
+[docs/getting-started/connect-meta-mcp.md](docs/getting-started/connect-meta-mcp.md).
+
+### Optional: the local CLI
+
+Needed for `doctor`, `init`, `validate-plan`, `state`, and the six fallback
+capabilities. Not needed to use the skills.
+
+```bash
+uv tool install "git+https://github.com/OWNER/meta-ads-agent.git#egg=meta-ads-agent[api]"
+# no fallback, no credentials ever:
+uv tool install "git+https://github.com/OWNER/meta-ads-agent.git"
+```
+
+Not on PyPI yet, deliberately —
+[ADR-009](docs/architecture/adr/ADR-009-distribution.md).
+
+## Quick start
+
+```bash
+meta-ads-agent doctor     # is everything ready?
+meta-ads-agent init       # create the brand workspace
+```
+
+Then, in your agent:
+
+```
+Audit my Meta Ads account.
+```
+
+```
+Build a paused campaign for this offer: <offer>, landing page <url>,
+70 PLN/day, Poland, using ./creatives/hero.jpg. Three different angles.
+```
+
+No Facebook Developer App with API credentials required. A full worked
+walkthrough, including what going wrong looks like:
+[docs/getting-started/first-campaign.md](docs/getting-started/first-campaign.md).
+
+## Optional: the API fallback
+
+Only if you want local asset upload, video / existing-post / multi-variant
+creatives, or deletion.
+
+```bash
+cp .env.example .env     # add META_ACCESS_TOKEN
+meta-ads-agent doctor    # confirms: READY FOR API FALLBACK
+```
+
+Tokens are never logged, never written to state, and never printed — `doctor`
+shows a hash and a length so you can tell *which* token is configured without
+the value appearing anywhere. Never paste a token into a chat with an agent.
+
+Setup: [docs/getting-started/api-fallback.md](docs/getting-started/api-fallback.md).
+
+## The brand workspace
+
+`meta-ads-agent init` creates `.meta-ads/` in your project — **private by
+default**, because it writes its own `.gitignore`.
+
+```
+.meta-ads/
+  brand.yaml            naming, UTMs, EU DSA entities, your own thresholds
+  voice.md              how your brand sounds
+  account.yaml          cached account facts (Meta stays authoritative)
+  offers/<slug>.yaml    reusable offer briefs
+  campaigns/<slug>/
+    plan.yaml           intent — reviewed before anything is created
+    state.json          what exists on Meta, and where to resume
+    qa.md               preview QA notes
+  assets/manifest.json  local fingerprints → remote ids (upload once, ever)
+  actions.jsonl         what this tool did, and when
+```
+
+Most of it is optional. Currency, timezone, Pages, and datasets are read from
+Meta — a stale local copy is worse than none. Configure what Meta cannot tell
+us: your voice, your banned phrases, your claims policy, your DSA entities, your
+cost thresholds.
+
+Structured facts and free-form voice are deliberately separate files: the
+campaign engine has no business caring about tone, and the copywriter has no
+business caring about billing events.
+
+## Plan, validate, then build
+
+```bash
+meta-ads-agent validate-plan .meta-ads/campaigns/acme-webinar/plan.yaml
+```
+
+```
+INFO     budget.resolved     daily budget at ad_set level: 70.00 PLN (7000 minor units)
+INFO     dsa.present         EU delivery to PL with beneficiary 'Acme Sp. z o.o.'
+INFO     routing.fallback    single_video will use the Business SDK fallback
+WARNING  currency.unverified plan budgets are in PLN, not verified against the account
+ERROR    dsa.missing_fields  targeting PL requires beneficiary, payor
+
+BLOCKED: 1 error(s), 1 warning(s), 3 note(s)
+```
+
+It checks what **Meta** enforces: account state and payability, currency match,
+budget level, identities, dataset and event presence, destination reachability,
+EU transparency fields, special ad categories, and local asset types. Errors
+block; warnings are for you to see.
+
+It does **not** enforce media-buying opinions. A plan that is unusual but valid
+executes — [ADR-007](docs/architecture/adr/ADR-007-heuristics-vs-constraints.md).
+
+## Interrupted builds resume
+
+Not one of the eleven projects audited persists created ids as it goes, so a
+failure after the ad set is created leaves an orphan and a rerun makes a second
+campaign. This is the most common real failure in agent-driven campaign
+creation.
+
+Ids are written the moment they exist:
+
+```bash
+meta-ads-agent state acme-webinar-q4
+```
+
+```
+stage      creatives_created (6/11)
+
+campaign   120210000000001  MCP       PAUSED   Acme | OUTCOME_LEADS | 2026-09-16
+ad_set     120210000000045  MCP       PAUSED   PL - broad 25-55
+video      700000000000031  FALLBACK
+creative   120210000000089  FALLBACK
+
+Failures (1)
+  ads_created (NOT retry-safe): create_ad failed: Invalid parameter
+
+Resume
+  next stage  ads_created
+  Before mutating anything, re-read these objects from Meta. Local state is a
+  convenience; Meta is authoritative.
+```
+
+Not retry-safe means Meta may have applied the write before failing — so the
+next step is to look, not to retry. Local assets are deduplicated by SHA-256,
+so a retry never re-uploads.
+
+## Privacy
+
+No backend, no telemetry, no analytics. Everything stays on your machine; the
+only network destinations are Meta's MCP endpoint and the Marketing API.
+
+Never stored anywhere: access tokens, app secrets, customer data, or reasoning.
+A test asserts that no field in the state or action-log models is named like a
+credential, and the state writer scrubs secret-shaped values on the way to disk.
+
+Details: [docs/reference/privacy.md](docs/reference/privacy.md).
+
+## Limitations
+
+Stated rather than discovered:
+
+- **The approval model is advisory** (above). Use a read-only session for a hard
+  guarantee.
+- **The Codex path is less tested** than the Claude Code path.
+- **No live integration tests ship.** 413 offline tests cover every code path,
+  but nothing confirms Meta accepts the request *shapes*. Doing that responsibly
+  needs a designated test account —
+  [`tests/live/README.md`](tests/live/README.md).
+- **Carousel creatives are not supported.** Planned.
+- **Lead forms cannot be created or read.** A campaign can use a form id you
+  supply.
+- **Automated rules are out of scope** — an autonomous spend optimiser
+  contradicts the approval model.
+- **Capability data is not live-introspected.** It records what was read from
+  Meta's documentation on 2026-09-16; `doctor` warns when an entry is over 90
+  days old.
+- **Meta's MCP access is still rolling out.** Not every account is eligible.
+- **Rate limits are undocumented** by Meta for this server, so we quote no
+  figure we cannot verify.
+
+Full list: [CHANGELOG.md](CHANGELOG.md#limitations-in-010).
+
+## Documentation
+
+| | |
+| --- | --- |
+| [Architecture overview](docs/architecture/overview.md) | how the layers fit |
+| [ADRs](docs/architecture/adr/) | nine decisions, including the rejected options |
+| [Ecosystem audit](docs/research/ecosystem-audit.md) | eleven projects, what each got right and wrong |
+| [Meta capabilities](docs/research/current-meta-capabilities.md) | tool-by-tool, with what it does not assert |
+| [Provenance](docs/research/provenance.md) | per-source license review |
+| [CLI reference](docs/reference/cli.md) | every command |
+| [Capability refresh](docs/reference/capability-refresh.md) | keeping the map honest |
+| [API versioning](docs/reference/api-versioning.md) | Graph version policy |
+| [Contributing](CONTRIBUTING.md) | including where things go, and why |
+
+## Relationship to upstream projects
+
+Eleven community projects were reviewed at pinned commits before any code was
+written. **0.1.0 contains no adapted third-party material** — every influence
+was reimplemented from scratch, and the credit is recorded anyway in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Three of the eleven cannot legally be copied from: one is BUSL-1.1, one has no
+license, and one carries a carve-out withholding rights to its own substance.
+The [provenance review](docs/research/provenance.md) exists to catch exactly
+that.
+
+Ideas gratefully taken and reimplemented — brand workspaces, monitor/executor
+separation, fatigue-diagnosis discipline, arithmetic in code with judgement in
+prose, pause-over-delete and its reasoning, centralised API versioning — are
+credited per source.
+
+## Contributing
+
+Bug reports, capability-change reports, and PRs welcome. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) first — the project has opinions about MCP
+first, about not encoding heuristics as rules, and about the approval model.
+
+Noticed a Meta MCP tool that closes one of our fallback gaps? Please
+[tell us](.github/ISSUE_TEMPLATE/capability_change.yml). It means one fewer
+reason for anyone to hold an access token.
+
+## Security
+
+Do not open a public issue for a vulnerability. See [SECURITY.md](SECURITY.md).
+Anything that could cause unapproved spending, leak a credential, or leak
+customer data is the highest-priority class of bug here.
+
+## Status
+
+**0.1.0 — initial development release. Not production-ready.**
+
+It works, it is tested, and it is honest about what it has not proven. Use it on
+an account you are willing to watch.
+
+## License
+
+[MIT](LICENSE).
+
+## Trademarks and independence
+
+**This project is independent. It is not affiliated with, sponsored by, or
+endorsed by Meta Platforms, Inc., Facebook, Instagram, OpenAI, or Anthropic.**
+
+"Meta", "Facebook", "Instagram", "Messenger", "WhatsApp", "Advantage+",
+"OpenAI", "ChatGPT", "Codex", "Anthropic", and "Claude" are trademarks of their
+respective owners, used here descriptively only to identify the platforms this
+project interoperates with.
+
+The project name is provisional and easy to change.

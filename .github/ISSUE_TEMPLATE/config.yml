@@ -1,0 +1,12 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/OWNER/meta-ads-agent/security/advisories/new
+    about: >
+      Report privately, not in a public issue. Especially anything that could
+      leak a credential or customer data, or bypass an approval gate.
+  - name: Meta Ads platform question
+    url: https://developers.facebook.com/documentation/ads-commerce/
+    about: >
+      Questions about Meta's own API, MCP server, or ad policies. This project
+      is independent and not affiliated with Meta.

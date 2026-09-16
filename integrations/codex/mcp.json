@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "TEMPLATE - not loaded automatically, and deliberately not bundled in the plugin.",
+    "Meta's OAuth client id is the Meta App ID of an app YOU control, so no value",
+    "shipped in this repository could be correct for you. See",
+    "docs/architecture/adr/ADR-006-mcp-connection-is-user-owned.md.",
+    "",
+    "Copy the meta-ads entry into your own Codex MCP configuration and replace the",
+    "client id, then remove these _comment keys. Setup walkthrough:",
+    "docs/getting-started/connect-meta-mcp.md"
+  ],
+  "mcpServers": {
+    "meta-ads": {
+      "type": "http",
+      "url": "https://mcp.facebook.com/ads",
+      "oauth": {
+        "client_id": "<YOUR_META_APP_ID>"
+      }
+    }
+  }
+}

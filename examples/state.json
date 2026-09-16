@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "slug": "acme-webinar-q4",
+  "ad_account_id": "act_0000000000000001",
+  "plan_fingerprint": "sha256:0f2c1a9b8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a3928170605f4e3",
+  "stage": "creatives_created",
+  "created_at": "2026-09-16T09:12:04Z",
+  "updated_at": "2026-09-16T09:18:41Z",
+  "objects": [
+    {
+      "id": "120210000000001",
+      "type": "campaign",
+      "name": "Acme Analytics | OUTCOME_LEADS | 2026-09-16",
+      "provider": "official_mcp",
+      "created_at": "2026-09-16T09:12:11Z",
+      "plan_ref": "campaign",
+      "status_at_creation": "PAUSED"
+    },
+    {
+      "id": "120210000000045",
+      "type": "ad_set",
+      "name": "PL - broad 25-55",
+      "provider": "official_mcp",
+      "created_at": "2026-09-16T09:12:19Z",
+      "plan_ref": "ad_sets[0]",
+      "parent_id": "120210000000001",
+      "status_at_creation": "PAUSED"
+    },
+    {
+      "id": "700000000000031",
+      "type": "video",
+      "name": "angle-a.mp4",
+      "provider": "api_fallback",
+      "created_at": "2026-09-16T09:16:02Z",
+      "plan_ref": "ad_sets[0].ads[0].creative.assets[0]"
+    },
+    {
+      "id": "120210000000089",
+      "type": "creative",
+      "name": "angle-a-time-recovered",
+      "provider": "api_fallback",
+      "created_at": "2026-09-16T09:18:33Z",
+      "plan_ref": "ad_sets[0].ads[0].creative",
+      "parent_id": "120210000000045"
+    }
+  ],
+  "failures": [
+    {
+      "stage": "ads_created",
+      "at": "2026-09-16T09:18:41Z",
+      "message": "create_ad failed at stage ads_created: Invalid parameter",
+      "meta_code": 100,
+      "meta_subcode": 1885183,
+      "retry_safe": false,
+      "plan_ref": "ad_sets[0].ads[0]"
+    }
+  ],
+  "activated": false,
+  "notes": "Video creative used the API fallback because Meta's official MCP creates single-image link creatives only. The ad creation failed; because the failure is not retry-safe, query Meta for an ad under 120210000000045 before creating one."
+}

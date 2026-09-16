@@ -1,0 +1,61 @@
+# Gitleaks configuration.
+#
+# Extends the default rule set with Meta-specific patterns, and allowlists the
+# places where a credential-SHAPED string is deliberately present: test
+# fixtures, redaction tests, and documentation showing what a redacted value
+# looks like.
+#
+# The allowlist is narrow on purpose. A broad path exclusion is how a real
+# secret gets missed.
+
+title = "meta-ads-agent"
+
+[extend]
+useDefault = true
+
+# --- Meta-specific rules ----------------------------------------------------
+
+[[rules]]
+id = "meta-access-token"
+description = "Meta / Facebook access token (EAA-prefixed)"
+regex = '''\bEAA[A-Za-z0-9]{40,}\b'''
+keywords = ["EAA"]
+
+[[rules]]
+id = "meta-app-scoped-secret"
+description = "Meta app-scoped secret (<app_id>|<secret>)"
+regex = '''\b\d{15,17}\|[A-Za-z0-9_\-]{25,}\b'''
+
+[[rules]]
+id = "meta-env-assignment"
+description = "A Meta credential assigned a real-looking value"
+regex = '''(?i)\b(META_ACCESS_TOKEN|META_APP_SECRET)\s*[=:]\s*["']?[A-Za-z0-9|_\-]{20,}'''
+keywords = ["META_ACCESS_TOKEN", "META_APP_SECRET"]
+
+# --- Allowlist --------------------------------------------------------------
+
+[allowlist]
+description = "Deliberately credential-shaped strings"
+
+# Files whose purpose is to contain fake credentials.
+paths = [
+  '''^tests/conftest\.py$''',
+  '''^tests/test_redaction\.py$''',
+  '''^\.gitleaks\.toml$''',
+]
+
+# Synthetic values used in fixtures, docs, and example output. Each is
+# deliberately too short or too obviously fake to be a working credential.
+regexes = [
+  '''test-not-a-real-token-0000''',
+  '''test-not-a-real-secret-0000''',
+  '''EAAnotarealtoken''',
+  '''EAAfaketoken''',
+  '''EAAGZc9fake0Token0Value0000''',
+  '''EAAsecretvalue''',
+  '''<YOUR_META_APP_ID>''',
+  '''<META_APP_ID>''',
+  '''<your token>''',
+  '''sha256:[0-9a-f]{12} \(len \d+\)''',
+  '''\[REDACTED''',
+]

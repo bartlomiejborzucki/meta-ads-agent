@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Dev tooling can move together; a ruff or pytest bump is low risk.
+      dev-tools:
+        patterns: ["ruff", "mypy", "pytest*", "types-*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # facebook-business majors track Graph API versions, so a major here is
+      # an API migration, not a dependency bump. Do it deliberately, following
+      # docs/reference/api-versioning.md.
+      - dependency-name: facebook-business
+        update-types: ["version-update:semver-major"]
+      # Pydantic 3 will be a migration too.
+      - dependency-name: pydantic
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: "ci"

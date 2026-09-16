@@ -1,0 +1,232 @@
+# ---------------------------------------------------------------------------
+# Upstream tracking
+# ---------------------------------------------------------------------------
+# Dependencies and reference projects worth watching, with the commit or
+# release each was reviewed at.
+#
+# .github/workflows/upstream-check.yml checks these on a schedule and opens or
+# updates an issue when a tracked HEAD or release moves. It never auto-merges:
+# a plugin-format change or an SDK major is a migration, not a bump.
+#
+# Meta's official Ads MCP has no public repository and publishes no schemas, so
+# it cannot be watched this way. Its refresh is a documented manual procedure -
+# docs/reference/capability-refresh.md.
+#
+# integration_type:
+#   dependency     installed at runtime from a package registry
+#   format         a specification we must conform to
+#   reference      read for ideas; nothing copied
+#   restricted     cannot be copied from; license forbids it
+# ---------------------------------------------------------------------------
+
+version: 1
+reviewed: 2026-09-16
+
+upstreams:
+
+  # -- Runtime dependency --------------------------------------------------
+  - repo: facebook/facebook-python-business-sdk
+    package: facebook-business
+    purpose: >
+      The official Meta Business SDK. Powers every API fallback call. Handles
+      auth, pagination, retries, request formatting, and chunked video upload
+      with processing polling - all of which we deliberately do not
+      reimplement.
+    license: Facebook Platform License (NOASSERTION on GitHub; not OSI-approved)
+    reviewed_version: 26.0.1
+    reviewed_release_date: 2026-08-25
+    review_date: 2026-09-16
+    integration_type: dependency
+    vendored: false
+    affected_areas:
+      - src/meta_ads_agent/api/
+      - src/meta_ads_agent/api/version.py
+      - pyproject.toml
+    watch: releases
+    notes: >
+      Majors track Graph API versions: 26.x corresponds to v26.0. An upgrade is
+      an API migration, so Dependabot must not auto-merge it. Never vendor the
+      source - the license permits use in connection with Meta's platform, not
+      redistribution.
+
+  # -- Host plugin formats -------------------------------------------------
+  - repo: openai/plugins
+    purpose: >
+      Reference implementations of the Codex plugin format. Our
+      .codex-plugin/plugin.json is validated structurally against the spec in
+      .agents/skills/plugin-creator/references/plugin-json-spec.md.
+    license: none declared at the repository root
+    reviewed_sha: 1dc1958
+    review_date: 2026-09-16
+    integration_type: format
+    affected_areas:
+      - .codex-plugin/plugin.json
+      - integrations/codex/
+      - docs/getting-started/install-codex.md
+    watch: head
+    notes: >
+      Read for the plugin.json specification and for how remote OAuth MCP
+      servers are declared (the Linear and Airtable plugins were the useful
+      examples). Field names are required by the format; no content was copied.
+      The format moved more than once during 2026 - re-check before changing
+      the manifest.
+
+  - repo: anthropics/claude-code
+    purpose: >
+      Claude Code itself, and the plugin and marketplace schemas.
+      `claude plugin validate` is our manifest check in CI.
+    license: Apache-2.0 (documentation and examples)
+    reviewed_version: 2.1.273
+    review_date: 2026-09-16
+    integration_type: format
+    affected_areas:
+      - .claude-plugin/plugin.json
+      - .claude-plugin/marketplace.json
+      - integrations/claude/
+      - docs/getting-started/install-claude-code.md
+    watch: releases
+    notes: >
+      The `skills` manifest field requires a "./"-prefixed path; "skills" and
+      ["skills"] both fail validation. Found by testing against 2.1.273, not
+      from documentation - worth re-testing after an upgrade.
+
+  - repo: anthropics/claude-plugins-official
+    purpose: Marketplace schema and plugin-entry conventions.
+    license: Apache-2.0
+    reviewed_sha: 76c85b7
+    review_date: 2026-09-16
+    integration_type: format
+    affected_areas:
+      - .claude-plugin/marketplace.json
+    watch: head
+
+  # -- Reference projects --------------------------------------------------
+  # Reviewed in docs/research/ecosystem-audit.md. Ideas reimplemented; no code
+  # or text copied. Watched because the ecosystem is where new Meta MCP
+  # behaviour tends to surface first.
+  - repo: sepivip/meta-ads-skill
+    purpose: >
+      The only source written against a live official-MCP session. Named three
+      tools absent from Meta's documentation and reported several contract
+      details. Most likely place to see a Meta MCP change reported early.
+    license: MIT
+    reviewed_sha: ab583c5
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - docs/research/current-meta-capabilities.md
+      - skills/meta-ads-core/references/mcp-tool-map.md
+    watch: head
+
+  - repo: byadsco/meta-ads-mcp
+    purpose: >
+      Best-engineered third-party server. Source of the centralised API version
+      module, the write-vs-read pacing distinction, and the pinned secret
+      scanner - all reimplemented.
+    license: MIT
+    reviewed_sha: 139421a
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - src/meta_ads_agent/api/version.py
+      - skills/meta-ads-core/references/meta-errors.md
+      - .github/workflows/secret-scan.yml
+    watch: head
+
+  - repo: rafaelszago/meta-ads-mcp
+    purpose: >
+      Origin of the brand-workspace concept and the facts/voice separation.
+      Reimplemented with the workspace moved out of the repository.
+    license: MIT
+    reviewed_sha: d004a42
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - templates/brand/
+      - src/meta_ads_agent/workspace.py
+    watch: head
+
+  - repo: kelpi-ai/meta-ads-skills
+    purpose: >
+      Skill decomposition and fatigue-diagnosis discipline: multiple signals,
+      an entity's own baseline, enumerate alternatives.
+    license: MIT
+    reviewed_sha: c046a25
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - skills/meta-ads-optimize/references/fatigue-signals.md
+    watch: head
+
+  - repo: mardab96/meta-ads-skills
+    purpose: >
+      The code/prose split: arithmetic with noise bands and volume floors in
+      Python, judgement in prose.
+    license: MIT
+    reviewed_sha: 388095b
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - skills/meta-ads-report/references/metrics-and-comparisons.md
+    watch: head
+
+  - repo: Sandy-zippy/meta-ads-stack
+    purpose: >
+      Monitor-never-writes separated from executor-applies-approved, and the
+      append-only action log.
+    license: MIT
+    reviewed_sha: e82b4c9
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - src/meta_ads_agent/state/actionlog.py
+    watch: head
+
+  - repo: Digitizers/meta-ads-mcp
+    purpose: >
+      Claude plugin packaging, and the pause-over-delete rationale: deleted
+      objects lose optimisation history permanently.
+    license: MIT-0
+    reviewed_sha: bade982
+    review_date: 2026-09-16
+    integration_type: reference
+    affected_areas:
+      - skills/meta-ads-core/references/safety-policy.md
+      - skills/meta-ads-campaign/references/special-categories-and-dsa.md
+    watch: head
+
+  # -- Restricted: cannot be copied from -----------------------------------
+  - repo: pipeboard-co/meta-ads-mcp
+    purpose: Most-starred project in the space. Read for orientation only.
+    license: Business Source License 1.1 - NOT open source
+    reviewed_sha: 2ef198e
+    review_date: 2026-09-16
+    integration_type: restricted
+    affected_areas: []
+    watch: none
+    notes: >
+      BUSL-1.1 restricts competing products and converts to a permissive
+      license only at a future change date. No code, text, or structure may
+      enter this repository. Reference only.
+
+  - repo: lil-j/meta-ads-mcp
+    purpose: Read/write server split and a preview-QA skill. Orientation only.
+    license: none - all rights reserved by default
+    reviewed_sha: c815259
+    review_date: 2026-09-16
+    integration_type: restricted
+    affected_areas: []
+    watch: none
+
+  - repo: itsfromgaurav/ultimate-meta-ads-skill
+    purpose: Strategy and creative material. Orientation only.
+    license: MIT with a carve-out (NOASSERTION) - see notes
+    reviewed_sha: 269f204
+    review_date: 2026-09-16
+    integration_type: restricted
+    affected_areas: []
+    watch: none
+    notes: >
+      The license explicitly withholds rights to the underlying advertising
+      frameworks, which belong to a commercial book's authors and publisher.
+      Nothing copied: no text, no checklist, no template, no framework name.

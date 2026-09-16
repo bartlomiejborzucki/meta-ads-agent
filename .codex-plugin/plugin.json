@@ -1,0 +1,46 @@
+{
+  "name": "meta-ads-agent",
+  "version": "0.1.0",
+  "description": "Operate Meta (Facebook/Instagram) Ads through Meta's official Ads MCP: account audits, validated campaign plans, paused-by-default builds, placement previews, reporting, and diagnosis before any change. Independent project, not affiliated with Meta.",
+  "author": {
+    "name": "meta-ads-agent contributors",
+    "url": "https://github.com/OWNER/meta-ads-agent"
+  },
+  "homepage": "https://github.com/OWNER/meta-ads-agent",
+  "repository": "https://github.com/OWNER/meta-ads-agent",
+  "license": "MIT",
+  "keywords": [
+    "meta-ads",
+    "facebook-ads",
+    "instagram-ads",
+    "advertising",
+    "marketing",
+    "campaign-management",
+    "mcp"
+  ],
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Meta Ads Agent",
+    "shortDescription": "Run Meta Ads safely from your agent",
+    "longDescription": "Turns a coding agent into a careful Meta Ads operator on top of Meta's official Ads MCP server. Audits an account and separates fact from interpretation. Turns a brief into a validated campaign plan, then builds the campaign, ad set, creative, and ads - all PAUSED - and records every id so an interrupted build resumes instead of duplicating. Renders placement previews and QAs them before anyone is asked to approve spending. Compares equal-length periods with the attribution window stated. Diagnoses a decline before proposing a change, and checks the activity log before blaming the creative. Activation, budget increases, deletion, and customer-list uploads all require explicit approval. A small local CLI fills the few gaps Meta's MCP does not cover - notably uploading an image or video from your filesystem.",
+    "developerName": "meta-ads-agent contributors",
+    "category": "Marketing",
+    "capabilities": [
+      "Audit a Meta ad account read-only",
+      "Plan and validate a campaign before any write",
+      "Build campaigns, ad sets, and ads paused by default",
+      "Upload local images and videos, deduplicated by content",
+      "Render and QA placement previews before launch",
+      "Report on equal-length periods with attribution stated",
+      "Diagnose performance declines before proposing changes"
+    ],
+    "defaultPrompt": [
+      "Audit my Meta Ads account and tell me what is broken.",
+      "Build a paused campaign from this offer brief, three angles.",
+      "Compare the last seven days with the previous seven."
+    ],
+    "websiteURL": "https://github.com/OWNER/meta-ads-agent",
+    "privacyPolicyURL": "https://github.com/OWNER/meta-ads-agent/blob/main/docs/reference/privacy.md",
+    "termsOfServiceURL": "https://github.com/OWNER/meta-ads-agent/blob/main/LICENSE"
+  }
+}

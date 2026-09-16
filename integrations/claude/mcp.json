@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "TEMPLATE - not loaded automatically, and deliberately not bundled in the plugin.",
+    "Meta's OAuth client id is the Meta App ID of an app YOU control, so no value",
+    "shipped in this repository could be correct for you. See",
+    "docs/architecture/adr/ADR-006-mcp-connection-is-user-owned.md.",
+    "",
+    "Preferred: run the one-time command instead of editing JSON:",
+    "  claude mcp add --transport http --client-id <YOUR_META_APP_ID> meta-ads https://mcp.facebook.com/ads",
+    "",
+    "If you would rather edit config by hand, copy the meta-ads entry below into",
+    "your own .mcp.json and replace the client id. Remove these _comment keys."
+  ],
+  "mcpServers": {
+    "meta-ads": {
+      "type": "http",
+      "url": "https://mcp.facebook.com/ads",
+      "oauth": {
+        "client_id": "<YOUR_META_APP_ID>"
+      }
+    }
+  }
+}

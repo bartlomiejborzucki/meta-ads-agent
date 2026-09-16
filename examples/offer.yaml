@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# Example offer brief — a filled-in .meta-ads/offers/<slug>.yaml
+# ---------------------------------------------------------------------------
+# Blank template: templates/campaign/offer.yaml
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+
+name: Live webinar - the report that writes itself
+landing_page: https://acme.example.com/webinar
+
+audience: >
+  Marketing and ops leads at 20-200 person B2B companies who still assemble a
+  weekly performance report by hand, usually in a spreadsheet, usually on a
+  Friday.
+
+problem: >
+  Every Friday disappears into copying numbers between tools. It is the work
+  nobody scheduled and everybody expects.
+
+outcome: >
+  The weekly report assembles itself from the tools they already use, and
+  Friday afternoon goes back to being Friday afternoon.
+
+# THE ONLY EVIDENCE THE CREATIVE SKILL MAY CITE. Anything not listed here does
+# not go in an ad — no invented percentages, no unnamed "hundreds of teams".
+proof:
+  - 340 attendees at the last session
+  - "Runs live, with a real account on screen - not a scripted demo"
+
+price: Free
+
+restrictions:
+  - Do not claim a specific hours-saved figure. We have not measured it.
+  - Do not name customers. We have no written permissions yet.
+  - Do not imply the tool replaces an analyst.
+
+cta: SIGN_UP
+
+creative_notes: >
+  Screen recordings of the actual product outperform stock photography with
+  this audience. The spreadsheet itself is a strong visual: everyone
+  recognises their own.

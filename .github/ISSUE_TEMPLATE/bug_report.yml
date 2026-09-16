@@ -1,0 +1,88 @@
+name: Bug report
+description: Something behaved incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you paste anything:** never include an access token, an app
+        secret, or customer data. `meta-ads-agent doctor` is safe to paste - it
+        reports secrets as a hash, never a value. If you have already pasted a
+        token anywhere, rotate it.
+
+        Ad account ids and campaign ids are not secrets, but they are yours.
+        Redact them if you would rather.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: >
+        The command you ran, or what you asked your agent. If it involved a
+        campaign plan, include the plan with ids redacted.
+      placeholder: |
+        1. meta-ads-agent init
+        2. Asked: "build a paused campaign for ..."
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer
+      options:
+        - A skill behaved wrongly (wrong tool, wrong workflow, bad advice)
+        - The CLI (doctor, init, capabilities, validate-plan, state)
+        - The API fallback (meta-ads-agent api ...)
+        - Installation or the plugin manifest
+        - Connecting Meta's official MCP
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: host
+    attributes:
+      label: Agent host
+      options: [Claude Code, Codex, Other MCP client, Not applicable]
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: meta-ads-agent doctor
+      description: >
+        Paste the output. It never contains a token - configured secrets are
+        shown as a SHA-256 prefix and a length.
+      render: text
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error output
+      description: >
+        Include the Meta error code and subcode if there was one. They are the
+        most useful thing in the message.
+      render: text
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: >
+            This did not involve anything unexpectedly spending money. (If it
+            DID - something activated or a budget changed without your
+            approval - say so above. That is the highest-priority class of bug
+            in this project.)
+          required: false
