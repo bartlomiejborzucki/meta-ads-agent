@@ -119,17 +119,48 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
     if size == 0:
         raise ValidationError(f"asset is empty: {target}")
 
-    header = target.open("rb").read(64) if size >= 4 else b""
+    header = b""
+    if size >= 4:
+        try:
+            with target.open("rb") as stream:
+                header = stream.read(64)
+        except PermissionError as exc:
+            raise ValidationError(f"asset is not readable: {target}") from exc
+        except OSError as exc:
+            raise ValidationError(f"asset could not be read: {target}: {exc}") from exc
     detected = _detect_kind(target, header)
-    resolved = kind or detected
-    if kind and detected and kind is not detected:
+
+    # Unrecognised container with a video extension: ask ffprobe rather than
+    # trusting the filename. An unusual-but-real container should work, and a
+    # text file named .mp4 should not.
+    if (
+        detected is None
+        and target.suffix.lower() in _VIDEO_EXTENSIONS
+        and _ffprobe(target) is not None
+    ):
+        detected = AssetKind.VIDEO
+
+    if kind is not None and detected is not kind:
+        # An explicitly requested kind must be CONFIRMED by the file's own
+        # header, never merely asserted by the caller. Trusting the caller here
+        # would let a plan naming an arbitrary path get that file uploaded to an
+        # ad account - the extension and the request are both untrusted, only
+        # the header is evidence.
+        if detected is None:
+            raise ValidationError(
+                f"cannot confirm {target} is {_article(kind.value)}: its contents do not "
+                "match any supported format. Supported: JPEG, PNG, GIF, BMP, "
+                f"WebP images and {sorted(_VIDEO_EXTENSIONS)} video."
+            )
         raise ValidationError(
             f"{target} looks like a {detected.value} but was used as a "
             f"{kind.value}. Check the plan's creative mode."
         )
+
+    resolved = kind or detected
     if resolved is None:
         raise ValidationError(
-            f"cannot tell what {target} is. Supported: JPEG, PNG, GIF, BMP "
+            f"cannot tell what {target} is. Supported: JPEG, PNG, GIF, BMP, WebP "
             f"images and {sorted(_VIDEO_EXTENSIONS)} video."
         )
 
@@ -179,18 +210,38 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
 
 
 def _detect_kind(path: Path, header: bytes) -> AssetKind | None:
+    """Identify a file from its contents.
+
+    **An extension is never sufficient.** A file named ``.mp4`` containing a
+    shell script is not a video, and uploading it to an ad account because of
+    its name would be exactly the arbitrary-file-upload problem. Only the
+    header counts here; :func:`probe_asset` gives a video-extensioned file one
+    second chance via ffprobe, which is evidence rather than a filename.
+    """
     if _image_mime(header):
         return AssetKind.IMAGE
-    if path.suffix.lower() in _VIDEO_EXTENSIONS:
-        return AssetKind.VIDEO
-    # ISO base media (mp4/mov) has 'ftyp' at offset 4.
-    if len(header) >= 12 and header[4:8] == b"ftyp":
-        return AssetKind.VIDEO
-    if header[:4] == b"\x1a\x45\xdf\xa3":  # Matroska / WebM
-        return AssetKind.VIDEO
-    if header[:4] == b"RIFF" and header[8:12] == b"AVI ":
+    if _video_container(header):
         return AssetKind.VIDEO
     return None
+
+
+def _article(word: str) -> str:
+    return f"an {word}" if word[0] in "aeiou" else f"a {word}"
+
+
+def _video_container(header: bytes) -> bool:
+    """Recognise the common video container headers."""
+    # ISO base media (mp4, m4v, mov) carries 'ftyp' at offset 4.
+    if len(header) >= 12 and header[4:8] == b"ftyp":
+        return True
+    # Matroska and WebM share the EBML magic.
+    if header[:4] == b"\x1a\x45\xdf\xa3":
+        return True
+    # RIFF/AVI.
+    if header[:4] == b"RIFF" and header[8:12] == b"AVI ":
+        return True
+    # Legacy QuickTime atoms that appear before any ftyp.
+    return len(header) >= 8 and header[4:8] in {b"moov", b"mdat", b"free", b"wide"}
 
 
 def _image_mime(header: bytes) -> str | None:
@@ -216,13 +267,20 @@ def _image_dimensions(path: Path, mime: str | None) -> tuple[int | None, int | N
                 data = stream.read(8)
                 if len(data) == 8:
                     width, height = struct.unpack(">II", data)
-                    return int(width), int(height)
+                    # A truncated or fabricated header yields zeros. Report
+                    # "unknown" rather than a nonsense 0x0, so the caller warns
+                    # instead of reasoning about an aspect ratio of 0.
+                    if width and height:
+                        return int(width), int(height)
+                    return None, None
             elif mime == "image/gif":
                 stream.seek(6)
                 data = stream.read(4)
                 if len(data) == 4:
                     width, height = struct.unpack("<HH", data)
-                    return int(width), int(height)
+                    if width and height:
+                        return int(width), int(height)
+                    return None, None
             elif mime == "image/jpeg":
                 return _jpeg_dimensions(stream)
     except OSError:
@@ -261,7 +319,9 @@ def _jpeg_dimensions(stream) -> tuple[int | None, int | None]:  # type: ignore[n
             if len(payload) < 5:
                 return None, None
             height, width = struct.unpack(">HH", payload[1:5])
-            return int(width), int(height)
+            if width and height:
+                return int(width), int(height)
+            return None, None
         stream.seek(length - 2, 1)
 
 

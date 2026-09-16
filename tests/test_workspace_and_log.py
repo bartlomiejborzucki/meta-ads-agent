@@ -240,3 +240,55 @@ class TestCampaignPaths:
 
     def test_listing_an_absent_directory_is_empty(self, tmp_path: Path) -> None:
         assert Workspace.at(tmp_path / ".meta-ads").list_campaigns() == []
+
+
+class TestPathSafety:
+    """A slug names a directory, so it must not be able to escape one."""
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("../../etc", "etc"),
+            ("a/../../b", "a-b"),
+            ("/absolute", "absolute"),
+            ("a\\..\\b", "a-b"),
+            ("....", None),
+            ("..", None),
+        ],
+    )
+    def test_traversal_is_stripped_or_refused(self, raw: str, expected: str | None) -> None:
+        if expected is None:
+            with pytest.raises(WorkspaceError):
+                slugify(raw)
+        else:
+            result = slugify(raw)
+            assert result == expected
+            assert ".." not in result
+            assert "/" not in result
+            assert "\\" not in result
+
+    @pytest.mark.parametrize("raw", ["../../escape", "../sibling", "a/../../../b"])
+    def test_campaign_paths_stay_inside_the_workspace(self, workspace: Workspace, raw: str) -> None:
+        resolved = workspace.campaign_dir(raw).resolve()
+        assert workspace.root.resolve() in resolved.parents
+
+    @pytest.mark.parametrize("raw", ["t", "a", "q4"])
+    def test_short_slugs_are_allowed(self, raw: str) -> None:
+        # A one-character campaign slug is legitimate.
+        assert slugify(raw) == raw
+
+
+class TestFilePermissions:
+    def test_written_files_are_owner_only(self, workspace: Workspace) -> None:
+        """Account ids and performance data should not be world-readable."""
+        import stat
+
+        workspace.write_json(workspace.state_file("t1"), {"a": 1})
+        workspace.write_yaml(workspace.brand_file, {"name": "x"})
+        for path in (
+            workspace.state_file("t1"),
+            workspace.brand_file,
+            workspace.root / ".gitignore",
+        ):
+            mode = stat.S_IMODE(path.stat().st_mode)
+            assert mode & 0o077 == 0, f"{path.name} is {oct(mode)}, not owner-only"

@@ -42,7 +42,8 @@ from meta_ads_agent.errors import WorkspaceError
 WORKSPACE_DIRNAME = ".meta-ads"
 WORKSPACE_ENV_VAR = "META_ADS_WORKSPACE"
 
-_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
+# 1-63 characters: a single-character slug is legitimate.
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
 def slugify(text: str) -> str:

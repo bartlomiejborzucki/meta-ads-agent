@@ -216,3 +216,126 @@ class TestManifest:
         probe = probe_asset(png_file)
         store.remember(probe, "act_1", image_hash="hash_abc")
         assert store.lookup(probe, "act_1") is not None
+
+
+class TestAdversarialInput:
+    """Hostile or malformed input. A plan is trusted input, but not infinitely so."""
+
+    @pytest.mark.parametrize(
+        "target", ["/etc/passwd", "/etc/hostname", "/dev/null", "/proc/self/environ"]
+    )
+    def test_a_non_media_system_file_cannot_become_an_asset(self, target: str) -> None:
+        # Header detection is what stops a plan from making the tool upload an
+        # arbitrary file to an ad account.
+        with pytest.raises(ValidationError):
+            probe_asset(target)
+
+    def test_an_unreadable_file_raises_our_error_not_a_bare_oserror(self, tmp_path: Path) -> None:
+        import os
+
+        if os.geteuid() == 0:
+            pytest.skip("root can read anything")
+        locked = tmp_path / "locked.png"
+        locked.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+        locked.chmod(0o000)
+        try:
+            with pytest.raises(ValidationError, match="not readable"):
+                probe_asset(locked)
+        finally:
+            locked.chmod(0o644)
+
+    def test_a_symlink_to_a_non_media_file_is_rejected(self, tmp_path: Path) -> None:
+        real = tmp_path / "real.txt"
+        real.write_text("not an image at all")
+        link = tmp_path / "link.png"
+        link.symlink_to(real)
+        with pytest.raises(ValidationError, match="cannot tell what"):
+            probe_asset(link)
+
+    def test_a_symlink_to_a_real_image_is_accepted(self, tmp_path: Path) -> None:
+        image = write_png(tmp_path / "real.png", 600, 600)
+        link = tmp_path / "link.png"
+        link.symlink_to(image)
+        probe = probe_asset(link)
+        assert probe.width == 600
+        # Content-addressed, so a symlink and its target are the same asset.
+        assert probe.fingerprint == probe_asset(image).fingerprint
+
+    def test_a_fabricated_png_header_reports_unknown_dimensions(self, tmp_path: Path) -> None:
+        # Not 0x0: an aspect ratio of zero is worse than "we do not know".
+        fake = tmp_path / "fake.png"
+        fake.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 4096)
+        probe = probe_asset(fake)
+        assert probe.width is None
+        assert probe.height is None
+        assert probe.aspect_ratio is None
+        assert any("dimensions" in w for w in probe.warnings)
+
+    def test_a_large_file_is_not_read_into_memory(self, tmp_path: Path) -> None:
+        big = tmp_path / "big.png"
+        big.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * (5 * 1024 * 1024))
+        assert probe_asset(big).size_bytes == 5 * 1024 * 1024 + 8
+
+    def test_unicode_and_spaces_in_an_asset_path(self, tmp_path: Path) -> None:
+        directory = tmp_path / "kreatywne — ąęśćż"
+        directory.mkdir()
+        image = write_png(directory / "hero obraz.png", 1200, 628)
+        assert probe_asset(image).width == 1200
+
+
+class TestKindIsConfirmedNotAsserted:
+    """An explicitly requested kind must be confirmed by the file's contents.
+
+    Regression tests for a real bug: passing ``kind=`` used to bypass detection
+    entirely, so a plan naming an arbitrary path could get that file uploaded
+    to an ad account. The extension and the caller's request are both untrusted
+    input; only the header is evidence.
+    """
+
+    @pytest.mark.parametrize(
+        ("contents", "suffix", "kind"),
+        [
+            (b"this is not an image at all", ".png", AssetKind.IMAGE),
+            (b"#!/bin/sh\nrm -rf /\n", ".png", AssetKind.IMAGE),
+            (b"root:x:0:0:root:/root:/bin/bash\n", ".jpg", AssetKind.IMAGE),
+            (b"this is not a video at all, plain text\n", ".mp4", AssetKind.VIDEO),
+            (b"#!/bin/sh\nrm -rf /\n", ".mp4", AssetKind.VIDEO),
+            (b"<html><body>hi</body></html>", ".mov", AssetKind.VIDEO),
+        ],
+    )
+    def test_a_claimed_kind_is_refused_without_a_matching_header(
+        self, tmp_path: Path, contents: bytes, suffix: str, kind: AssetKind
+    ) -> None:
+        path = tmp_path / f"claimed{suffix}"
+        path.write_bytes(contents)
+        with pytest.raises(ValidationError, match=r"cannot confirm|cannot tell what"):
+            probe_asset(path, kind=kind)
+
+    @pytest.mark.parametrize(
+        ("contents", "suffix"),
+        [
+            (b"\x00\x00\x00\x18ftypisom", ".mp4"),
+            (b"\x00\x00\x00\x18ftypqt  ", ".mov"),
+            (b"\x1a\x45\xdf\xa3", ".webm"),
+            (b"\x00\x00\x00\x10moov", ".mov"),
+            (b"RIFF\x00\x00\x00\x00AVI ", ".avi"),
+        ],
+    )
+    def test_real_container_headers_are_accepted(
+        self, tmp_path: Path, contents: bytes, suffix: str
+    ) -> None:
+        path = tmp_path / f"real{suffix}"
+        path.write_bytes(contents + b"\x00" * 256)
+        assert probe_asset(path, kind=AssetKind.VIDEO).kind is AssetKind.VIDEO
+
+    def test_a_video_extension_alone_is_not_enough(self, tmp_path: Path) -> None:
+        # The bug was here: `.mp4` used to be treated as proof of a video.
+        path = tmp_path / "pretend.mp4"
+        path.write_bytes(b"x" * 4096)
+        with pytest.raises(ValidationError):
+            probe_asset(path)
+
+    def test_an_image_claimed_as_a_video_names_both_kinds(self, tmp_path: Path) -> None:
+        image = write_png(tmp_path / "still.png", 400, 400)
+        with pytest.raises(ValidationError, match="looks like a image"):
+            probe_asset(image, kind=AssetKind.VIDEO)
