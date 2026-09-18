@@ -31,7 +31,10 @@ Meta ships a first-party MCP server at `https://mcp.facebook.com/ads` with
 around **90 tools** — accounts, campaigns, ad sets, ads, creatives, previews,
 insights, audiences, datasets, pixel rules, 34 catalog tools, experiments,
 activity logs, and public Ad Library search. It authenticates through your
-browser with Meta OAuth.
+browser with Meta OAuth, and it is generally available: any app registered on
+Meta's developer dashboard can connect. (Acting on *another* business's
+accounts is the one case that still needs Advanced Access to
+`ads_mcp_management`.)
 
 So this project does **not** rebuild the Marketing API. Six of the eleven
 community projects reviewed in [the ecosystem audit](docs/research/ecosystem-audit.md)
@@ -109,15 +112,29 @@ Nothing spends money without you saying so, about that specific thing.
 
 ## Supported agents
 
-| Host | Status |
-| --- | --- |
-| **Claude Code** | Supported. Manifest validated with `claude plugin validate --strict` against 2.1.273. |
-| **Codex** | Supported, **less tested.** Codex was not installed on the development machine, so the manifest is validated structurally against OpenAI's published `plugin.json` spec rather than by a live install. |
-| Other MCP clients | The skills are plain Markdown and the MCP endpoint is standard. Nothing is host-specific. |
+| Host | How it loads | Connecting Meta |
+| --- | --- | --- |
+| **Claude Code** | `.claude-plugin/plugin.json` → `./skills`, or a marketplace install | `claude mcp add --transport http --client-id <APP_ID> meta-ads …` |
+| **Codex** | `.codex-plugin/plugin.json` → `./skills`, or symlinks in `~/.agents/skills/` | `codex mcp add meta-ads --url … --oauth-client-id <APP_ID>` then `codex mcp login` |
+| Other MCP clients | The skills are plain Markdown; point the client's skills or prompt directory at `skills/` | Any streamable-HTTP MCP client: the endpoint URL and your App ID as the OAuth client id |
 
-One canonical `skills/` directory; both manifests are thin wrappers over it, and
-CI fails if a second copy appears —
-[ADR-003](docs/architecture/adr/ADR-003-dual-agent-packaging.md).
+Both hosts read **the same** `skills/` directory. No `skills-claude/`, no
+`skills-codex/`, no host named anywhere in a skill — CI fails the build if a
+second copy appears, and a separate check fails it if a skill says "in Claude
+Code" or "in Codex"
+([ADR-003](docs/architecture/adr/ADR-003-dual-agent-packaging.md)).
+
+What differs per host is configuration syntax, and only that: Claude Code takes
+`mcpServers` JSON, Codex takes `[mcp_servers.*]` TOML. One template each, in
+[`integrations/`](integrations/README.md).
+
+**Where the Codex path is thinner:** Codex was not installed on the machine this
+was built on, so `.codex-plugin/plugin.json` is checked against OpenAI's
+published specification by
+[a script](scripts/validate_codex_plugin.py) rather than by a live install, and
+the commands in the Codex guide are written from OpenAI's documentation. The
+skills themselves are the same bytes either way. A report with your
+`codex --version` is the most useful thing you can send.
 
 ---
 
@@ -126,7 +143,7 @@ CI fails if a second copy appears —
 ### Claude Code
 
 ```bash
-claude plugin marketplace add OWNER/meta-ads-agent
+claude plugin marketplace add bartlomiejborzucki/meta-ads-agent
 claude plugin install meta-ads-agent@meta-ads-agent
 ```
 
@@ -135,16 +152,58 @@ Full guide, including local development installs:
 
 ### Codex
 
-Browse `/plugins` in the Codex CLI, install, then start a new session. Details:
+```
+/plugins
+```
+
+Browse, install, press Space to enable — then **start a new session**, because
+skills load at session start.
+
+No marketplace entry yet? Skip the plugin machinery entirely and point Codex's
+skills directory at this repository:
+
+```bash
+git clone https://github.com/bartlomiejborzucki/meta-ads-agent.git
+cd meta-ads-agent
+mkdir -p ~/.agents/skills
+for skill in skills/meta-ads-*; do
+  ln -sfn "$PWD/$skill" ~/.agents/skills/"$(basename "$skill")"
+done
+```
+
+Codex reads `~/.agents/skills/` for every project, and `.agents/skills/` inside
+a repository for that repository only. Because these are symlinks, editing a
+`SKILL.md` takes effect in the next session.
+
+Then type `$` to pick a skill explicitly:
+
+```
+$meta-ads-audit
+$meta-ads-campaign
+```
+
+Or just say what you want — every skill's `description` is written as trigger
+text, so "audit my Meta Ads account" matches without naming anything.
+
+Full guide, including the sandbox implications and an `AGENTS.md` snippet that
+pins the approval rule for a repository:
 [docs/getting-started/install-codex.md](docs/getting-started/install-codex.md).
 
 ### Connect Meta's official MCP
 
-One command, once:
+One command, once. Claude Code:
 
 ```bash
 claude mcp add --transport http --client-id <YOUR_META_APP_ID> \
   meta-ads https://mcp.facebook.com/ads
+```
+
+Codex:
+
+```bash
+codex mcp add meta-ads --url https://mcp.facebook.com/ads \
+  --oauth-client-id <YOUR_META_APP_ID>
+codex mcp login meta-ads
 ```
 
 The plugin deliberately does **not** bundle this server. Meta's OAuth client id
@@ -165,9 +224,9 @@ Needed for `doctor`, `init`, `validate-plan`, `state`, and the six fallback
 capabilities. Not needed to use the skills.
 
 ```bash
-uv tool install "git+https://github.com/OWNER/meta-ads-agent.git#egg=meta-ads-agent[api]"
+uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git#egg=meta-ads-agent[api]"
 # no fallback, no credentials ever:
-uv tool install "git+https://github.com/OWNER/meta-ads-agent.git"
+uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git"
 ```
 
 Not on PyPI yet, deliberately —
@@ -307,33 +366,6 @@ A test asserts that no field in the state or action-log models is named like a
 credential, and the state writer scrubs secret-shaped values on the way to disk.
 
 Details: [docs/reference/privacy.md](docs/reference/privacy.md).
-
-## Limitations
-
-Stated rather than discovered:
-
-- **The approval model is advisory** (above). Use a read-only session for a hard
-  guarantee.
-- **The Codex path is less tested** than the Claude Code path.
-- **No live integration tests ship.** 523 offline tests give 90% line coverage of
-  the Python package, but nothing confirms Meta accepts the request *shapes*.
-  Doing that responsibly needs a designated test account —
-  [`tests/live/README.md`](tests/live/README.md).
-- **Carousel creatives are not supported.** Planned.
-- **Lead forms cannot be created or read.** A campaign can use a form id you
-  supply.
-- **Automated rules are out of scope** — an autonomous spend optimiser
-  contradicts the approval model.
-- **Capability data is not live-introspected.** It records what was read from
-  Meta's documentation on 2026-09-16; `doctor` warns when an entry is over 90
-  days old.
-- **Meta's MCP access is still rolling out.** Not every account is eligible.
-- **Rate limits are undocumented** by Meta for this server, so we quote no
-  figure we cannot verify.
-
-Those are the caveats that apply to what *is* built. For what is **not**
-built, see [What's missing](#whats-missing) below. Full release notes:
-[CHANGELOG.md](CHANGELOG.md#limitations-in-010).
 
 ## What's missing
 
@@ -496,12 +528,8 @@ customer data is the highest-priority class of bug here.
 **0.1.0 — initial development release. Not production-ready.**
 
 It works, it is tested, and it is honest about what it has not proven. Use it on
-an account you are willing to watch.
-
-URLs in this repository contain an `OWNER` placeholder until it has a home.
-`python3 scripts/set_repo_owner.py <owner>` fixes all 26 of them;
-[docs/reference/publishing.md](docs/reference/publishing.md) has the rest of the
-steps.
+an account you are willing to watch. [What's missing](#whats-missing) is the
+full gap list, and it is long on purpose.
 
 ## License
 

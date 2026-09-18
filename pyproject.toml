@@ -42,10 +42,10 @@ dev = [
 meta-ads-agent = "meta_ads_agent.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/OWNER/meta-ads-agent"
-Documentation = "https://github.com/OWNER/meta-ads-agent/tree/main/docs"
-Issues = "https://github.com/OWNER/meta-ads-agent/issues"
-Changelog = "https://github.com/OWNER/meta-ads-agent/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/bartlomiejborzucki/meta-ads-agent"
+Documentation = "https://github.com/bartlomiejborzucki/meta-ads-agent/tree/master/docs"
+Issues = "https://github.com/bartlomiejborzucki/meta-ads-agent/issues"
+Changelog = "https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

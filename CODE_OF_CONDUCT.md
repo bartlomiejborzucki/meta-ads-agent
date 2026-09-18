@@ -38,7 +38,7 @@ representing the project publicly.
 ## Enforcement
 
 Report unacceptable behaviour to the maintainers through
-[a private security advisory](https://github.com/OWNER/meta-ads-agent/security/advisories/new)
+[a private security advisory](https://github.com/bartlomiejborzucki/meta-ads-agent/security/advisories/new)
 if you would rather it not be public, or by opening an issue if you would.
 
 Reports will be reviewed and investigated promptly and fairly. Maintainers are

@@ -29,7 +29,7 @@ repository is sufficient for the plugin, which is what the project mostly is.
 **The CLI is installable from a clone or a git URL** at 0.1.0:
 
 ```bash
-uv tool install "git+https://github.com/OWNER/meta-ads-agent.git#egg=meta-ads-agent[api]"
+uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git#egg=meta-ads-agent[api]"
 # or
 git clone ... && uv pip install -e ".[api]"
 ```

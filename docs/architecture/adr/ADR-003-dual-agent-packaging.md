@@ -24,8 +24,9 @@ lands in one and not the other, and reviewers cannot tell which is current.
 
 One canonical `skills/` directory is the only home for skill content. Both manifests are thin
 wrappers over it, carrying host-specific metadata and nothing else. Host-specific MCP
-configuration lives in `integrations/codex/mcp.json` and `integrations/claude/mcp.json` as
-documented templates.
+configuration lives in `integrations/codex/config.toml` and `integrations/claude/mcp.json` as
+documented templates — one per host, because the formats genuinely differ (Codex reads TOML
+`[mcp_servers.*]` tables; Claude Code reads a `mcpServers` JSON object).
 
 Rules:
 
@@ -48,4 +49,5 @@ plus an `integrations/` entry. Reviewers always know which file is canonical.
   CI check keeps name, version, and description consistent across the two.
 - Only Claude Code could be exercised on the development machine (`codex` was not installed),
   so the Codex manifest is validated structurally against OpenAI's published spec rather than
-  by a live install. Recorded as a known limitation in the README.
+  by a live install. The Codex install guide says so, and asks for the `codex --version` in
+  any report.

@@ -25,7 +25,7 @@ the user to say so specifically. The CLI must not become a way around that. See
 ## Setup
 
 ```bash
-git clone https://github.com/OWNER/meta-ads-agent.git
+git clone https://github.com/bartlomiejborzucki/meta-ads-agent.git
 cd meta-ads-agent
 uv sync --extra dev
 uv run pytest

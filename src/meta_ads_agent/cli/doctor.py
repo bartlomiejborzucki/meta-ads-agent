@@ -217,8 +217,8 @@ def _check_mcp_connection(diagnosis: Diagnosis) -> None:
             f"no reference to {MCP_ENDPOINT} found in the host configs checked",
             "claude mcp add --transport http --client-id <META_APP_ID> "
             f"meta-ads {MCP_ENDPOINT}\n"
-            "    (Codex: add the same server to .mcp.json - see "
-            "docs/getting-started/connect-meta-mcp.md)",
+            f"    (Codex: codex mcp add meta-ads --url {MCP_ENDPOINT} "
+            "--oauth-client-id <META_APP_ID>, then codex mcp login meta-ads)",
         )
 
 

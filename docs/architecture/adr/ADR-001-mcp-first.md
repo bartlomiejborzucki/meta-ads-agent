@@ -14,8 +14,12 @@ set / ad lifecycle, single-image creatives, ad previews, entity search and insig
 insight-analysis tools, custom audiences, datasets and pixel rules, 34 catalog tools,
 experiments, activity logs, delivery errors, and Ad Library search — roughly 90 tools.
 
-It also authenticates through Meta OAuth in the browser. A user needs no access token, no app
-secret, and no Facebook Developer App.
+It also authenticates through Meta OAuth in the browser. A user needs no access token and no
+app secret — only a Meta App ID, used as the OAuth client id.
+
+The server is generally available: any app registered on Meta's developer dashboard can
+connect. Acting on another business's accounts needs Advanced Access to
+`ads_mcp_management`; operating your own does not.
 
 ## Decision
 
@@ -39,8 +43,9 @@ alternative client for covered capabilities.
   names can change without notice. Mitigation: never hardcode tool names in code; keep them
   in a dated reference; instruct the agent to introspect the connected server and to trust a
   platform validation error over any local note.
-- Access is rolling out gradually, so some accounts are ineligible. The `doctor` command
-  reports connection status; the skills check account eligibility fields before writing.
+- Connection state is invisible to us: `doctor` can report that a server is configured, not
+  that a session is authorised. The skills therefore make the agent list tools and read the
+  account's own eligibility fields before writing.
 - Rate limits are undocumented. Community reports suggest they are easy to hit on large
   accounts. The skills therefore ask for aggregated queries rather than per-entity loops, and
   we quote no specific number we cannot verify.

@@ -1,13 +1,15 @@
 # Publishing this repository
 
-The repository is complete and ready to push. It has **no git remote** and the
-URLs in it contain an `OWNER` placeholder, because the GitHub owner is not
-knowable in advance — and a wrong owner in an install command is worse than an
-obvious placeholder.
-
-These are the exact steps.
+This repository is published at
+<https://github.com/bartlomiejborzucki/meta-ads-agent>, default branch
+`master`. The steps below are what got it there, kept because they are what a
+fork, a rename, or a second home needs.
 
 ## 1. Set the owner
+
+Until an owner is chosen, every URL in the repository carries an `OWNER`
+placeholder — a wrong owner in an install command is worse than an obvious
+placeholder.
 
 ```bash
 python3 scripts/set_repo_owner.py <your-github-user-or-org>
@@ -16,8 +18,8 @@ python3 scripts/set_repo_owner.py <your-github-user-or-org>
 python3 scripts/set_repo_owner.py <owner> --repo <new-repo-name>
 ```
 
-It rewrites `OWNER/meta-ads-agent` across every tracked Markdown, JSON, TOML,
-and YAML file — 26 occurrences in 13 files. Review the diff and commit:
+It rewrites the placeholder across every tracked Markdown, JSON, TOML, and
+YAML file — 26 occurrences in 14 files. Review the diff and commit:
 
 ```bash
 git diff
@@ -82,17 +84,22 @@ gh repo create <owner>/meta-ads-agent \
 ```
 
 `--source .` uses this checkout, `--remote origin` wires it up, and `--push`
-pushes `main`. It will refuse if `<owner>/meta-ads-agent` already exists —
+pushes the current branch. It will refuse if `<owner>/meta-ads-agent` already exists —
 which is the intended behaviour. Pick a different name rather than forcing it.
 
 **Without the GitHub CLI**, create an empty public repository in the web UI
 (no README, no `.gitignore`, no license — this repository has all three), then:
 
 ```bash
-git remote add origin https://github.com/<owner>/meta-ads-agent.git
-git branch -M main
-git push -u origin main
+git remote add origin git@github.com:<owner>/meta-ads-agent.git
+git push -u origin master
 ```
+
+If you prefer `main` as the branch name, rename it **before** the first push
+(`git branch -M main`) and update the `/blob/master/` and `/tree/master/` URLs
+in `pyproject.toml` and `.codex-plugin/plugin.json` to match. A branch name
+that disagrees with the URLs produces 404s in the package metadata, which
+nothing tests for.
 
 ## 4. Repository settings
 

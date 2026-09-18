@@ -5,7 +5,7 @@ Requires Claude Code v2.1.233 or later.
 ## From this repository
 
 ```bash
-claude plugin marketplace add OWNER/meta-ads-agent
+claude plugin marketplace add bartlomiejborzucki/meta-ads-agent
 claude plugin install meta-ads-agent@meta-ads-agent
 ```
 
@@ -27,7 +27,7 @@ claude plugin list
 Load the plugin for one session without installing it:
 
 ```bash
-git clone https://github.com/OWNER/meta-ads-agent.git
+git clone https://github.com/bartlomiejborzucki/meta-ads-agent.git
 cd meta-ads-agent
 claude --plugin-dir .
 ```
@@ -69,12 +69,15 @@ creatives, and deletion. Also provides `doctor`, `init`, and `validate-plan`,
 which are useful on their own.
 
 ```bash
-uv tool install "meta-ads-agent[api]"
+uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git#egg=meta-ads-agent[api]"
 # or, from a clone:
 uv pip install -e ".[api]"
 # or without the fallback at all:
 uv pip install -e .
 ```
+
+Not on PyPI yet, deliberately —
+[ADR-009](../architecture/adr/ADR-009-distribution.md).
 
 Then:
 

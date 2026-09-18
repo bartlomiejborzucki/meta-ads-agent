@@ -11,8 +11,13 @@ lives here or in the host manifest - see
 | `../.claude-plugin/plugin.json` | Claude Code plugin manifest |
 | `../.claude-plugin/marketplace.json` | Marketplace entry, so the repo can be added as a marketplace |
 | `../.codex-plugin/plugin.json` | Codex plugin manifest, including the `interface` display block |
-| `claude/mcp.json` | Meta MCP config **template** for Claude Code |
-| `codex/mcp.json` | Meta MCP config **template** for Codex |
+| `claude/mcp.json` | Meta MCP config **template** for Claude Code (`mcpServers` JSON) |
+| `codex/config.toml` | Meta MCP config **template** for Codex (`[mcp_servers.*]` TOML) |
+
+The two templates are not the same file in two places: the hosts genuinely
+disagree about the format. Claude Code reads a `mcpServers` object from JSON;
+Codex reads `[mcp_servers.<id>]` tables from `~/.codex/config.toml`, with the
+OAuth client id in a nested `[mcp_servers.<id>.oauth]` table.
 
 Both manifests point at the same `./skills` directory. Neither contains skill
 content, and neither duplicates the other's logic. A CI check fails the build if
@@ -38,7 +43,15 @@ A documented one-time command beats fragile magic:
 # Claude Code
 claude mcp add --transport http --client-id <YOUR_META_APP_ID> \
   meta-ads https://mcp.facebook.com/ads
+
+# Codex
+codex mcp add meta-ads --url https://mcp.facebook.com/ads \
+  --oauth-client-id <YOUR_META_APP_ID>
+codex mcp login meta-ads
 ```
+
+Both hosts can pin the OAuth callback port (`--callback-port`, `oauth.callback_port`)
+for the case where Meta requires a fixed registered redirect.
 
 Full walkthrough, including creating the app:
 [docs/getting-started/connect-meta-mcp.md](../docs/getting-started/connect-meta-mcp.md).
@@ -52,8 +65,11 @@ need to change.
 
 ## Codex: no per-skill interface metadata
 
-`openai/plugins` examples include an optional `agents/openai.yaml` inside each
-skill directory, carrying display metadata for that skill.
+OpenAI's skill documentation describes an optional `agents/openai.yaml` inside
+a skill directory, carrying display metadata and declared MCP tool
+dependencies. It is optional; `name` and `description` in `SKILL.md` are the
+only required metadata, and that is what makes one skills tree serve both
+hosts.
 
 We deliberately omit them. Adding host-specific files inside the canonical
 `skills/` tree is exactly the divergence ADR-003 exists to prevent, and the
@@ -65,7 +81,8 @@ package time rather than committed into `skills/`.
 
 1. Add a manifest in the location that host expects.
 2. Point it at `./skills`.
-3. Add `integrations/<host>/mcp.json` if its MCP configuration format differs.
+3. Add `integrations/<host>/` with a template in that host's own configuration
+   format if it differs.
 4. Teach `doctor` where that host keeps its configuration, so it can detect the
    Meta connection.
 

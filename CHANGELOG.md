@@ -9,10 +9,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
-## [0.1.0] - 2026-09-16
+## [0.1.0] - 2026-09-18
 
-Initial development release. **Not production-ready.** See
-[Limitations](#limitations-in-010).
+Initial development release. **Not production-ready.** The gap list is in the
+README under [What's missing](README.md#whats-missing) - it is long, grouped by
+what each gap needs, and worth reading before you point this at an account.
 
 ### Architecture
 
@@ -110,6 +111,20 @@ readiness separately, and never prints a token.
   adapted third-party material**; every influence is reimplemented or
   reference-only.
 
+### Hosts
+
+- Claude Code and Codex load the same `skills/` directory. `.claude-plugin/` and
+  `.codex-plugin/` are thin manifests over it; no skill names a host, and CI
+  fails the build if a second `SKILL.md` tree or a host-specific phrase appears.
+- Per-host MCP templates in each host's real format:
+  `integrations/claude/mcp.json` (`mcpServers` JSON) and
+  `integrations/codex/config.toml` (`[mcp_servers.meta-ads]` TOML with a nested
+  `oauth.client_id`). Connection commands for both hosts, including
+  `codex mcp login`, in `docs/getting-started/`.
+- Meta's ads MCP server is generally available; connecting needs an App ID as
+  the OAuth client id, not an access token. Acting on another business's
+  accounts needs Advanced Access to `ads_mcp_management`.
+
 ### Project
 
 - MIT licensed. Independent; not affiliated with Meta, OpenAI, or Anthropic.
@@ -120,47 +135,6 @@ readiness separately, and never prints a token.
   pinned Gitleaks over tree and history, and `.gitignore` assertions.
 - Scheduled upstream monitor that opens or updates an issue and never
   auto-merges.
-
-### Limitations in 0.1.0
-
-Stated rather than discovered:
-
-- **The approval model is advisory.** Meta's MCP write tools execute
-  immediately and belong to Meta. This project shapes agent behaviour; it
-  cannot gate a transport it does not own. For a hard guarantee, use a
-  read-only session (`ads_read` without `ads_management`).
-- **The Codex path is less tested than the Claude Code path.** Codex was not
-  installed on the development machine, so its manifest is validated
-  structurally against OpenAI's published specification rather than by a live
-  install.
-- **No live integration tests ship.** The offline suite covers every code path,
-  but nothing confirms Meta accepts the request shapes. Writing those
-  responsibly needs a designated test account. `tests/live/README.md` records
-  the gap and the rules.
-- **Carousel creatives are not supported.** Planned.
-- **Lead forms cannot be created or read.** A campaign can still use a form id
-  the user supplies.
-- **Automated rules are out of scope** — an autonomous spend optimiser
-  contradicts the approval model.
-- **Capability data is not live-introspected.** `config/capabilities.yaml`
-  records what was read from Meta's documentation on 2026-09-16. `doctor` warns
-  when an entry is over 90 days old; refresh with
-  `docs/reference/capability-refresh.md`.
-- **Fatigue signals are computed in the skill, not in code.** The intended split
-  puts the arithmetic in Python; 0.1.0 does not. Flagged in the skill.
-- **Not published to PyPI.** Install from a clone or a git URL — see
-  [ADR-009](docs/architecture/adr/ADR-009-distribution.md).
-- **Nothing in this release has run against a real Meta account.** The MCP path
-  is prose the agent follows; the fallback path has only run against a faked
-  SDK. Request shapes are written from Meta's documentation and are
-  unconfirmed.
-- **Three schema fields are declared but consumed by nothing:**
-  `AssetRef.placement`, `TrackingPlan.utm`, and the `naming` / `utm` token
-  templates in `brand.yaml` — there is no token-substitution code, so naming
-  and UTM consistency is not enforced.
-
-The full, grouped gap list — including what is deliberately out of scope — is in
-the README under [What's missing](README.md#whats-missing).
 
 ### Roadmap
 
@@ -178,5 +152,5 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/OWNER/meta-ads-agent/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/OWNER/meta-ads-agent/releases/tag/v0.1.0
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/releases/tag/v0.1.0

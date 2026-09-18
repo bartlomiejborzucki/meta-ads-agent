@@ -5,6 +5,11 @@ optional.
 
 **Endpoint:** `https://mcp.facebook.com/ads`
 
+Meta's ads MCP server is generally available: any app registered on the
+developer dashboard can connect to it. Managing another business's ad accounts
+on their behalf is the one case that still needs review - Advanced Access to
+`ads_mcp_management`. Operating your own accounts does not.
+
 ## What you need
 
 - A Meta ad account you have admin access to.
@@ -33,8 +38,8 @@ later publishes a public client id, this step disappears.
 2. Create an app, or reuse one you already have.
 3. Add the **Facebook Login for Business** product.
 4. In its settings, add the redirect URL your MCP client uses. Claude Code
-   handles this during `claude mcp add`; for other clients, check their
-   documentation for the redirect they expect.
+   handles this during `claude mcp add`; `codex mcp login` prints the callback
+   URL to register; other clients document their own.
 5. Copy the **App ID** from the app dashboard. It is a long number and it is
    not secret.
 
@@ -60,23 +65,34 @@ claude mcp list
 
 ### Codex
 
-Add the server to your Codex MCP configuration. A copy-paste template is in
-[`integrations/codex/mcp.json`](../../integrations/codex/mcp.json):
+Codex keeps MCP servers in `~/.codex/config.toml`, not in a `mcpServers` JSON
+block. Let the CLI write it:
 
-```json
-{
-  "mcpServers": {
-    "meta-ads": {
-      "type": "http",
-      "url": "https://mcp.facebook.com/ads",
-      "oauth": { "client_id": "<YOUR_META_APP_ID>" }
-    }
-  }
-}
+```bash
+codex mcp add meta-ads --url https://mcp.facebook.com/ads \
+  --oauth-client-id <YOUR_META_APP_ID>
+codex mcp login meta-ads
 ```
 
-Then browse `/plugins` in the Codex CLI to confirm it appears, and start a new
-session - bundled skills and tools load at session start.
+`codex mcp login` prints the callback URL to register in the app's Facebook
+Login for Business settings.
+
+By hand, with the full template in
+[`integrations/codex/config.toml`](../../integrations/codex/config.toml):
+
+```toml
+[mcp_servers.meta-ads]
+url = "https://mcp.facebook.com/ads"
+# scopes = ["ads_mcp_management", "ads_read"]   # read-only setup
+
+[mcp_servers.meta-ads.oauth]
+client_id = "<YOUR_META_APP_ID>"
+# callback_port = 1455                          # pin a registered redirect
+```
+
+Then `codex mcp list`, and start a new session. On older Codex builds remote
+HTTP servers sat behind `experimental_use_rmcp_client = true`; if `url` seems
+ignored, update Codex before reaching for that flag.
 
 ### Other MCP clients
 
@@ -130,7 +146,8 @@ you are connected.
 ## Troubleshooting
 
 **No `ads_` tools.** The server is not configured, or the host needs a restart.
-`claude mcp list` for Claude Code, `/plugins` for Codex.
+`claude mcp list` for Claude Code; `codex mcp list` and `codex mcp login
+meta-ads` for Codex.
 
 **"App that is in development mode."** Your Meta app has not been switched to
 live, or your account is not a test user on it. Either switch the app to live
@@ -143,8 +160,9 @@ no role on any ad account, or the app is missing Facebook Login for Business.
 what the client sent. Check the app's Facebook Login settings against your
 client's documented redirect.
 
-**Connected, but no accounts returned.** Meta is rolling this out gradually.
-Check `is_ads_mcp_enabled` on the account. Access is not yet universal.
+**Connected, but no accounts returned.** The signed-in user has no role on an
+ad account, or you granted a scope set that excludes it. Check the account's
+`is_ads_mcp_enabled` field, then your roles in Business Manager.
 
 **Rate limits.** Meta does not publish a figure for this server, and we will
 not quote one we cannot verify. Community reports suggest limits are easy to hit

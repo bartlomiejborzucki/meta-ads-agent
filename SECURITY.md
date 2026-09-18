@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 **Do not open a public issue.** Use
-[GitHub's private advisory form](https://github.com/OWNER/meta-ads-agent/security/advisories/new).
+[GitHub's private advisory form](https://github.com/bartlomiejborzucki/meta-ads-agent/security/advisories/new).
 
 Please include what you found, how to reproduce it, and what an attacker could
 achieve. If a credential of yours was exposed while finding it, rotate it first.

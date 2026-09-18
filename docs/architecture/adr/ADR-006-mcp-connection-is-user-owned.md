@@ -18,6 +18,7 @@ takes it as a parameter:
 
 ```
 claude mcp add --transport http --client-id <META_APP_ID> meta-ads https://mcp.facebook.com/ads
+codex mcp add meta-ads --url https://mcp.facebook.com/ads --oauth-client-id <META_APP_ID>
 ```
 
 There is no value we could ship that is correct for another user. A hardcoded `client_id`
@@ -30,9 +31,9 @@ Do not bundle a Meta MCP server entry in either manifest. Instead:
 
 - Document a **one-time** connection command per host in
   [docs/getting-started/connect-meta-mcp.md](../../getting-started/connect-meta-mcp.md).
-- Ship `integrations/claude/mcp.json` and `integrations/codex/mcp.json` as copy-paste
-  templates with the app-id placeholder clearly marked, referenced from the docs and from
-  `integrations/README.md`.
+- Ship `integrations/claude/mcp.json` and `integrations/codex/config.toml` as copy-paste
+  templates in each host's own format, with the app-id placeholder clearly marked, referenced
+  from the docs and from `integrations/README.md`.
 - Have `meta-ads-agent doctor` detect whether a Meta MCP server is configured for the
   detected hosts and print the exact command if not.
 - Have the core skill tell the agent to verify the connection by listing tools before

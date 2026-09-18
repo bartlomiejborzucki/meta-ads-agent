@@ -1,0 +1,29 @@
+# TEMPLATE - not loaded automatically, and deliberately not bundled in the
+# plugin. Meta's OAuth client id is the Meta App ID of an app YOU control, so no
+# value shipped in this repository could be correct for you. See
+# docs/architecture/adr/ADR-006-mcp-connection-is-user-owned.md.
+#
+# Preferred: let Codex write this block for you.
+#
+#   codex mcp add meta-ads --url https://mcp.facebook.com/ads \
+#     --oauth-client-id <YOUR_META_APP_ID>
+#   codex mcp login meta-ads
+#
+# `codex mcp login` prints the callback URL to register in the app's Facebook
+# Login for Business settings. By hand: copy the block below into
+# ~/.codex/config.toml and replace the client id.
+#
+# Walkthrough: docs/getting-started/connect-meta-mcp.md
+
+[mcp_servers.meta-ads]
+url = "https://mcp.facebook.com/ads"
+
+# Request only what the work needs. Omitting ads_management is the read-only
+# setup, and the one hard guarantee against an unapproved write.
+# scopes = ["ads_mcp_management", "ads_read"]
+
+[mcp_servers.meta-ads.oauth]
+client_id = "<YOUR_META_APP_ID>"
+
+# Pin the loopback port if you registered a fixed redirect URL with Meta.
+# callback_port = 1455

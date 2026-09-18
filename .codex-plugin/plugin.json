@@ -4,10 +4,10 @@
   "description": "Operate Meta (Facebook/Instagram) Ads through Meta's official Ads MCP: account audits, validated campaign plans, paused-by-default builds, placement previews, reporting, and diagnosis before any change. Independent project, not affiliated with Meta.",
   "author": {
     "name": "meta-ads-agent contributors",
-    "url": "https://github.com/OWNER/meta-ads-agent"
+    "url": "https://github.com/bartlomiejborzucki/meta-ads-agent"
   },
-  "homepage": "https://github.com/OWNER/meta-ads-agent",
-  "repository": "https://github.com/OWNER/meta-ads-agent",
+  "homepage": "https://github.com/bartlomiejborzucki/meta-ads-agent",
+  "repository": "https://github.com/bartlomiejborzucki/meta-ads-agent",
   "license": "MIT",
   "keywords": [
     "meta-ads",
@@ -39,8 +39,8 @@
       "Build a paused campaign from this offer brief, three angles.",
       "Compare the last seven days with the previous seven."
     ],
-    "websiteURL": "https://github.com/OWNER/meta-ads-agent",
-    "privacyPolicyURL": "https://github.com/OWNER/meta-ads-agent/blob/main/docs/reference/privacy.md",
-    "termsOfServiceURL": "https://github.com/OWNER/meta-ads-agent/blob/main/LICENSE"
+    "websiteURL": "https://github.com/bartlomiejborzucki/meta-ads-agent",
+    "privacyPolicyURL": "https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/privacy.md",
+    "termsOfServiceURL": "https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/LICENSE"
   }
 }

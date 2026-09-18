@@ -25,7 +25,8 @@ but does not publish full JSON schemas. Parameter columns are therefore intentio
 | Scopes Meta documents | `ads_mcp_management`, `ads_read`, `ads_management`, `catalog_management`, `business_management`, `pages_show_list`, `instagram_basic` |
 | OAuth client id | The **Meta App ID** of an app you control. Meta's get-started page documents the flow with your own app. |
 | Claude Code install | `claude mcp add --transport http --client-id <META_APP_ID> meta-ads https://mcp.facebook.com/ads` |
-| Codex install | `.mcp.json` entry with `{"type": "http", "url": "...", "oauth": {"client_id": "<META_APP_ID>"}}` |
+| Codex install | `codex mcp add meta-ads --url https://mcp.facebook.com/ads --oauth-client-id <META_APP_ID>`, then `codex mcp login meta-ads`. By hand: a `[mcp_servers.meta-ads]` table in `~/.codex/config.toml` with a nested `[mcp_servers.meta-ads.oauth]` `client_id`. |
+| Availability | Generally available. Any app on Meta's developer dashboard can connect; acting on another business's accounts needs Advanced Access to `ads_mcp_management`. |
 
 The OAuth client id is the reason this project does **not** bundle a Meta MCP server entry in
 its plugin manifests: a hardcoded `client_id` would be wrong for every user. See
@@ -241,4 +242,5 @@ the instruction that a VALIDATION error listing supported fields outranks any lo
 - **Objective and optimization-goal enums.** Deliberately absent. They change. See
   `skills/meta-ads-campaign/references/objectives-and-optimization.md`, which explains how
   to discover them instead of listing them.
-- **Which accounts are eligible.** Meta is rolling access out gradually.
+- **Per-account eligibility.** The server is generally available, but an individual account
+  still exposes `is_ads_mcp_enabled`, and we have not confirmed what makes it false.
