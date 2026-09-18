@@ -10,6 +10,14 @@ this document was written on (`claude mcp list` showed no Meta server). Everythi
 sourced from Meta's own published tool reference, which is authoritative for tool *names*
 but does not publish full JSON schemas. Parameter columns are therefore intentionally coarse.
 
+**Spot-checked 2026-09-18.** Meta's `Ad creation and management` page was
+re-read: all 28 tool names in that category are unchanged, none of them closes
+any of the six fallback gaps (no local upload, no video creative, no Page-post
+creative, no `asset_feed_spec`, no delete for campaigns / ad sets / ads), and
+the server is now documented as generally available rather than gradually
+rolling out. The other categories were not re-read, so their `last_reviewed`
+dates stand.
+
 > Re-verify before trusting this file. See
 > [docs/reference/capability-refresh.md](../reference/capability-refresh.md) for the
 > refresh procedure. `config/capabilities.yaml` is the machine-readable form and carries its

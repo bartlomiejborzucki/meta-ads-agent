@@ -132,7 +132,11 @@ readiness separately, and never prints a token.
   reaches Meta.
 - CI: format, lint, types, tests on Python 3.11-3.13, a wheel install check,
   manifest validation, single-skills-tree enforcement, template validation,
-  pinned Gitleaks over tree and history, and `.gitignore` assertions.
+  pinned Gitleaks over tree and history, and `.gitignore` assertions. Runs on
+  every push to `master` and every pull request, and is green on GitHub's
+  runners.
+- The capability map was spot-checked against Meta's live documentation on
+  2026-09-18: the six fallback gaps all still hold.
 - Scheduled upstream monitor that opens or updates an issue and never
   auto-merges.
 

@@ -396,8 +396,10 @@ This is the largest gap and the one to read first.
   development machine, so `.codex-plugin/plugin.json` is checked against
   OpenAI's published specification by
   [a script](scripts/validate_codex_plugin.py), not by a working install.
-- **CI has not run on GitHub.** Every job's steps were run locally and pass;
-  the workflows themselves are unexercised until the first push.
+- **CI has never run against Meta either.** The full suite is green on
+  GitHub's runners for every push to `master` and every pull request, but it
+  proves our logic, not Meta's acceptance - `META_ACCESS_TOKEN` is explicitly
+  emptied in CI so a stray live call fails loudly.
 
 If you have a test account or a Codex install, this is where help is worth the
 most.
