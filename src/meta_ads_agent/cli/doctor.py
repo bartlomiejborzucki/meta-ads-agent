@@ -12,6 +12,14 @@ fixes:
 
 Absent fallback credentials are never reported as an error. Most users will
 never need them.
+
+It also reports on the installation itself, and keeps those answers distinct
+because they need different fixes: an installation can be *complete*, have an
+*update available*, need a *migration*, be *interrupted* half way through an
+update, or be *broken* - files missing, modified, or left behind by an older
+version. "It says 0.2.0" is not evidence of any of them, which is why the
+check compares the tree against the release manifest rather than reading a
+version number back.
 """
 
 from __future__ import annotations
@@ -64,6 +72,7 @@ class Diagnosis:
     checks: list[Check] = field(default_factory=list)
     mcp_ready: bool = False
     fallback_ready: bool = False
+    installation: dict[str, Any] = field(default_factory=dict)
 
     def add(self, label: str, status: str, detail: str = "", fix: str | None = None) -> Check:
         check = Check(label, status, detail, fix)
@@ -75,6 +84,7 @@ class Diagnosis:
             "version": __version__,
             "mcp_ready": self.mcp_ready,
             "api_fallback_ready": self.fallback_ready,
+            "installation": self.installation,
             "checks": [
                 {"label": c.label, "status": c.status, "detail": c.detail, "fix": c.fix}
                 for c in self.checks
@@ -88,6 +98,7 @@ def run_doctor(*, as_json: bool = False, workspace_hint: str | None = None) -> i
 
     _check_runtime(diagnosis)
     _check_package(diagnosis)
+    _check_installation(diagnosis)
     _check_hosts(diagnosis)
     _check_mcp_connection(diagnosis)
     _check_workspace(diagnosis, workspace_hint)
@@ -165,6 +176,75 @@ def _check_package(diagnosis: Diagnosis) -> None:
             else f" (overridden; default is {DEFAULT_GRAPH_API_VERSION})"
         ),
     )
+
+
+# How each installation status is surfaced. Separated rather than collapsed
+# into ok/not-ok because the fix differs in every row, and a user reading
+# "problem" learns nothing.
+_INSTALL_STATUS = {
+    "complete": ("OK", False),
+    "update-available": ("INFO", False),
+    "migration-required": ("MISSING", False),
+    "interrupted": ("FAIL", True),
+    "broken": ("FAIL", True),
+    "not-installed": ("OPTIONAL", False),
+}
+
+
+def _check_installation(diagnosis: Diagnosis) -> None:
+    """Is the installed payload complete, current, and not mid-update?"""
+    from meta_ads_agent.cli.install_cmd import installation_report
+
+    try:
+        report = installation_report()
+    except MetaAdsAgentError as exc:  # pragma: no cover - defensive
+        diagnosis.add("skills installation", "FAIL", str(exc), "meta-ads-agent install")
+        return
+
+    diagnosis.installation = report
+    status, _fatal = _INSTALL_STATUS.get(report["status"], ("INFO", False))
+    diagnosis.add(
+        "skills installation",
+        status,
+        f"{report['status']}: {report.get('detail', '')}",
+        report.get("fix"),
+    )
+
+    release = report.get("release_version")
+    installed = report.get("installed_version")
+    if release and release != __version__:
+        diagnosis.add(
+            "version skew",
+            "FAIL",
+            f"CLI {__version__} ships release manifest {release} - the package is inconsistent",
+            "Reinstall the CLI: uv tool install --force "
+            '"git+https://github.com/bartlomiejborzucki/meta-ads-agent.git"',
+        )
+    elif installed and installed != release:
+        diagnosis.add(
+            "version skew",
+            "INFO",
+            f"skills {installed}, CLI {__version__}",
+            "meta-ads-agent upgrade",
+        )
+    else:
+        diagnosis.add("version skew", "OK", f"CLI, payload and skills all {__version__}")
+
+    verification = report.get("verification") or {}
+    for key, label in (
+        ("missing", "files missing"),
+        ("modified", "files modified"),
+        ("orphaned", "files from an older version"),
+    ):
+        entries = verification.get(key) or []
+        if entries:
+            shown = ", ".join(entries[:4]) + (" ..." if len(entries) > 4 else "")
+            diagnosis.add(
+                label,
+                "FAIL",
+                f"{len(entries)}: {shown}",
+                "meta-ads-agent install --force",
+            )
 
 
 def _check_hosts(diagnosis: Diagnosis) -> None:
@@ -300,6 +380,21 @@ def _render(diagnosis: Diagnosis) -> None:
     for check in diagnosis.checks:
         status_line(check.label, check.status, check.detail)
 
+    heading("Installation")
+    status = diagnosis.installation.get("status", "unknown")
+    colour = {
+        "complete": "green",
+        "update-available": "yellow",
+        "migration-required": "yellow",
+        "interrupted": "red",
+        "broken": "red",
+        "not-installed": "dim",
+    }.get(status, "dim")
+    echo(f"  {status.upper():<28}  {diagnosis.installation.get('detail', '')}", colour)
+    target = diagnosis.installation.get("target") or {}
+    if target:
+        echo(f"    target: {target.get('windows_path') or target.get('root')}", "dim")
+
     heading("Readiness")
     mcp_configured = any(
         c.label == "Meta Ads MCP configured" and c.status == "READY" for c in diagnosis.checks
@@ -337,6 +432,7 @@ def doctor_json() -> str:
     diagnosis = Diagnosis()
     _check_runtime(diagnosis)
     _check_package(diagnosis)
+    _check_installation(diagnosis)
     _check_hosts(diagnosis)
     _check_mcp_connection(diagnosis)
     _check_workspace(diagnosis, None)

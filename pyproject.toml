@@ -1,6 +1,6 @@
 [project]
 name = "meta-ads-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Agent-native toolkit for operating Meta Ads through Meta's official Ads MCP, with a narrow Marketing API fallback"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -62,10 +62,17 @@ packages = ["src/meta_ads_agent"]
 [tool.hatch.build.targets.wheel.force-include]
 "config/capabilities.yaml" = "meta_ads_agent/_data/capabilities.yaml"
 "skills/meta-ads-core/assets" = "meta_ads_agent/_data/templates"
+# The skills ship inside the wheel as well as in the repository. That is what
+# makes one install command possible: `uv tool install git+...` puts the CLI
+# on the machine and the CLI already has the payload it is about to copy, so
+# the two can never be different versions of the project.
+"skills" = "meta_ads_agent/_data/skills"
+"release-manifest.json" = "meta_ads_agent/_data/release-manifest.json"
 
 [tool.hatch.build.targets.sdist]
 include = [
   "src/", "config/", "skills/", "integrations/", "packaging/",
+  "release-manifest.json",
   "docs/", "examples/", "tests/",
   "README.md", "LICENSE", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
   "upstreams.yaml", ".env.example",

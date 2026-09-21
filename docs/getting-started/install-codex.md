@@ -23,6 +23,12 @@ the third one, and
 push, so a skill that quietly grows a dependency on the repository fails CI
 rather than failing on your machine.
 
+A fourth arrangement has its own page because it fails in its own way:
+**Codex running natively on Windows with the toolchain in WSL** - see
+[install-windows-wsl.md](install-windows-wsl.md). The Codex process cannot
+read the Linux home directory, so the skills have to be copied into the
+Windows profile.
+
 What is **not** supported: taking a `references/` or `assets/` folder without
 the `SKILL.md` that uses it, and assuming the `meta-ads-agent` CLI arrives
 with the skills. It does not.
@@ -81,6 +87,21 @@ connection guide, the plan schema - came with it.
 
 Confirm they loaded by typing `$` - the `meta-ads-*` skills you installed
 should be in the list.
+
+### With the CLI, in one command
+
+If you have the CLI - or are willing to install it - `install` does the copy
+for you and verifies every file against the release manifest, which the
+symlink and `cp -r` routes cannot:
+
+```bash
+uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git"
+meta-ads-agent install          # into ~/.agents/skills
+meta-ads-agent upgrade          # later, to update it
+```
+
+Safe to re-run either way. Updating this way is the only route that removes
+files a newer release dropped; copying over the top leaves them behind.
 
 ### Using them
 

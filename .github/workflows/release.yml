@@ -40,6 +40,14 @@ jobs:
           uv run python scripts/validate_codex_plugin.py
           uv run python scripts/check_single_skills_tree.py
           uv run python scripts/check_gitignore.py
+          uv run python scripts/sync_skill_blocks.py --check
+          uv run python scripts/check_skill_packaging.py
+
+      - name: The packaged tree is the tree that was checked
+        # A release whose manifest disagrees with the payload cannot tell a
+        # complete installation from a partial one, which is the whole point
+        # of having a manifest. Nothing ships past this.
+        run: uv run python scripts/build_release_manifest.py --check
 
       - name: The tag matches the declared version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -83,6 +91,39 @@ jobs:
           uv pip install --python /tmp/clean/bin/python dist/*.whl
           /tmp/clean/bin/meta-ads-agent --version
           /tmp/clean/bin/meta-ads-agent capabilities --validate
+
+      - name: Clean install, then upgrade over an older installation
+        # The two things a release has to be able to do to somebody's
+        # machine. The doctored older install carries a file this release no
+        # longer ships; if it survives, the release does not go out.
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/skills-clean
+          /tmp/clean/bin/meta-ads-agent install \
+            --target path --path /tmp/skills-clean --json > /tmp/install.json
+          cp -r /tmp/skills-clean /tmp/skills-old
+          printf '# left over\n' > /tmp/skills-old/meta-ads-core/references/stale.md
+          python3 - <<'PY'
+          import json, pathlib
+          state = pathlib.Path("/tmp/skills-old/.meta-ads-agent-install.json")
+          data = json.loads(state.read_text())
+          data["version"] = "0.0.1"
+          state.write_text(json.dumps(data))
+          PY
+          /tmp/clean/bin/meta-ads-agent upgrade \
+            --target path --path /tmp/skills-old --json > /tmp/upgrade.json
+          python3 - <<'PY'
+          import json, pathlib
+          fresh = json.load(open("/tmp/install.json"))
+          assert fresh["action"] == "install" and fresh["verification"]["complete"]
+          up = json.load(open("/tmp/upgrade.json"))
+          assert up["action"] == "upgrade", up["action"]
+          assert up["verification"]["complete"], up["verification"]
+          assert not pathlib.Path(
+              "/tmp/skills-old/meta-ads-core/references/stale.md"
+          ).exists(), "a file this release dropped survived the upgrade"
+          print("clean install and upgrade ok")
+          PY
 
       - uses: actions/upload-artifact@v4
         with:

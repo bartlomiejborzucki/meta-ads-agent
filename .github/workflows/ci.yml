@@ -96,6 +96,59 @@ jobs:
           /tmp/clean/bin/meta-ads-agent init --brand "CI Test"
           /tmp/clean/bin/meta-ads-agent init --check
 
+      - name: Clean install from the built wheel
+        run: |
+          mkdir -p /tmp/skills-clean
+          /tmp/clean/bin/meta-ads-agent install \
+            --target path --path /tmp/skills-clean --json > /tmp/install.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open("/tmp/install.json"))
+          assert d["action"] == "install", d["action"]
+          assert d["verification"]["complete"], d["verification"]
+          assert len(d["added"]) > 20, len(d["added"])
+          print("clean install ok:", len(d["added"]), "files")
+          PY
+
+      - name: Upgrade over an older installation keeps nothing stale
+        # Simulates the failure this machinery exists for: an older install
+        # with a file the current release no longer ships, and a version
+        # number claiming to be current.
+        run: |
+          rm -rf /tmp/skills-old && cp -r /tmp/skills-clean /tmp/skills-old
+          printf '# left over\n' > /tmp/skills-old/meta-ads-core/references/from-0.1.0.md
+          python3 - <<'PY'
+          import json, pathlib
+          state = pathlib.Path("/tmp/skills-old/.meta-ads-agent-install.json")
+          data = json.loads(state.read_text())
+          data["version"] = "0.0.1"
+          state.write_text(json.dumps(data))
+          PY
+          /tmp/clean/bin/meta-ads-agent upgrade \
+            --target path --path /tmp/skills-old --json > /tmp/upgrade.json
+          python3 - <<'PY'
+          import json, pathlib, subprocess
+          d = json.load(open("/tmp/upgrade.json"))
+          assert d["action"] == "upgrade", d["action"]
+          assert "meta-ads-core/references/from-0.1.0.md" in d["removed"], d["removed"]
+          assert not pathlib.Path(
+              "/tmp/skills-old/meta-ads-core/references/from-0.1.0.md"
+          ).exists(), "a file dropped by this release survived the upgrade"
+          assert d["verification"]["complete"], d["verification"]
+          print("upgrade ok:", len(d["added"]), "added,", len(d["removed"]), "removed")
+          PY
+
+      - name: The upgrade is idempotent
+        run: |
+          /tmp/clean/bin/meta-ads-agent upgrade \
+            --target path --path /tmp/skills-old --json > /tmp/again.json
+          python3 -c "import json;d=json.load(open('/tmp/again.json'));assert d['action']=='up-to-date',d['action'];print('idempotent ok')"
+
+      - name: Installed payload matches the release manifest
+        run: |
+          /tmp/clean/bin/meta-ads-agent doctor --json > /tmp/doctor2.json
+          python3 -c "import json;d=json.load(open('/tmp/doctor2.json'));print('installation:',d['installation']['status'])"
+
       - name: The documented no-install validation route works
         # The skills tell a user without the CLI to run the validator through
         # uvx. Checked against this checkout rather than the published git
@@ -140,6 +193,11 @@ jobs:
         # The passages that appear in more than one SKILL.md are generated
         # from packaging/shared/. A hand-edited copy fails here.
         run: python3 scripts/sync_skill_blocks.py --check
+
+      - name: The release manifest matches the tree
+        # A release whose manifest disagrees with the payload cannot tell a
+        # complete installation from a partial one.
+        run: python3 scripts/build_release_manifest.py --check
 
       - name: Skills survive every supported install shape
         # Copies the skills out the way a host would - whole tree, and one

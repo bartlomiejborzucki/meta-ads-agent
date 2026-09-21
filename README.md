@@ -197,6 +197,40 @@ Full guide, including the sandbox implications and an `AGENTS.md` snippet that
 pins the approval rule for a repository:
 [docs/getting-started/install-codex.md](docs/getting-started/install-codex.md).
 
+### Codex on Windows, toolchain in WSL
+
+The Codex application is a Windows process and cannot see
+`/home/you/.agents/skills`, so the skills are copied into the Windows profile
+while Python, Node, uv and the repository stay in WSL. One command each way,
+both safe to re-run, both from the WSL terminal:
+
+```bash
+# install
+uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
+  && meta-ads-agent install --target windows-codex
+
+# update
+uv tool upgrade meta-ads-agent && meta-ads-agent upgrade --target windows-codex
+```
+
+Full guide, including OAuth through your existing Windows Chrome profile and
+what the tests cannot verify:
+[docs/getting-started/install-windows-wsl.md](docs/getting-started/install-windows-wsl.md).
+
+### Updating, on any platform
+
+```bash
+meta-ads-agent upgrade     # payload first, then workspace migrations
+meta-ads-agent doctor      # complete / update-available / migration-required /
+                           # interrupted / broken
+```
+
+The update replaces the whole payload against a release manifest rather than
+copying the files that already existed, so new directories and new scripts
+arrive and dropped files do not linger. The version is recorded last, so an
+interrupted update reports itself as interrupted instead of as done -
+`--rollback` restores the backup it took first.
+
 ### Connect Meta's official MCP
 
 One command, once. Claude Code:
@@ -504,7 +538,8 @@ covers one of our six gaps is among the most useful things you can send:
 | [Meta capabilities](docs/research/current-meta-capabilities.md) | tool-by-tool, with what it does not assert |
 | [Provenance](docs/research/provenance.md) | per-source license review |
 | [CLI reference](docs/reference/cli.md) | every command |
-| [Packaging](docs/reference/packaging.md) | supported install shapes, and what works without the CLI |
+| [Packaging](docs/reference/packaging.md) | supported install shapes, updates, migrations, and what works without the CLI |
+| [Codex on Windows + WSL](docs/getting-started/install-windows-wsl.md) | native Windows Codex with the toolchain in WSL |
 | [Capability refresh](docs/reference/capability-refresh.md) | keeping the map honest |
 | [API versioning](docs/reference/api-versioning.md) | Graph version policy |
 | [Workspace](docs/reference/workspace.md) | what `.meta-ads/` holds, and what to version |

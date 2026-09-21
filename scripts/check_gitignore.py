@@ -38,6 +38,7 @@ MUST_IGNORE = (
 # templates a user copies from, and the examples CI validates.
 MUST_NOT_IGNORE = (
     ".env.example",
+    "release-manifest.json",
     "skills/meta-ads-core/assets/brand.yaml",
     "skills/meta-ads-campaign/assets/campaign-plan.yaml",
     "examples/brand.yaml",

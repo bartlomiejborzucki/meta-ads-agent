@@ -20,6 +20,9 @@ it directly. These commands only cover local prerequisites, validation, state,
 and the few capabilities the official MCP does not expose.
 
   meta-ads-agent doctor              is everything ready?
+  meta-ads-agent install             copy the skills where your agent reads them
+  meta-ads-agent upgrade             update the skills, then migrate the workspace
+  meta-ads-agent migrate             workspace migrations only
   meta-ads-agent init                create the brand workspace
   meta-ads-agent capabilities        what routes where
   meta-ads-agent validate-plan FILE  check a plan before anything is created
@@ -123,11 +126,131 @@ def build_parser() -> argparse.ArgumentParser:
     state.add_argument("--json", action="store_true")
     state.add_argument("--list", action="store_true", help="list all campaigns")
 
+    _add_install_parsers(subparsers)
+
     api: argparse.ArgumentParser = _add_api_parser(subparsers)
     # Stashing the bound print_help lets `meta-ads-agent api` with no
     # subcommand show the right help without poking at argparse internals.
     api.set_defaults(api_help=api.print_help)
     return parser
+
+
+def _add_install_parsers(
+    subparsers: argparse._SubParsersAction,  # type: ignore[type-arg]
+) -> None:
+    """Install, upgrade, migrate, and the two Windows hand-offs.
+
+    A host does not run anything for us after it copies a plugin in, so the
+    update path has to be a command somebody types. Keeping it in the CLI
+    also keeps it testable, which a host hook would not be.
+    """
+    target_parent = argparse.ArgumentParser(add_help=False)
+    target_parent.add_argument(
+        "--target",
+        choices=["agents", "windows-codex", "path"],
+        default="agents",
+        help=(
+            "where the skills go: 'agents' for ~/.agents/skills, 'windows-codex' "
+            "for the Windows user profile seen from WSL, 'path' for --path"
+        ),
+    )
+    target_parent.add_argument("--path", help="explicit skills directory (with --target path)")
+    target_parent.add_argument(
+        "--windows-home", help="POSIX path of the Windows user profile, e.g. /mnt/c/Users/you"
+    )
+    target_parent.add_argument("--json", action="store_true")
+    target_parent.add_argument(
+        "--dry-run", action="store_true", help="show what would change, write nothing"
+    )
+
+    install = subparsers.add_parser(
+        "install",
+        parents=[target_parent],
+        help="copy the skills into a directory your agent reads",
+        description=(
+            "Copies the skill payload and verifies every file against the "
+            "release manifest. Safe to re-run: an install that is already "
+            "current does nothing, and a partial one is completed."
+        ),
+    )
+    install.add_argument(
+        "--force", action="store_true", help="rewrite every file, even ones that already match"
+    )
+    install.add_argument(
+        "--no-backup", action="store_true", help="do not archive the current installation first"
+    )
+
+    upgrade = subparsers.add_parser(
+        "upgrade",
+        parents=[target_parent],
+        help="update the skills, then run any outstanding workspace migrations",
+        description=(
+            "The skills first, the workspace second. The installed version is "
+            "recorded only after every file has been verified, so an upgrade "
+            "that is interrupted reports itself as interrupted rather than as "
+            "done."
+        ),
+    )
+    upgrade.add_argument("--workspace", help="workspace to migrate (default: the one found here)")
+    upgrade.add_argument(
+        "--allow-migration-scripts",
+        action="store_true",
+        help="permit migrations carried out by a script shipped in the payload",
+    )
+    upgrade.add_argument(
+        "--rollback", action="store_true", help="restore the most recent backup and stop"
+    )
+
+    migrate = subparsers.add_parser(
+        "migrate",
+        help="apply outstanding workspace migrations, once each",
+        description=(
+            "Operates on .meta-ads/ only. The workspace is copied aside before "
+            "the first change, every migration checks whether its effect is "
+            "already present, and the ledger records each one as it succeeds."
+        ),
+    )
+    migrate.add_argument("--workspace", help="workspace directory (default: the one found here)")
+    migrate.add_argument("--json", action="store_true")
+    migrate.add_argument("--dry-run", action="store_true", help="list what would run")
+    migrate.add_argument(
+        "--allow-migration-scripts",
+        action="store_true",
+        help="permit migrations carried out by a script shipped in the payload",
+    )
+
+    mcp = subparsers.add_parser(
+        "mcp-config",
+        help="add the Meta Ads MCP server to a Codex config.toml",
+        description=(
+            "Writes only the [mcp_servers.meta-ads] block. Every other line of "
+            "the file is preserved byte for byte - it is the user's config, not "
+            "ours."
+        ),
+    )
+    mcp.add_argument("--client-id", help="your Meta App ID, used as the OAuth client id")
+    mcp.add_argument(
+        "--windows",
+        action="store_true",
+        help="write to the Windows profile's .codex/config.toml, from inside WSL",
+    )
+    mcp.add_argument("--windows-home", help="POSIX path of the Windows user profile")
+    mcp.add_argument("--config", help="explicit config.toml path")
+    mcp.add_argument("--json", action="store_true")
+    mcp.add_argument("--dry-run", action="store_true")
+
+    open_url = subparsers.add_parser(
+        "open-url",
+        help="open a URL in the Windows browser (for OAuth from inside WSL)",
+        description=(
+            "Hands the URL to explorer.exe so it lands in the Windows browser "
+            "profile the user is already signed into. There is no Linux "
+            "browser fallback: a browser inside WSL has a different profile, "
+            "so the OAuth round trip would not complete."
+        ),
+    )
+    open_url.add_argument("url", help="https URL to open")
+    open_url.add_argument("--json", action="store_true")
 
 
 def _add_api_parser(
@@ -289,11 +412,61 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
 
         return run_state(args.slug, as_json=args.json, list_all=args.list)
 
+    if args.command in ("install", "upgrade", "migrate", "mcp-config", "open-url"):
+        return _dispatch_install(args)
+
     if args.command == "api":
         return _dispatch_api(args, parser)
 
     parser.print_help()
     return 2
+
+
+def _dispatch_install(args: argparse.Namespace) -> int:
+    from meta_ads_agent.cli import install_cmd
+
+    if args.command == "install":
+        return install_cmd.run_install(
+            target_kind=args.target,
+            path=args.path,
+            windows_home=args.windows_home,
+            force=args.force,
+            no_backup=args.no_backup,
+            dry_run=args.dry_run,
+            as_json=args.json,
+        )
+
+    if args.command == "upgrade":
+        return install_cmd.run_upgrade(
+            target_kind=args.target,
+            path=args.path,
+            windows_home=args.windows_home,
+            workspace_path=args.workspace,
+            allow_scripts=args.allow_migration_scripts,
+            do_rollback=args.rollback,
+            dry_run=args.dry_run,
+            as_json=args.json,
+        )
+
+    if args.command == "migrate":
+        return install_cmd.run_migrate(
+            workspace_path=args.workspace,
+            allow_scripts=args.allow_migration_scripts,
+            dry_run=args.dry_run,
+            as_json=args.json,
+        )
+
+    if args.command == "mcp-config":
+        return install_cmd.run_mcp_config(
+            client_id=args.client_id,
+            windows=args.windows,
+            windows_home=args.windows_home,
+            config_path=args.config,
+            dry_run=args.dry_run,
+            as_json=args.json,
+        )
+
+    return install_cmd.run_open_url(args.url, as_json=args.json)
 
 
 def _dispatch_api(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
