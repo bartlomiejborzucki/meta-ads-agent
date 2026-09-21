@@ -2,8 +2,8 @@
 
 Meta's MCP write tools execute immediately. There is no draft mode, no undo,
 and no confirmation screen. The approval model lives here, in the workflow,
-because that is the only place it can live - see
-`docs/architecture/adr/ADR-004-write-safety.md`.
+because that is the only place it can live - the reasoning is recorded in
+[ADR-004](https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/architecture/adr/ADR-004-write-safety.md).
 
 The failure is asymmetric. A paused campaign the user did not want costs a
 minute of cleanup. An activated one costs their budget.

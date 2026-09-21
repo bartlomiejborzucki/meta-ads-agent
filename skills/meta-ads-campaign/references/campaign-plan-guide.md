@@ -5,7 +5,7 @@ plan rather than re-deriving intent from the conversation - that drift is how
 an agent builds something the user did not approve.
 
 Schema, with every field annotated:
-`templates/campaign/campaign-plan.yaml`.
+[../assets/campaign-plan.yaml](../assets/campaign-plan.yaml).
 
 ## Where it lives
 
@@ -114,8 +114,9 @@ Without account facts, the currency, identity, dataset, and eligibility checks
 cannot run, and the report says `account.not_read`. A plan validated with no
 account context is **not** a plan cleared for execution.
 
-After reading the account from Meta, cache it in `.meta-ads/account.yaml` - see
-`templates/brand/account.yaml` for the shape. Two fields matter especially:
+After reading the account from Meta, cache it in `.meta-ads/account.yaml`. The
+shape is the `account.yaml` template in the `meta-ads-core` skill's `assets/`
+directory: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/assets/account.yaml>. Two fields matter especially:
 
 - `currency_offset` - Meta's own minor-unit multiplier for this account. It
   **outranks** our ISO table.

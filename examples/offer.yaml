@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Example offer brief — a filled-in .meta-ads/offers/<slug>.yaml
 # ---------------------------------------------------------------------------
-# Blank template: templates/campaign/offer.yaml
+# Blank template: skills/meta-ads-core/assets/offer.yaml
 # ---------------------------------------------------------------------------
 
 schema_version: 1

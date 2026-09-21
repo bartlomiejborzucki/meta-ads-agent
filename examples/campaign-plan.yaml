@@ -8,7 +8,7 @@
 #   meta-ads-agent validate-plan examples/campaign-plan.yaml --skip-assets
 #
 # Blank template with every field annotated:
-#   templates/campaign/campaign-plan.yaml
+#   skills/meta-ads-campaign/assets/campaign-plan.yaml
 # ---------------------------------------------------------------------------
 
 schema_version: 1

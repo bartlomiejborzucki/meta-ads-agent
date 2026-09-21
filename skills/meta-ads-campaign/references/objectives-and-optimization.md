@@ -114,5 +114,6 @@ being possible.
 | A practitioner's view | this file, labelled | advises |
 | This advertiser's policy | `brand.yaml` | blocks if configured |
 
-See `docs/architecture/adr/ADR-007-heuristics-vs-constraints.md`. Do not encode
-a heuristic as a hard rule, and do not present one as a platform fact.
+The reasoning is recorded in [ADR-007](https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/architecture/adr/ADR-007-heuristics-vs-constraints.md).
+Do not encode a heuristic as a hard rule, and do not present one as a platform
+fact.

@@ -54,15 +54,18 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/meta_ads_agent"]
 
-# Data files the CLI reads at runtime. Kept in the repo root for editability
-# and copied into the wheel so an installed package is self-sufficient.
+# Data files the CLI reads at runtime. There is one copy of each in the
+# repository and the build puts it where each consumer looks: the workspace
+# templates live inside the meta-ads-core skill so a standalone skill install
+# still has them, and are copied into the wheel so an installed CLI is
+# self-sufficient. See docs/reference/packaging.md.
 [tool.hatch.build.targets.wheel.force-include]
 "config/capabilities.yaml" = "meta_ads_agent/_data/capabilities.yaml"
-"templates" = "meta_ads_agent/_data/templates"
+"skills/meta-ads-core/assets" = "meta_ads_agent/_data/templates"
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "src/", "config/", "templates/", "skills/", "integrations/",
+  "src/", "config/", "skills/", "integrations/", "packaging/",
   "docs/", "examples/", "tests/",
   "README.md", "LICENSE", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
   "upstreams.yaml", ".env.example",

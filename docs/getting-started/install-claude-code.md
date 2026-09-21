@@ -63,10 +63,16 @@ Walkthrough: [connect-meta-mcp.md](connect-meta-mcp.md).
 
 ## Optional: the local CLI
 
-Only needed for capabilities Meta's official MCP does not expose - uploading an
-image or video from your filesystem, video and existing-post and multi-variant
-creatives, and deletion. Also provides `doctor`, `init`, and `validate-plan`,
-which are useful on their own.
+A separate install, and the skills check for it before suggesting it. Audits,
+reporting, Ad Library research, previews, tracking diagnosis, creative, and
+optimisation diagnosis all work with Meta's MCP alone.
+
+Needed for **campaign builds** - plan validation is the gate before the first
+write, and without it a build stops at the plan and offers you the routes
+forward - and for the capabilities Meta's official MCP does not expose:
+uploading an image or video from your filesystem, video / existing-post /
+multi-variant creatives, and deletion. Full breakdown:
+[packaging.md](../reference/packaging.md).
 
 ```bash
 uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git#egg=meta-ads-agent[api]"

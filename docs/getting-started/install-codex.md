@@ -10,9 +10,26 @@ Three things to install, in this order:
 | --- | --- | --- |
 | 1 | The skills, as a plugin or a skills directory | yes |
 | 2 | Meta's official Ads MCP server | yes - it is the execution layer |
-| 3 | The `meta-ads-agent` CLI | only for local uploads and the other gaps |
+| 3 | The `meta-ads-agent` CLI | only for campaign builds and local uploads - see [What needs the CLI](#what-needs-the-cli) |
 
 ## 1. Install the skills
+
+Three shapes are supported and tested: the whole plugin, the whole `skills/`
+tree, and a single `skills/meta-ads-<name>/` directory copied on its own. Each
+skill directory is self-contained - its references and templates are inside
+it, and it points at the repository only by absolute URL. The strict case is
+the third one, and
+[`tests/test_packaging.py`](../../tests/test_packaging.py) asserts it on every
+push, so a skill that quietly grows a dependency on the repository fails CI
+rather than failing on your machine.
+
+What is **not** supported: taking a `references/` or `assets/` folder without
+the `SKILL.md` that uses it, and assuming the `meta-ads-agent` CLI arrives
+with the skills. It does not.
+
+`meta-ads-core` is worth taking alongside whatever else you install. Nothing
+breaks without it - every skill repeats the rules it cannot work without - but
+it is where the routing, safety and workspace detail lives.
 
 ### As a plugin
 
@@ -47,8 +64,23 @@ done
 For one repository instead, link into `<that repo>/.agents/skills/`. Symlinks
 mean an edit to a `SKILL.md` is live in the next session.
 
-Confirm they loaded by typing `$` - the nine `meta-ads-*` skills should be in
-the list.
+### A single skill
+
+Copying one directory out works too, and is the whole point of keeping each
+skill self-contained:
+
+```bash
+git clone --depth 1 https://github.com/bartlomiejborzucki/meta-ads-agent.git /tmp/maa
+mkdir -p ~/.agents/skills
+cp -r /tmp/maa/skills/meta-ads-report ~/.agents/skills/
+cp -r /tmp/maa/skills/meta-ads-core   ~/.agents/skills/
+```
+
+Everything that skill references - its `references/`, its `assets/`, the
+connection guide, the plan schema - came with it.
+
+Confirm they loaded by typing `$` - the `meta-ads-*` skills you installed
+should be in the list.
 
 ### Using them
 
@@ -117,10 +149,35 @@ hard safety guarantee: [connect-meta-mcp.md](connect-meta-mcp.md).
 
 ## 3. Optional: the local CLI
 
-Only for the handful of capabilities Meta's MCP does not expose - uploading an
-image or video from your filesystem, video / existing-post / multi-variant
-creatives, and deletion. `doctor`, `init`, and `validate-plan` are useful on
-their own and need no credentials.
+### What needs the CLI
+
+Separate install, and the skills work without it - but not for everything, and
+they will tell you which is which rather than printing a command you cannot
+run. Each skill probes with `meta-ads-agent --version` before suggesting
+anything that needs it.
+
+| Work | With the MCP alone |
+| --- | --- |
+| Audits, reporting, Ad Library research, previews, tracking diagnosis, creative, optimisation diagnosis and the MCP-side changes that follow it | works fully |
+| The `.meta-ads/` workspace | works - the agent writes the files from the templates in the `meta-ads-core` skill's `assets/` |
+| **Campaign builds** | **stops at the plan.** Plan validation is the gate before the first write, and it is the CLI's job |
+| Local image and video upload, video / existing-post / multi-variant creatives, deletion | not available - these are the CLI's only reason to exist |
+
+When a campaign build hits that wall the agent stops before creating anything
+and offers the routes forward: run the validator through `uvx` without
+installing it, install the CLI, build from the reviewed plan by hand in Ads
+Manager, or keep the plan and carry on with the read-only work. The no-install
+route, if you have `uv`:
+
+```bash
+uvx --from "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
+  meta-ads-agent validate-plan .meta-ads/campaigns/<slug>/plan.yaml
+```
+
+### Installing it
+
+`doctor`, `init`, `validate-plan`, and `state` need no credentials. Only the
+`api` subcommands do.
 
 ```bash
 uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git#egg=meta-ads-agent[api]"
@@ -171,6 +228,17 @@ setting it.
 **No `ads_` tools in the session.** `codex mcp list` to confirm the server is
 registered, then `codex mcp login meta-ads` to (re)authorise. Full
 troubleshooting: [connect-meta-mcp.md](connect-meta-mcp.md#troubleshooting).
+
+**A skill references something that is not there.** That is a packaging bug,
+not a configuration problem - open an issue. The three supported install
+shapes are checked in CI by
+[`scripts/check_skill_packaging.py`](../../scripts/check_skill_packaging.py);
+[docs/reference/packaging.md](../reference/packaging.md) explains what it
+enforces.
+
+**"command not found: meta-ads-agent".** Expected. The CLI is a separate
+install and most work does not need it - see
+[What needs the CLI](#what-needs-the-cli).
 
 **Reporting a Codex-specific problem.** Include your `codex --version` and
 whether the skills came from a plugin or a symlink - the two paths fail

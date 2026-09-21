@@ -15,36 +15,77 @@ description: >-
 Skills reason. Meta's MCP and the Marketing API execute. The user controls
 spending.
 
+<!-- shared:preflight start - generated from packaging/shared/preflight.md by scripts/sync_skill_blocks.py - edit there -->
+## Preflight: two checks, kept separate
+
+These are independent questions with different answers and different
+consequences, so never let one stand in for the other.
+
+**1. Meta's official Ads MCP - the execution layer.** List the tools available
+in this session and look for names beginning `ads_`. If there are none,
+nothing in this skill can run against a real account: say so, and help the
+user connect it - `connect-meta-mcp.md`, under `references/` in the
+`meta-ads-core` skill, or
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/references/connect-meta-mcp.md>.
+The local CLI is not a substitute; it deliberately does not cover what the MCP
+covers.
+
+**2. The local `meta-ads-agent` CLI - optional, separately installed, usually
+absent.** The skills install without it, so assume it is missing until a probe
+says otherwise:
+
+```bash
+meta-ads-agent --version
+```
+
+"command not found" is the expected answer for most users, not a fault, and
+not something to work around. **Do not put a `meta-ads-agent ...` command in
+front of someone before that probe has succeeded.** A command that fails at
+their prompt costs more than the step it was meant to save, and it makes the
+rest of your advice look equally unchecked. Say "that step needs the optional
+CLI, which is not installed here" and carry on with what the MCP can do.
+
+With the MCP connected and no CLI, all of this still works in full: audits,
+reporting, Ad Library research, previews, tracking diagnosis, creative work,
+optimisation diagnosis, and the MCP-side changes that follow it. Workspace
+files under `.meta-ads/` can be written directly - the templates are in the
+`meta-ads-core` skill's `assets/` directory.
+
+Only these need the CLI: campaign plan validation (and therefore campaign
+builds), local image and video upload, video / existing-post / multi-variant
+creatives, and deletion.
+<!-- shared:preflight end -->
+
 ## Before anything else
 
-1. **Confirm the connection.** List your available tools and look for the Meta
-   Ads MCP (tool names begin `ads_`). If it is absent, stop and point the user
-   at `docs/getting-started/connect-meta-mcp.md`. Do not offer the API fallback
-   as a substitute - it deliberately does not cover what the MCP covers.
-2. **Read the account.** `ads_get_ad_accounts`. You need `currency` and
+1. **Read the account.** `ads_get_ad_accounts`. You need `currency` and
    `timezone` before you can interpret any number, and you should check
    `is_ads_mcp_enabled`, `is_queryable`, and `has_payment_method` before any
    write. An account with no payment method will create objects happily and
    never deliver.
-3. **Read the brand workspace** if one exists: `.meta-ads/brand.yaml` for
-   defaults and thresholds, `.meta-ads/voice.md` for tone. Run
-   `meta-ads-agent init` if the user wants one and there is none.
+2. **Read the brand workspace** if one exists: `.meta-ads/brand.yaml` for
+   defaults and thresholds, `.meta-ads/voice.md` for tone. If the user wants
+   one and there is none, create it: `meta-ads-agent init` where the CLI is
+   installed, otherwise write the files yourself from the templates in this
+   skill's [assets/](assets/) directory - they are the same files.
 
 ## Routing: MCP first
 
 ```
 Does Meta's official MCP have a tool for this?
   yes -> use it
-  no  -> is it in the fallback?  meta-ads-agent capabilities --gaps
-           yes -> use the CLI, and tell the user which gap you are filling
+  no  -> is it one of the six gaps below?
+           yes -> the CLI covers it, if the user has the CLI. Name the gap.
            no  -> say it is not supported; do not improvise
 ```
 
 The fallback covers exactly six things today: local image upload, local video
 upload, video creatives, Facebook Page existing-post creatives, multi-variant
-creatives, and deletion. Everything else is the MCP's job. Never reach for the
-fallback because it feels easier - `meta-ads-agent capabilities <name>` will
-tell you who owns a capability and why.
+creatives, and deletion. Everything else is the MCP's job, and the list is in
+[references/execution-routing.md](references/execution-routing.md) so you do
+not have to run anything to read it. Never reach for the fallback because it
+feels easier. Where the CLI is installed, `meta-ads-agent capabilities <name>`
+gives the same answer with the reasoning attached.
 
 When you do use the fallback, say so plainly: *"Meta's official MCP does not
 currently expose local video upload, so this step used the Business SDK
@@ -82,10 +123,11 @@ Full policy: [references/safety-policy.md](references/safety-policy.md).
 
 Read the account currency before you interpret a budget. A bare "70" is not
 dollars - it is 70 of whatever the account bills in, and on some accounts Meta
-expects minor units. Do not do this arithmetic in your head:
+expects minor units. Do not do this arithmetic in your head - the validator
+reports every budget in both units:
 
-```
-meta-ads-agent validate-plan <plan>   # reports every budget in both units
+```bash
+meta-ads-agent validate-plan <plan>
 ```
 
 When you report a budget change, always give the old value, the new value, and
@@ -104,17 +146,56 @@ Write the plan to `.meta-ads/campaigns/<slug>/plan.yaml`, validate it with
 Once it validates, **execute the plan, not the conversation** - re-deriving
 intent from chat history is how an agent drifts from what the user approved.
 
+<!-- shared:no-cli-writes start - generated from packaging/shared/no-cli-writes.md by scripts/sync_skill_blocks.py - edit there -->
+## Building with no CLI: stop at the plan
+
+Plan validation is the gate between a draft and spent money. It checks the
+things that are invisible to a careful reader: minor-unit currency
+arithmetic, a budget set on exactly one level, whether the Page, Instagram
+identity and dataset actually exist on this account, EU transparency fields,
+special-ad-category consistency, and whether each local asset is the type it
+claims to be. Reading the plan attentively is not the same check.
+
+So when the probe says the CLI is absent: write the plan, show it, and **stop
+before the first write.** Do not create objects and validate afterwards - a
+wrong campaign that already exists is much harder to argue with than one that
+does not, even paused.
+
+Then give the user the routes forward, and say which you recommend:
+
+1. **Validate without installing anything**, if `uv` is on their PATH:
+   ```bash
+   uvx --from "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
+     meta-ads-agent validate-plan <plan>
+   ```
+2. **Install it**, if they expect to build campaigns again:
+   ```bash
+   uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git"
+   meta-ads-agent doctor
+   ```
+3. **Build it by hand** in Ads Manager from the plan you just showed them. The
+   plan is a complete specification; it does not need this tooling to be
+   useful.
+4. **Leave the plan as the deliverable** and continue with the read-only work -
+   audit, research, creative, reporting - none of which needs the CLI.
+
+Offering no route forward is not an answer, and neither is quietly proceeding.
+<!-- shared:no-cli-writes end -->
+
 ## State and resumability
 
 Record every created id in `.meta-ads/campaigns/<slug>/state.json` **the moment
 it exists**, before starting the next write. If a build fails halfway, a rerun
 must continue, not start over.
 
-Resuming:
+Resuming, where the CLI is installed:
 
-```
+```bash
 meta-ads-agent state <slug>     # what exists, and what comes next
 ```
+
+Without it, read `state.json` directly - it records the stage, the ids, and
+the plan fingerprint, and it is plain JSON.
 
 Then re-read those objects from Meta before touching them. **Local state is a
 convenience; Meta is authoritative.** The user may have changed things in Ads
