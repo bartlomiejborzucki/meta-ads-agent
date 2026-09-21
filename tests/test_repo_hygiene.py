@@ -70,8 +70,8 @@ class TestSecretExclusion:
         "path",
         [
             ".env.example",
-            "templates/brand/brand.yaml",
-            "templates/campaign/campaign-plan.yaml",
+            "skills/meta-ads-core/assets/brand.yaml",
+            "skills/meta-ads-campaign/assets/campaign-plan.yaml",
             "examples/brand.yaml",
             "examples/state.json",
             "config/capabilities.yaml",

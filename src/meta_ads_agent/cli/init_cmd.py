@@ -23,19 +23,25 @@ from meta_ads_agent.models.brand import BrandConfig, Offer
 from meta_ads_agent.workspace import Workspace, atomic_write
 
 _TEMPLATE_FILES = (
-    ("brand/brand.yaml", "brand.yaml"),
-    ("brand/voice.md", "voice.md"),
-    ("brand/account.yaml", "account.yaml"),
-    ("campaign/offer.yaml", "offers/example.yaml"),
+    ("brand.yaml", "brand.yaml"),
+    ("voice.md", "voice.md"),
+    ("account.yaml", "account.yaml"),
+    ("offer.yaml", "offers/example.yaml"),
 )
 
 
 def template_root() -> Path:
-    """Locate bundled templates in a wheel or a source checkout."""
+    """Locate the workspace templates in a wheel or a source checkout.
+
+    The originals live in ``skills/meta-ads-core/assets/`` so that the skill
+    still has them when it is installed on its own, without the CLI. The build
+    copies that directory into the wheel rather than keeping a second copy in
+    the repository - see docs/reference/packaging.md.
+    """
     packaged = Path(__file__).resolve().parents[1] / "_data" / "templates"
     if packaged.is_dir():
         return packaged
-    repo = Path(__file__).resolve().parents[3] / "templates"
+    repo = Path(__file__).resolve().parents[3] / "skills" / "meta-ads-core" / "assets"
     if repo.is_dir():
         return repo
     raise WorkspaceError(f"Could not find bundled templates. Looked in {packaged} and {repo}.")
@@ -89,7 +95,10 @@ def run_init(
     echo("  1. Fill in .meta-ads/brand.yaml (only what you want to pin - most")
     echo("     of it is discoverable from Meta) and .meta-ads/voice.md.")
     echo("  2. Connect Meta's official Ads MCP if you have not:")
-    echo("     docs/getting-started/connect-meta-mcp.md")
+    echo(
+        "     https://github.com/bartlomiejborzucki/meta-ads-agent"
+        "/blob/master/docs/getting-started/connect-meta-mcp.md"
+    )
     echo("  3. Check everything:  meta-ads-agent doctor")
     echo('  4. In your agent, say:  "Audit my Meta Ads account."')
     return 0

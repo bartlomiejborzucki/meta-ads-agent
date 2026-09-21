@@ -19,7 +19,10 @@ check whether a human changed something before theorising about the platform.
 8. per-ad CTR vs own baseline     — is one ad declining while siblings hold?
 ```
 
-Then compute the chain (see `meta-ads-report/references/metrics-and-comparisons.md`):
+Then compute the chain. The metric definitions behind it are in
+`metrics-and-comparisons.md`, under `references/` in the `meta-ads-report`
+skill -
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-report/references/metrics-and-comparisons.md>.
 
 | Pattern | Points at |
 | --- | --- |

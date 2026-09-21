@@ -86,7 +86,7 @@ jobs:
           import meta_ads_agent
           root = Path(meta_ads_agent.__file__).parent / "_data"
           assert (root / "capabilities.yaml").is_file(), "capabilities.yaml missing from wheel"
-          assert (root / "templates" / "brand" / "brand.yaml").is_file(), "templates missing from wheel"
+          assert (root / "templates" / "brand.yaml").is_file(), "templates missing from wheel"
           print("packaged data ok")
           PY
 
@@ -95,6 +95,14 @@ jobs:
           mkdir -p /tmp/proj && cd /tmp/proj
           /tmp/clean/bin/meta-ads-agent init --brand "CI Test"
           /tmp/clean/bin/meta-ads-agent init --check
+
+      - name: The documented no-install validation route works
+        # The skills tell a user without the CLI to run the validator through
+        # uvx. Checked against this checkout rather than the published git
+        # spec, so a renamed entry point or a broken build fails here.
+        run: |
+          uvx --from . meta-ads-agent validate-plan \
+            examples/campaign-plan.yaml --skip-assets
 
       - uses: actions/upload-artifact@v4
         with:
@@ -127,6 +135,17 @@ jobs:
       - name: One canonical skills directory
         # ADR-003: skills/ is the only home for skill content.
         run: python3 scripts/check_single_skills_tree.py
+
+      - name: Shared skill blocks are in sync
+        # The passages that appear in more than one SKILL.md are generated
+        # from packaging/shared/. A hand-edited copy fails here.
+        run: python3 scripts/sync_skill_blocks.py --check
+
+      - name: Skills survive every supported install shape
+        # Copies the skills out the way a host would - whole tree, and one
+        # directory at a time - and resolves every reference from there. A
+        # reference that only works in a checkout fails here.
+        run: python3 scripts/check_skill_packaging.py
 
   examples:
     name: Validate templates and examples

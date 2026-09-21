@@ -10,8 +10,9 @@ without telling us. Trust in this order:
 3. A platform VALIDATION error. If it lists supported fields, that list wins.
 4. This file.
 
-Full inventory with classification:
-`docs/research/current-meta-capabilities.md`.
+Full inventory with classification, kept outside the skills because it is a
+research record rather than operating guidance:
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/research/current-meta-capabilities.md>.
 
 ## Discovery
 

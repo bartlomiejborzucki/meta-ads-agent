@@ -60,7 +60,7 @@ breakdowns beats a loop over entities.
 | --- | --- | --- |
 | 1487742 | Account has a spending limit that has been reached | Tell the user. Do not raise it yourself - that is a `budget_increase`. |
 | 1359188 | Special ad category restriction | The campaign must declare the correct category. Do not try to bypass it. |
-| 2635 | Deprecated API version or field | Check the configured Graph version. See `docs/reference/api-versioning.md`. |
+| 2635 | Deprecated API version or field | Check the configured Graph version. Version policy: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/api-versioning.md>. |
 
 An account can also fail *without* an error: no payment method, a disabled
 status, or a zero spend limit all let objects be created and never deliver.

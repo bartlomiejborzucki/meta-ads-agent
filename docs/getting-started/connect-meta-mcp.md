@@ -3,6 +3,11 @@
 This is the one setup step you cannot skip. Everything else in this project is
 optional.
 
+Host-specific: the commands below are for particular agent hosts. The
+host-neutral version an agent reads - endpoint, scopes, how to verify from
+inside a session, and what each failure means - ships inside the skills, at
+[`skills/meta-ads-core/references/connect-meta-mcp.md`](../../skills/meta-ads-core/references/connect-meta-mcp.md).
+
 **Endpoint:** `https://mcp.facebook.com/ads`
 
 Meta's ads MCP server is generally available: any app registered on the

@@ -7,7 +7,72 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **Skills referenced files that do not exist once installed.** Eighteen
+  references across six skills pointed at `docs/`, `templates/`, `config/`, or
+  another skill by a path that only resolves in a repository checkout. They
+  broke in every install shape, including the full plugin - the repository was
+  simply always there during development. Every path-shaped reference inside a
+  skill now resolves inside that same skill; cross-skill and repository
+  pointers are named in prose plus an absolute URL.
+- `meta-ads-campaign` pointed at `templates/campaign/campaign-plan.yaml` for
+  the plan schema, which a standalone skill install does not have.
+- `meta-ads-core` sent a user with no MCP connection to
+  `docs/getting-started/connect-meta-mcp.md`, likewise absent.
+- `meta-ads-tracking` referenced `skills/meta-ads-core/references/safety-policy.md`
+  as a repository-root path. It resolved under no install method, including a
+  checkout, because nothing tells an agent where the root is.
+- The campaign workflow required `meta-ads-agent validate-plan` while the CLI
+  was documented as optional and does not ship with the skills, so the
+  documented happy path ended at a command most users cannot run.
+
+### Added
+
+- **Preflight checks in every skill**, generated from `packaging/shared/`. The
+  official Ads MCP and the local CLI are now checked separately, at the start
+  of the work: the MCP by listing tools for names beginning `ads_`, the CLI by
+  `meta-ads-agent --version`. "command not found" is treated as the normal
+  answer, and no skill may print a `meta-ads-agent` command before the probe.
+- **A stated policy for building with no CLI.** Audits, reporting, Ad Library
+  research, previews, tracking diagnosis, creative, and optimisation diagnosis
+  work through the MCP alone. Campaign writes stop at the plan, because plan
+  validation is the gate that catches minor-unit currency arithmetic, a budget
+  on two levels, an identity or dataset that is not on the account, and missing
+  EU transparency fields - and the user is given four concrete routes forward
+  rather than a dead end. No safety rule was relaxed to make this work.
+- `skills/meta-ads-core/references/connect-meta-mcp.md` - the host-neutral
+  connection guide, inside the skill, so a disconnected session has something
+  to act on.
+- `scripts/check_skill_packaging.py` - installs the skills the way a host
+  would (whole tree, and each directory on its own) into a temporary
+  directory, then resolves every reference from there, checks every
+  `meta-ads-agent` command named in a skill against the real argument parser,
+  and checks the required shared blocks are present. No network, no Meta
+  account.
+- `scripts/sync_skill_blocks.py` - renders `packaging/shared/*.md` into the
+  skills that declare the markers. `--check` runs in CI, so a hand-edited copy
+  fails the build.
+- `tests/test_packaging.py` - 64 tests over the install shapes, the CLI-present
+  and CLI-absent paths, `doctor`'s MCP detection with a controlled `HOME`, and
+  the template mapping. Includes negative tests, so the guards are known to
+  fail when they should.
+- `docs/reference/packaging.md` - the supported install shapes, the rules the
+  checks enforce, and what works without the CLI.
+- CI now verifies the documented no-install validation route
+  (`uvx --from . meta-ads-agent validate-plan …`) against the checkout.
+
+### Changed
+
+- **Templates moved into the skills that document them**, so there is still
+  exactly one copy of each: `brand.yaml`, `voice.md`, `account.yaml` and
+  `offer.yaml` to `skills/meta-ads-core/assets/`, `campaign-plan.yaml` to
+  `skills/meta-ads-campaign/assets/`. The root `templates/` directory is gone;
+  the wheel gets its copy through a build-time `force-include`, so
+  `meta-ads-agent init` is unchanged. A test fails if `templates/` reappears.
+- Install documentation now states the three supported install shapes and what
+  each of them gives you, rather than implying the CLI is optional for
+  everything.
 
 ## [0.1.0] - 2026-09-18
 

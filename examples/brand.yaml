@@ -2,7 +2,7 @@
 # Example brand configuration — a filled-in .meta-ads/brand.yaml
 # ---------------------------------------------------------------------------
 # All ids are fake and chosen so they cannot be mistaken for real ones.
-# Blank template: templates/brand/brand.yaml
+# Blank template: skills/meta-ads-core/assets/brand.yaml
 # ---------------------------------------------------------------------------
 
 schema_version: 1

@@ -99,7 +99,7 @@ for consistency of voice.
   separate from free-form tone (`voice.md`); minor units named in the field
   (`daily_budget_minor`); tokenised naming conventions reused for UTM construction
 - **Depend on it:** no · **Adapted:** no · **Reimplemented:** yes · **Reference only:** no
-- **Reimplemented as:** `templates/brand/`, `src/meta_ads_agent/workspace.py`,
+- **Reimplemented as:** `skills/meta-ads-core/assets/`, `src/meta_ads_agent/workspace.py`,
   `src/meta_ads_agent/models/brand.py`, and the naming/UTM token handling in
   `src/meta_ads_agent/models/plan.py`.
 - **Changed on purpose:** the workspace moves out of the repository into a per-project

@@ -47,6 +47,8 @@ Tooling is deliberately small: `ruff` for format and lint, `mypy` for types,
 | --- | --- |
 | Workflow, judgement, advice | `skills/*/SKILL.md` |
 | Changing Meta specifics, examples, playbooks | `skills/*/references/*.md` |
+| A template or schema a skill documents | `skills/*/assets/*` |
+| A passage that belongs in several skills | `packaging/shared/*.md`, then re-run the sync script |
 | Arithmetic, schemas, state, I/O | `src/meta_ads_agent/` |
 | Who owns a capability | `config/capabilities.yaml` |
 | Host packaging | `.claude-plugin/`, `.codex-plugin/`, `integrations/` |
@@ -68,6 +70,26 @@ if a second directory containing `SKILL.md` files appears
   type.
 - Label heuristics as heuristics. Give the reasoning and the default.
 - Do not present a practitioner's view as a platform fact.
+
+### A skill has to work on its own
+
+A skill directory is the unit of distribution, and one of the supported
+install shapes is a single `skills/meta-ads-<name>/` folder copied out of
+here. So a relative path inside a skill must resolve inside that same skill.
+Cross-skill and repository pointers are named in prose plus an absolute URL -
+never a path that only resolves in a checkout.
+
+Shared passages are generated rather than copied, so nine files cannot end up
+saying eight different things. Edit `packaging/shared/<name>.md`, never the
+rendered block in a `SKILL.md`.
+
+```bash
+python3 scripts/sync_skill_blocks.py        # rewrite the generated copies
+python3 scripts/check_skill_packaging.py    # install each skill alone, resolve everything
+```
+
+Both run in CI. The rules and the reasoning:
+[docs/reference/packaging.md](docs/reference/packaging.md).
 
 ## Third-party material
 

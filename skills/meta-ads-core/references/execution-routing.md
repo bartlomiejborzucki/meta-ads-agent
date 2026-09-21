@@ -9,8 +9,11 @@ Which layer performs which operation, and how to decide.
 3. Never use the fallback because it is more convenient.
 4. When you use the fallback, name the gap you are filling.
 
-Authoritative source: `config/capabilities.yaml`. Query it rather than
-remembering:
+The table below is the routing map, and it is here so that a skill installed on
+its own still has it. The machine-readable original is `capabilities.yaml`,
+which ships with the CLI rather than with the skills -
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/config/capabilities.yaml>. Where the CLI is installed, query it rather
+than remembering:
 
 ```bash
 meta-ads-agent capabilities                    # everything, grouped by area
@@ -63,8 +66,8 @@ tell the user why at the point it happens:
 
 Steps 3 and 4 need the optional `api` extra and a `META_ACCESS_TOKEN`. If the
 user does not have them, the honest answer is: install the extra and set a
-token, or upload the video in Ads Manager first and pass its id. See
-`docs/getting-started/api-fallback.md`.
+token, or upload the video in Ads Manager first and pass its id. What the
+fallback is and why it is this small: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/getting-started/api-fallback.md>.
 
 ## The fallback is supposed to shrink
 
@@ -75,9 +78,9 @@ If you notice a tool on the connected server that covers one of these gaps:
 
 1. Verify it on a live connection and note the tool name and date.
 2. Tell the user - it means one less credential they need.
-3. Suggest the refresh procedure in `docs/reference/capability-refresh.md`,
-   which flips the provider in `config/capabilities.yaml` through a reviewed
-   pull request.
+3. Suggest the refresh procedure - <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/capability-refresh.md> -
+   which flips the provider in the capability registry through a reviewed pull
+   request.
 
 Do not silently switch to a newly-discovered tool for a write operation in the
 middle of a build. Finish the current build on the recorded path, then propose

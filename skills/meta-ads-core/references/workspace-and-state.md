@@ -2,9 +2,13 @@
 
 ## The workspace
 
-`.meta-ads/` in the user's project. Created by `meta-ads-agent init`, private
-by default (it writes its own `.gitignore`), and never inside the installed
-plugin - plugin directories hold code and get wiped on reinstall.
+`.meta-ads/` in the user's project. Private by default (it gets its own
+`.gitignore`), and never inside the installed plugin - plugin directories hold
+code and get wiped on reinstall.
+
+`meta-ads-agent init` creates it from the templates in this skill's
+[assets/](../assets/) directory. Those templates are the same files the CLI
+ships, so with no CLI you can write them out yourself and lose nothing.
 
 ```
 .meta-ads/
@@ -39,7 +43,7 @@ policy, DSA beneficiary, the user's own thresholds.
 | What did the user intend to build? | `plan.yaml` |
 | What exists, and what are its ids? | `state.json` |
 | What are this brand's defaults and voice? | `brand.yaml`, `voice.md` |
-| Which local file maps to which remote id? | `assets/manifest.json` |
+| Which local file maps to which remote id? | `.meta-ads/assets/manifest.json` |
 | **What is the account's actual state?** | **Meta. Always.** |
 
 ## The plan
@@ -57,7 +61,9 @@ Meta will reject.
 Once it validates, **execute the plan, not the conversation.** The plan is what
 the user reviewed.
 
-Schema and every field: `templates/campaign/campaign-plan.yaml`.
+Schema and every field: the annotated `campaign-plan.yaml` in the
+`meta-ads-campaign` skill's `assets/` directory -
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-campaign/assets/campaign-plan.yaml>.
 
 ## State, and why it is flushed constantly
 

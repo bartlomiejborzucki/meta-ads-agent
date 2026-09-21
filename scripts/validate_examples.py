@@ -24,9 +24,9 @@ from meta_ads_agent.models.plan import CampaignPlanDocument  # noqa: E402
 from meta_ads_agent.models.state import CampaignState  # noqa: E402
 
 TARGETS: tuple[tuple[str, type], ...] = (
-    ("templates/brand/brand.yaml", BrandConfig),
-    ("templates/campaign/offer.yaml", Offer),
-    ("templates/campaign/campaign-plan.yaml", CampaignPlanDocument),
+    ("skills/meta-ads-core/assets/brand.yaml", BrandConfig),
+    ("skills/meta-ads-core/assets/offer.yaml", Offer),
+    ("skills/meta-ads-campaign/assets/campaign-plan.yaml", CampaignPlanDocument),
     ("examples/brand.yaml", BrandConfig),
     ("examples/offer.yaml", Offer),
     ("examples/campaign-plan.yaml", CampaignPlanDocument),
@@ -77,7 +77,8 @@ def main() -> int:
             continue
         print(f"ok  {relative} ({model.__name__})")
 
-    for path in sorted((REPO / "examples").rglob("*")) + sorted((REPO / "templates").rglob("*")):
+    scanned = sorted((REPO / "examples").rglob("*")) + sorted((REPO / "skills").rglob("assets/*"))
+    for path in scanned:
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8", errors="replace")

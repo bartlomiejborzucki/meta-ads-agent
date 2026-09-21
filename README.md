@@ -175,6 +175,14 @@ Codex reads `~/.agents/skills/` for every project, and `.agents/skills/` inside
 a repository for that repository only. Because these are symlinks, editing a
 `SKILL.md` takes effect in the next session.
 
+A single skill directory works too — each one is self-contained, and CI checks
+it by copying each skill out on its own and resolving every reference inside
+it ([packaging.md](docs/reference/packaging.md)):
+
+```bash
+cp -r skills/meta-ads-report skills/meta-ads-core ~/.agents/skills/
+```
+
 Then type `$` to pick a skill explicitly:
 
 ```
@@ -220,8 +228,19 @@ OAuth. Walkthrough:
 
 ### Optional: the local CLI
 
-Needed for `doctor`, `init`, `validate-plan`, `state`, and the six fallback
-capabilities. Not needed to use the skills.
+A separate install. The skills probe for it with `meta-ads-agent --version`
+before suggesting anything that needs it, so a missing CLI produces a plain
+statement rather than a command you cannot run.
+
+Fully usable with Meta's MCP alone: audits, reporting, Ad Library research,
+previews, tracking diagnosis, creative, optimisation diagnosis and the
+MCP-side changes that follow it, and the `.meta-ads/` workspace.
+
+Needs the CLI: **campaign builds** — plan validation is the gate before the
+first write, and without it the skills stop at the plan and offer you the
+routes forward — plus local image and video upload, video / existing-post /
+multi-variant creatives, and deletion. Detail:
+[docs/reference/packaging.md](docs/reference/packaging.md).
 
 ```bash
 uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git#egg=meta-ads-agent[api]"
@@ -485,6 +504,7 @@ covers one of our six gaps is among the most useful things you can send:
 | [Meta capabilities](docs/research/current-meta-capabilities.md) | tool-by-tool, with what it does not assert |
 | [Provenance](docs/research/provenance.md) | per-source license review |
 | [CLI reference](docs/reference/cli.md) | every command |
+| [Packaging](docs/reference/packaging.md) | supported install shapes, and what works without the CLI |
 | [Capability refresh](docs/reference/capability-refresh.md) | keeping the map honest |
 | [API versioning](docs/reference/api-versioning.md) | Graph version policy |
 | [Workspace](docs/reference/workspace.md) | what `.meta-ads/` holds, and what to version |

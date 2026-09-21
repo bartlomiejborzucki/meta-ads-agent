@@ -34,12 +34,12 @@ MUST_IGNORE = (
     ".venv/bin/python",
 )
 
-# Paths that must NOT be ignored: the example env file, the templates a user
-# copies from, and the examples CI validates.
+# Paths that must NOT be ignored: the example env file, the skill-bundled
+# templates a user copies from, and the examples CI validates.
 MUST_NOT_IGNORE = (
     ".env.example",
-    "templates/brand/brand.yaml",
-    "templates/campaign/campaign-plan.yaml",
+    "skills/meta-ads-core/assets/brand.yaml",
+    "skills/meta-ads-campaign/assets/campaign-plan.yaml",
     "examples/brand.yaml",
     "examples/campaign-plan.yaml",
     "examples/state.json",

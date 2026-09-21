@@ -2,8 +2,8 @@
 
 Craft guidance, not platform rules. These are **heuristics** - useful defaults
 with reasoning attached, overridable by the user's own judgement or
-`brand.yaml`. Nothing here is something Meta enforces. See
-`docs/architecture/adr/ADR-007-heuristics-vs-constraints.md`.
+`brand.yaml`. Nothing here is something Meta enforces. The distinction is
+recorded in [ADR-007](https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/architecture/adr/ADR-007-heuristics-vs-constraints.md).
 
 ## Finding angles
 
@@ -115,8 +115,10 @@ know the reason resonates.
 - Same angle, new format - static to video, or the reverse.
 - Adjacent angle - the neighbouring reason, if the first is exhausted.
 
-Refreshing an execution and retiring an angle are different decisions. See
-`meta-ads-optimize/references/fatigue-signals.md`.
+Refreshing an execution and retiring an angle are different decisions. The
+signals that tell them apart are `fatigue-signals.md`, under `references/` in
+the `meta-ads-optimize` skill -
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-optimize/references/fatigue-signals.md>.
 
 ## Voice
 

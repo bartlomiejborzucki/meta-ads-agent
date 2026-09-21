@@ -6,9 +6,9 @@ that nothing here looks like a credential.
 
 | File | What it is | Blank template |
 | --- | --- | --- |
-| `brand.yaml` | a configured brand workspace | `templates/brand/brand.yaml` |
-| `offer.yaml` | a reusable offer brief | `templates/campaign/offer.yaml` |
-| `campaign-plan.yaml` | a validated campaign plan | `templates/campaign/campaign-plan.yaml` |
+| `brand.yaml` | a configured brand workspace | `skills/meta-ads-core/assets/brand.yaml` |
+| `offer.yaml` | a reusable offer brief | `skills/meta-ads-core/assets/offer.yaml` |
+| `campaign-plan.yaml` | a validated campaign plan | `skills/meta-ads-campaign/assets/campaign-plan.yaml` |
 | `state.json` | campaign state **after a failed build** | written by the tool |
 
 Every one of these validates against its model, and CI fails if one stops -

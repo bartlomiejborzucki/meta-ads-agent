@@ -51,7 +51,7 @@ def run_validate_plan(
             location = ".".join(str(p) for p in error["loc"]) or "(root)"
             echo(f"  {location}: {error['msg']}")
         echo("")
-        echo("The plan schema is documented in templates/campaign/campaign-plan.yaml")
+        echo("The plan schema is documented in skills/meta-ads-campaign/assets/campaign-plan.yaml")
         return 2
 
     workspace = Workspace.locate(required=False)

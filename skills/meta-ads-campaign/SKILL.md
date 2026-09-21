@@ -12,7 +12,49 @@ description: >-
 # Campaign builder
 
 Everything you create is PAUSED. Activation is a separate, approved step -
-read `meta-ads-core` first.
+read `meta-ads-core` first if it is installed; this skill repeats the parts
+it cannot work without.
+
+<!-- shared:preflight start - generated from packaging/shared/preflight.md by scripts/sync_skill_blocks.py - edit there -->
+## Preflight: two checks, kept separate
+
+These are independent questions with different answers and different
+consequences, so never let one stand in for the other.
+
+**1. Meta's official Ads MCP - the execution layer.** List the tools available
+in this session and look for names beginning `ads_`. If there are none,
+nothing in this skill can run against a real account: say so, and help the
+user connect it - `connect-meta-mcp.md`, under `references/` in the
+`meta-ads-core` skill, or
+<https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/references/connect-meta-mcp.md>.
+The local CLI is not a substitute; it deliberately does not cover what the MCP
+covers.
+
+**2. The local `meta-ads-agent` CLI - optional, separately installed, usually
+absent.** The skills install without it, so assume it is missing until a probe
+says otherwise:
+
+```bash
+meta-ads-agent --version
+```
+
+"command not found" is the expected answer for most users, not a fault, and
+not something to work around. **Do not put a `meta-ads-agent ...` command in
+front of someone before that probe has succeeded.** A command that fails at
+their prompt costs more than the step it was meant to save, and it makes the
+rest of your advice look equally unchecked. Say "that step needs the optional
+CLI, which is not installed here" and carry on with what the MCP can do.
+
+With the MCP connected and no CLI, all of this still works in full: audits,
+reporting, Ad Library research, previews, tracking diagnosis, creative work,
+optimisation diagnosis, and the MCP-side changes that follow it. Workspace
+files under `.meta-ads/` can be written directly - the templates are in the
+`meta-ads-core` skill's `assets/` directory.
+
+Only these need the CLI: campaign plan validation (and therefore campaign
+builds), local image and video upload, video / existing-post / multi-variant
+creatives, and deletion.
+<!-- shared:preflight end -->
 
 ## The pipeline
 
@@ -74,8 +116,8 @@ Background, with the uncertainty marked:
 
 ## 3. Write the plan
 
-`.meta-ads/campaigns/<slug>/plan.yaml`. Schema and every field:
-`templates/campaign/campaign-plan.yaml`.
+`.meta-ads/campaigns/<slug>/plan.yaml`. Schema and every field, annotated:
+[assets/campaign-plan.yaml](assets/campaign-plan.yaml).
 
 Budgets are **display amounts** with a currency - `70` and `PLN`, never `7000`.
 Statuses are PAUSED; there is no field for anything else.
@@ -106,6 +148,42 @@ Pass `--account-file` if you have cached account facts;
 [references/campaign-plan-guide.md](references/campaign-plan-guide.md) explains
 how to write them.
 
+<!-- shared:no-cli-writes start - generated from packaging/shared/no-cli-writes.md by scripts/sync_skill_blocks.py - edit there -->
+## Building with no CLI: stop at the plan
+
+Plan validation is the gate between a draft and spent money. It checks the
+things that are invisible to a careful reader: minor-unit currency
+arithmetic, a budget set on exactly one level, whether the Page, Instagram
+identity and dataset actually exist on this account, EU transparency fields,
+special-ad-category consistency, and whether each local asset is the type it
+claims to be. Reading the plan attentively is not the same check.
+
+So when the probe says the CLI is absent: write the plan, show it, and **stop
+before the first write.** Do not create objects and validate afterwards - a
+wrong campaign that already exists is much harder to argue with than one that
+does not, even paused.
+
+Then give the user the routes forward, and say which you recommend:
+
+1. **Validate without installing anything**, if `uv` is on their PATH:
+   ```bash
+   uvx --from "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
+     meta-ads-agent validate-plan <plan>
+   ```
+2. **Install it**, if they expect to build campaigns again:
+   ```bash
+   uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git"
+   meta-ads-agent doctor
+   ```
+3. **Build it by hand** in Ads Manager from the plan you just showed them. The
+   plan is a complete specification; it does not need this tooling to be
+   useful.
+4. **Leave the plan as the deliverable** and continue with the read-only work -
+   audit, research, creative, reporting - none of which needs the CLI.
+
+Offering no route forward is not an answer, and neither is quietly proceeding.
+<!-- shared:no-cli-writes end -->
+
 ## 5. Create, PAUSED, recording as you go
 
 Record each id **before starting the next call**. This is what makes a failure
@@ -126,12 +204,17 @@ was created.
 ### Assets
 
 A local file needs the fallback; Meta's MCP lists uploaded media but cannot
-ingest a file.
+ingest a file. So this step needs the CLI, and there is no MCP route around
+it:
 
 ```bash
 meta-ads-agent api upload-image ./creatives/a.jpg --account act_...
 meta-ads-agent api upload-video ./creatives/a.mp4 --account act_...
 ```
+
+If the CLI is absent, say so and offer the two real alternatives: upload the
+file in Ads Manager and pass the resulting `image_hash` or `video_id`, or
+install the CLI with its `[api]` extra. Do not describe the upload as done.
 
 Both are deduplicated by content fingerprint, so a rerun costs nothing. Video
 upload waits for Meta to finish transcoding; a creative built against an
@@ -177,6 +260,9 @@ successful outcome.
 ```bash
 meta-ads-agent state <slug>
 ```
+
+Without the CLI, read `state.json` in the campaign directory yourself; it is
+plain JSON and records the stage, every id, and the plan fingerprint.
 
 It reports what exists, which stage failed, whether the failure was retry-safe,
 and what comes next. Then re-read those objects from Meta, confirm they match,

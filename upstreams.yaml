@@ -142,7 +142,7 @@ upstreams:
     review_date: 2026-09-16
     integration_type: reference
     affected_areas:
-      - templates/brand/
+      - skills/meta-ads-core/assets/
       - src/meta_ads_agent/workspace.py
     watch: head
 
