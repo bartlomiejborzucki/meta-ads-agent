@@ -93,4 +93,7 @@ class ActionLog:
                 records.append(ActionRecord.model_validate(json.loads(line)))
             except (json.JSONDecodeError, ValueError):
                 continue
-        return records[-limit:] if limit else records
+        if limit is None:
+            return records
+        # `if limit` used to read limit=0 as "no limit" and return everything.
+        return records[-limit:] if limit > 0 else []

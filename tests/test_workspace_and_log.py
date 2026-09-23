@@ -202,6 +202,8 @@ class TestActionLog:
         for index in range(10):
             log.append(ActionRecord(operation=f"op{index}"))
         assert [r.operation for r in log.read(limit=3)] == ["op7", "op8", "op9"]
+        assert log.read(limit=0) == []
+        assert len(log.read(limit=50)) == 10
 
     def test_the_host_is_recorded_when_declared(
         self, workspace: Workspace, monkeypatch: pytest.MonkeyPatch

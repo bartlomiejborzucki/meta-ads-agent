@@ -13,6 +13,9 @@ an ad.
 
 from __future__ import annotations
 
+import contextlib
+from typing import Any
+
 from meta_ads_agent.api.client import ACCOUNT_ENV, ApiClient, normalise_account_id
 from meta_ads_agent.api.creatives import (
     create_existing_post_creative,
@@ -59,6 +62,29 @@ def _target_account(account: str | None, client: ApiClient | None, dry_run: bool
     raise ConfigError(f"No ad account given and {ACCOUNT_ENV} is not set. Pass --account act_<id>.")
 
 
+def _log_attempt(
+    log: ActionLog | None, outcome: str, exc: Exception, attempt: dict[str, Any]
+) -> None:
+    """Record a dry run or a failure, which the log previously left out.
+
+    A failure is when the log matters most: "did it upload, or not" is the
+    first question after an error, and a timeout may have been applied by
+    Meta anyway. Logging must never replace the error the user needs to see,
+    so a log that cannot be written is ignored here.
+    """
+    if log is None:
+        return
+    with contextlib.suppress(OSError, MetaAdsAgentError):
+        log.append(
+            ActionRecord(provider=Provider.API_FALLBACK, result=outcome, detail=str(exc), **attempt)
+        )
+
+
+def _account_field(target: str) -> dict[str, str]:
+    # The dry-run placeholder is not an account and must not be logged as one.
+    return {"ad_account_id": target} if target.startswith("act_") else {}
+
+
 def _context(capability: str) -> tuple[Workspace, AssetStore, ActionLog, str]:
     """Resolve workspace, stores, and the reason this fallback is being used."""
     workspace = Workspace.locate()
@@ -74,15 +100,25 @@ def _context(capability: str) -> tuple[Workspace, AssetStore, ActionLog, str]:
 
 def run_upload_image(path: str, *, account: str | None, dry_run: bool, as_json: bool) -> int:
     capability = "local_image_upload"
+    log: ActionLog | None = None
+    attempt: dict[str, Any] = {
+        "operation": "upload_image",
+        "capability": capability,
+        "risk_level": RiskLevel.CREATE_PAUSED,
+        "resource_type": "image",
+    }
     try:
         _ws, store, log, reason = _context(capability)
         client = _client(dry_run)
         target = _target_account(account, client, dry_run)
+        attempt.update(_account_field(target))
         result = upload_image(path, target, client=client, store=store, dry_run=dry_run)
     except DryRun as exc:
+        _log_attempt(log, "dry_run", exc, attempt)
         echo(str(exc), "yellow")
         return 0
     except MetaAdsAgentError as exc:
+        _log_attempt(log, "failed", exc, attempt)
         fail(str(exc))
         return 1
 
@@ -133,10 +169,18 @@ def run_upload_video(
     timeout: float,
 ) -> int:
     capability = "local_video_upload"
+    log: ActionLog | None = None
+    attempt: dict[str, Any] = {
+        "operation": "upload_video",
+        "capability": capability,
+        "risk_level": RiskLevel.CREATE_PAUSED,
+        "resource_type": "video",
+    }
     try:
         _ws, store, log, reason = _context(capability)
         client = _client(dry_run)
         target = _target_account(account, client, dry_run)
+        attempt.update(_account_field(target))
         result = upload_video(
             path,
             target,
@@ -147,9 +191,11 @@ def run_upload_video(
             timeout_seconds=timeout,
         )
     except DryRun as exc:
+        _log_attempt(log, "dry_run", exc, attempt)
         echo(str(exc), "yellow")
         return 0
     except MetaAdsAgentError as exc:
+        _log_attempt(log, "failed", exc, attempt)
         fail(str(exc))
         return 1
 
@@ -213,10 +259,18 @@ def run_create_creative(
         "variants": "create_multi_variant_creative",
     }[mode]
 
+    log: ActionLog | None = None
+    attempt: dict[str, Any] = {
+        "operation": f"create_creative:{mode}",
+        "capability": capability,
+        "risk_level": RiskLevel.CREATE_PAUSED,
+        "resource_type": "creative",
+    }
     try:
         _ws, _store, log, reason = _context(capability)
         client = _client(dry_run)
         target = _target_account(account, client, dry_run)
+        attempt.update(_account_field(target))
 
         if mode == "post":
             if not post_id:
@@ -278,9 +332,11 @@ def run_create_creative(
                     dry_run=dry_run,
                 )
     except DryRun as exc:
+        _log_attempt(log, "dry_run", exc, attempt)
         echo(str(exc), "yellow")
         return 0
     except MetaAdsAgentError as exc:
+        _log_attempt(log, "failed", exc, attempt)
         fail(str(exc))
         return 1
 
@@ -341,6 +397,15 @@ def run_delete(
         )
         return 2
 
+    log: ActionLog | None = None
+    attempt: dict[str, Any] = {
+        "operation": "delete",
+        "capability": capability,
+        "risk_level": RiskLevel.DELETE,
+        "resource_type": object_type,
+        "resource_id": object_id,
+        "approval_noted": approved,
+    }
     try:
         _ws, _store, log, route_reason = _context(capability)
         client = ApiClient()
@@ -352,9 +417,11 @@ def run_delete(
             dry_run=dry_run,
         )
     except DryRun as exc:
+        _log_attempt(log, "dry_run", exc, attempt)
         echo(str(exc), "yellow")
         return 0
     except MetaAdsAgentError as exc:
+        _log_attempt(log, "failed", exc, attempt)
         fail(str(exc))
         return 1
 
@@ -366,6 +433,7 @@ def run_delete(
             provider=Provider.API_FALLBACK,
             resource_type=result.object_type.value,
             resource_id=result.object_id,
+            ad_account_id=result.ad_account_id,
             before={"status": result.previous_status},
             after={"deleted": True},
             detail=result.detail,

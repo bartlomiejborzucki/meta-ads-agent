@@ -395,6 +395,56 @@ class TestDelete:
         assert records[-1].approval_noted is True
         assert records[-1].before == {"status": "PAUSED"}
 
+    def test_the_deletion_names_the_account_it_came_from(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        sdk.object_fields["account_id"] = "1234567890"
+        run(["api", "delete", "120", "--type", "ad", "--reason", "dup", "--approved"], capsys)
+        assert ActionLog(Workspace.locate(project)).read()[-1].ad_account_id == "act_1234567890"
+
+
+class TestFailuresAndDryRunsAreLogged:
+    """The log's job is to answer "what happened" - most of all after an error."""
+
+    def test_a_failed_upload_is_recorded_as_failed(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from conftest import FakeSdkError
+
+        sdk.raise_on_image = FakeSdkError(
+            "boom", {"error": {"code": 100, "message": "Invalid image file"}}
+        )
+        image = write_png(project / "hero.png", 600, 600)
+        assert run(["api", "upload-image", str(image)], capsys)[0] == 1
+        (record,) = ActionLog(Workspace.locate(project)).read()
+        assert record.result == "failed"
+        assert record.operation == "upload_image"
+        assert record.ad_account_id == "act_1234567890"
+        assert "Invalid image file" in (record.detail or "")
+
+    def test_a_dry_run_is_recorded_as_a_dry_run(
+        self, project: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("META_ACCESS_TOKEN", raising=False)
+        monkeypatch.delenv("META_AD_ACCOUNT_ID")
+        image = write_png(project / "hero.png", 600, 600)
+        assert run(["api", "upload-image", str(image), "--dry-run"], capsys)[0] == 0
+        (record,) = ActionLog(Workspace.locate(project)).read()
+        assert record.result == "dry_run"
+        # The dry-run placeholder is not an account and is not logged as one.
+        assert record.ad_account_id is None
+
+    def test_a_refused_deletion_is_recorded(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        sdk.object_fields["status"] = "ACTIVE"
+        run(["api", "delete", "120", "--type", "ad", "--reason", "dup", "--approved"], capsys)
+        (record,) = ActionLog(Workspace.locate(project)).read()
+        assert record.result == "failed"
+        assert record.resource_id == "120"
+        assert "ACTIVE" in (record.detail or "")
+        assert sdk.deletes == []
+
 
 class TestCapabilityGuard:
     def test_a_command_cannot_run_for_an_mcp_owned_capability(

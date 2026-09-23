@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from meta_ads_agent.api.client import ApiClient, wrap_sdk_error
+from meta_ads_agent.api.client import ApiClient, normalise_account_id, wrap_sdk_error
 from meta_ads_agent.errors import ApiFallbackUnavailable, DryRun, ValidationError
 
 
@@ -33,6 +33,7 @@ class DeleteResult:
     object_type: DeletableType
     previous_status: str | None
     detail: str
+    ad_account_id: str | None = None
 
 
 def delete_object(
@@ -70,10 +71,13 @@ def delete_object(
 
     previous_status: str | None = None
     previous_name: str | None = None
+    account_id: str | None = None
     try:
-        fetched = obj.api_get(fields=["name", "status", "effective_status"])
+        fetched = obj.api_get(fields=["name", "status", "effective_status", "account_id"])
         previous_status = str((fetched or {}).get("status") or "") or None
         previous_name = str((fetched or {}).get("name") or "") or None
+        # Read so the action log can say which account lost the object.
+        account_id = str((fetched or {}).get("account_id") or "") or None
     except Exception as exc:
         raise wrap_sdk_error(
             exc, stage="delete", operation=f"read_{object_type.value}_before_delete"
@@ -104,6 +108,7 @@ def delete_object(
         object_id=object_id,
         object_type=object_type,
         previous_status=previous_status,
+        ad_account_id=normalise_account_id(account_id) if account_id else None,
         detail=(
             f"deleted {object_type.value} {object_id} "
             f"({previous_name or 'unnamed'}), previously {previous_status or 'unknown'}. "
