@@ -46,14 +46,18 @@ def existing_case_variant(parent: Path, name: str) -> Path | None:
     """
     if not parent.is_dir():
         return None
-    exact = parent / name
-    if exact.exists():
-        return exact
+    # Read the names from the directory rather than asking whether `name`
+    # exists: on a case-insensitive filesystem (macOS by default) `.agents`
+    # "exists" when the directory is `.Agents`, and the answer would carry
+    # our spelling instead of the one on disk.
     folded = name.casefold()
+    variant: Path | None = None
     for child in parent.iterdir():
-        if child.name.casefold() == folded:
+        if child.name == name:
             return child
-    return None
+        if variant is None and child.name.casefold() == folded:
+            variant = child
+    return variant
 
 
 def resolve_under(base: Path, relative: Path) -> Path:

@@ -11,8 +11,6 @@ import datetime as _dt
 import sys
 from decimal import Decimal, InvalidOperation
 
-from pydantic import ValidationError as PydanticValidationError
-
 from meta_ads_agent import __version__
 from meta_ads_agent.cli.output import fail
 from meta_ads_agent.errors import MetaAdsAgentError
@@ -446,6 +444,10 @@ def main(argv: list[str] | None = None) -> int:
     if not args.command:
         parser.print_help()
         return 0
+
+    # Imported here, not at module level: the packaging checks load this
+    # module for its argument parser under a bare Python, with no pydantic.
+    from pydantic import ValidationError as PydanticValidationError
 
     try:
         return _dispatch(args, parser)

@@ -152,6 +152,25 @@ class TestCaseInsensitivity:
         found = resolve_under(tmp_path, Path(".agents") / "skills")
         assert found == tmp_path / ".Agents" / "Skills"
 
+    def test_the_spelling_on_disk_wins_on_a_case_insensitive_filesystem(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """macOS by default: `.agents` "exists" when the directory is `.Agents`."""
+        (tmp_path / ".Agents" / "Skills").mkdir(parents=True)
+        real_exists = Path.exists
+
+        def insensitive(self: Path, *args: object, **kwargs: object) -> bool:
+            parent = self.parent
+            if parent.is_dir() and any(
+                c.name.casefold() == self.name.casefold() for c in parent.iterdir()
+            ):
+                return True
+            return real_exists(self)
+
+        monkeypatch.setattr(Path, "exists", insensitive)
+        found = resolve_under(tmp_path, Path(".agents") / "skills")
+        assert found == tmp_path / ".Agents" / "Skills"
+
     def test_case_variants_do_not_create_a_second_installation(
         self, windows: FakeWindows, bridge: WslBridge
     ) -> None:
