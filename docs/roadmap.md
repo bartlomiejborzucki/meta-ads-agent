@@ -47,23 +47,23 @@ shortened instead (by about a third) and stay in every skill.
 The trigger evals have not been run: each run is a paid model call, and the
 workflow waits for an `ANTHROPIC_API_KEY` secret and someone to start it.
 
-## 0.5 - verification without a test account
+## 0.5 - verification without a test account (done)
 
-Reduce the risk that the request shapes are wrong, using what is available.
+In 0.5.0: contract tests holding every fallback request up to the real SDK's
+object descriptions; recorded Graph error responses replayed through the
+SDK's real exception; the live tests written, skipping without an account;
+`capabilities --compare` for a pasted tool list; and a security review of 0.3
+to 0.5. The recorded errors found one real bug - code 368, a policy block,
+was treated as retry-safe - and the review found one shell injection in a
+workflow.
 
-- **Offline contract tests:** check every fallback request against the
-  `Field` classes and enums of the `facebook-business` SDK (`AdCreative.Field`,
-  `AdVideo.Field`, ...), so a misspelt field or an out-of-range value stops
-  passing the fake SDK.
-- **Recorded Graph responses** - success, the errors in `meta-errors.md`, a
-  timeout mid-transcode - and tests of the recovery paths over them.
-- **The live-test harness**, written and skipped without
-  `META_ADS_LIVE_TESTS=1`, plus a manual workflow behind a GitHub Environment
-  with a required reviewer. Ready for the day an account exists.
-- **Capability drift check:** a script that compares a pasted MCP tool list
-  from any authenticated session with `config/capabilities.yaml`.
-- **A real Codex install**, Linux and Windows, with the results written up.
-- A security review of 0.3 to 0.5 recorded in `SECURITY.md`.
+Two items did not happen as planned:
+
+- **A CI workflow for the live tests** was dropped. `tests/live/README.md`
+  already records why CI never runs them: it would put a token with
+  `ads_management` on a real ad account into repository secrets.
+- **A real Codex install** is still not done: there is no Codex on the
+  machine this was built on. It moves to the blocked group below.
 
 ## 0.6 and later - new capability
 
@@ -82,7 +82,11 @@ No version number until an account exists:
 - running the live tests;
 - the first campaign created on a real account;
 - Meta confirming the fallback's request shapes;
-- introspecting the MCP tool list from our own authenticated session.
+- introspecting the MCP tool list from our own authenticated session (the
+  tooling is ready: `capabilities --compare`).
+
+**Blocked on a Codex install:** installing the plugin in Codex on Linux and
+on Windows, and writing up what differs from the documented steps.
 
 Until then the README keeps these under "Never run against Meta".
 

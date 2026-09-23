@@ -9,6 +9,40 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.5.0] - 2026-09-23
+
+**Verification without a test account.** `MIGRATION: none required`.
+
+### Fixed
+
+- **Code 368 is no longer retry-safe.** A policy block was in the transient
+  set, so a read that hit it was marked safe to retry, while the error
+  reference said "Stop. Do not retry" in the same row. The reference now
+  gives 368 its own section.
+- **A shell injection in the trigger-evals workflow.** Its cost input was
+  spliced into the script; it now arrives through the environment and must
+  be a number.
+
+### Added
+
+- **Contract tests against the real SDK.** Every creative the fallback
+  builds, and every field constant and field list it uses, is checked
+  against the `facebook-business` SDK's own object descriptions: fields,
+  types, enum values. The main CI job installs the `api` extra to run them.
+- **Recorded Graph errors**: one response per code in the error reference,
+  replayed through the SDK's `FacebookRequestError`, checked for code,
+  subcode, message, redaction and the retry decision.
+- **Live tests** for the five things only Meta can confirm, following the
+  rules in `tests/live/README.md`. They skip without a designated test
+  account and have not run.
+- **`meta-ads-agent capabilities --compare TOOL_LIST`**: a live session's
+  tool list against the capability map - missing, new, community-reported,
+  and possible fallback-gap closers. Exits 1 on any difference.
+- `config/mcp-tools.yaml`, the reference's 91 tool names, generated from the
+  research document by `scripts/build_mcp_tool_inventory.py` and checked in
+  CI.
+- The 0.5.0 security review in [SECURITY.md](SECURITY.md#050-review).
+
 ## [0.4.0] - 2026-09-23
 
 **Arithmetic in code.** `MIGRATION: none required`. `brand.yaml` gains one
@@ -462,7 +496,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.0...v0.2.1

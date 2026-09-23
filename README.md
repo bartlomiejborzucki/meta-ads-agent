@@ -433,30 +433,34 @@ This is the largest gap and the one to read first.
 - **No code in this repository has created a campaign on a real Meta account.**
   The MCP path is prose the agent follows, so there is no code to run; the
   fallback path (uploads, creatives, deletion) has only ever run against a
-  faked SDK. The request *shapes* are written from Meta's documentation and
-  the SDK's own resource objects, and they are unconfirmed.
-- **No live integration tests ship.** The offline suite (about 700 tests,
-  close to 90% line coverage) proves our logic and proves nothing about Meta's acceptance. The rules
-  for writing them responsibly are in
-  [`tests/live/README.md`](tests/live/README.md); what is needed is a
-  designated test ad account.
+  faked SDK. What *has* been checked offline: every request the fallback
+  builds is held up to the real `facebook-business` SDK's own description of
+  each object - its fields, their types, its enum values - and every error
+  code the skills document is replayed through the SDK's real exception.
+  That removes misspelt fields and invented call-to-action types; it does not
+  show that Meta accepts the requests.
+- **The live tests are written and have never run.** The five checks only
+  Meta can answer are in [`tests/live/`](tests/live/README.md), skip without
+  a designated test ad account, and never run in CI - by design, so no token
+  with `ads_management` sits in repository secrets. What is needed is someone
+  with a test account to run them once.
 - **The capability map was read, not introspected.** `config/capabilities.yaml`
   records Meta's published tool reference as of 2026-09-16. No authenticated
-  session has confirmed it. Anyone with one can: `meta-ads-agent capabilities
-  --compare` takes the session's tool list and reports every difference. Three tools a community source reports are kept in
-  a separate, explicitly unverified section of
+  session has confirmed it. Anyone with one can:
+  `meta-ads-agent capabilities --compare` takes the session's tool list and
+  reports every difference. Three tools a community source reports are kept
+  in a separate, explicitly unverified section of
   [the capability document](docs/research/current-meta-capabilities.md).
 - **The Codex plugin has not been installed.** Codex was not available on the
   development machine, so `.codex-plugin/plugin.json` is checked against
   OpenAI's published specification by
   [a script](scripts/validate_codex_plugin.py), not by a working install.
-- **CI has never run against Meta either.** The full suite is green on
-  GitHub's runners for every push to `master` and every pull request, but it
-  proves our logic, not Meta's acceptance - `META_ACCESS_TOKEN` is explicitly
-  emptied in CI so a stray live call fails loudly.
+- **The trigger evals have not run.** `evals/` checks that each skill's
+  description selects it; running it is a paid model call, so it waits for
+  someone to start the workflow.
 
-If you have a test account or a Codex install, this is where help is worth the
-most.
+If you have a test account, a connected session, or a Codex install, this is
+where help is worth the most - each of those is one command.
 
 ### Declared but not built
 
