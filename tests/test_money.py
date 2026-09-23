@@ -12,6 +12,7 @@ import pytest
 
 from meta_ads_agent.errors import CurrencyError
 from meta_ads_agent.money import (
+    META_OFFSET_OVERRIDES,
     Money,
     describe_change,
     minor_unit_digits,
@@ -40,7 +41,30 @@ class TestCurrencyScale:
     )
     def test_iso_minor_unit_digits(self, currency: str, digits: int) -> None:
         assert minor_unit_digits(currency) == digits
-        assert offset_for(currency) == 10**digits
+        if currency not in META_OFFSET_OVERRIDES:
+            assert offset_for(currency) == 10**digits
+
+    @pytest.mark.parametrize(
+        ("currency", "iso", "meta"),
+        [
+            # Meta counts these in whole units, not ISO's hundredths.
+            ("COP", 100, 1),
+            ("CRC", 100, 1),
+            ("HUF", 100, 1),
+            ("IDR", 100, 1),
+            ("TWD", 100, 1),
+            # And these in hundredths, not ISO's thousandths.
+            ("BHD", 1000, 100),
+            ("JOD", 1000, 100),
+        ],
+    )
+    def test_meta_offsets_win_over_iso_where_they_differ(
+        self, currency: str, iso: int, meta: int
+    ) -> None:
+        # With the ISO default, 10000 HUF/day went to Meta as 1000000: 100x.
+        assert 10 ** minor_unit_digits(currency) == iso
+        assert offset_for(currency) == meta
+        assert Money.from_display("10000", currency).minor == 10000 * meta
 
     def test_case_and_whitespace_insensitive(self) -> None:
         assert offset_for(" pln ") == 100
@@ -57,6 +81,26 @@ class TestCurrencyScale:
 
 
 class TestConversion:
+    @pytest.mark.parametrize("amount", ["Infinity", "-Infinity", "NaN", "sNaN", float("inf")])
+    def test_non_finite_amounts_are_refused(self, amount: object) -> None:
+        with pytest.raises(CurrencyError, match="Not a valid amount"):
+            Money.from_display(amount, "PLN")  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize("minor", [70.9, "70.5", Decimal("0.1")])
+    def test_fractional_minor_units_are_refused_not_truncated(self, minor: object) -> None:
+        with pytest.raises(CurrencyError, match="must be whole"):
+            Money.from_minor(minor, "PLN")  # type: ignore[arg-type]
+
+    def test_a_whole_minor_amount_in_another_type_is_accepted(self) -> None:
+        assert Money.from_minor("7000", "PLN").minor == 7000  # type: ignore[arg-type]
+        assert Money.from_minor(7000.0, "PLN").minor == 7000  # type: ignore[arg-type]
+
+    def test_an_explicit_zero_offset_is_refused_not_defaulted(self) -> None:
+        with pytest.raises(CurrencyError, match="power of ten"):
+            Money.from_display("70", "PLN", offset=0)
+        with pytest.raises(CurrencyError, match="power of ten"):
+            Money.from_minor(7000, "PLN", offset=0)
+
     def test_two_decimal_currency(self) -> None:
         money = Money.from_display("70", "PLN")
         assert money.minor == 7000

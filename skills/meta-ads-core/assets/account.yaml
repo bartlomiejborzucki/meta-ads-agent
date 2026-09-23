@@ -8,7 +8,7 @@
 # Safe to delete. It will be rebuilt on the next account read.
 #
 # `currency_offset` is worth keeping: it is Meta's own minor-unit multiplier
-# for this account, and it OUTRANKS the ISO table this project ships with.
+# for this account, and it OUTRANKS the built-in table this project ships with.
 # ---------------------------------------------------------------------------
 
 schema_version: 1

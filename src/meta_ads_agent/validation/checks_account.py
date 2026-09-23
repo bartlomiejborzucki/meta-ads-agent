@@ -143,7 +143,7 @@ def check_currency(
             Severity.WARNING,
             "currency.offset_differs",
             f"Meta reports a currency offset of {account.currency_offset} for "
-            f"{account.currency}, but the ISO minor-unit scale is "
+            f"{account.currency}, but the built-in scale for it is "
             f"{offset_for(plan_currency)}. Meta's value wins - pass it through "
             "when converting budgets.",
             "budget.currency",

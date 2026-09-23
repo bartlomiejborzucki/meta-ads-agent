@@ -119,7 +119,7 @@ shape is the `account.yaml` template in the `meta-ads-core` skill's `assets/`
 directory: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/assets/account.yaml>. Three fields matter especially:
 
 - `currency_offset` - Meta's own minor-unit multiplier for this account. It
-  **outranks** our ISO table.
+  **outranks** our built-in table.
 - `min_daily_budget` - the account's field of the same name, in minor units.
   With it, a daily budget Meta would reject is caught before the first write
   (`budget.below_minimum`) instead of after the campaign already exists.

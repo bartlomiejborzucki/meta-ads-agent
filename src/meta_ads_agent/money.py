@@ -13,9 +13,13 @@ Three rules this module exists to enforce:
 3. Meta's own ``currency_offset`` for the account outranks our table. Read the
    account first; pass the offset in.
 
-The table below is ISO 4217 minor-unit digits, which is verifiable and correct
-for the overwhelming majority of cases. It is a *default*, used when the caller
-has no account data to hand.
+The default scale is **Meta's** published offset where Meta publishes one, and
+ISO 4217 minor-unit digits otherwise. The two are not the same: Meta counts
+COP, CRC, HUF, IDR and TWD in whole units (offset 1, where ISO says 100), and
+BHD and JOD in hundredths (ISO says thousandths). An ISO-only default was
+therefore a 100x budget error for a Hungarian or Indonesian account whenever
+the account's own offset had not been read. It is still a *default*: the
+account's offset, when read, wins.
 """
 
 from __future__ import annotations
@@ -139,13 +143,37 @@ def minor_unit_digits(currency: str) -> int:
     )
 
 
+# Where Meta's offset differs from ISO 4217. From Meta's "Currency Codes and
+# Offsets" reference (developers.facebook.com/docs/marketing-api/currencies),
+# read 2026-09-23. Every other currency Meta lists matches ISO.
+META_OFFSET_OVERRIDES: dict[str, int] = {
+    "BHD": 100,
+    "COP": 1,
+    "CRC": 1,
+    "HUF": 1,
+    "IDR": 1,
+    "JOD": 100,
+    "TWD": 1,
+}
+
+
 def offset_for(currency: str) -> int:
     """Multiplier between display amount and minor units, e.g. 100 for USD.
 
-    Meta calls this the currency offset. If the account object gives you one,
-    prefer it over this function - see the module docstring.
+    Meta calls this the currency offset, and this returns Meta's value where
+    it differs from ISO (:data:`META_OFFSET_OVERRIDES`). If the account object
+    gives you one, prefer it over this function - see the module docstring.
     """
-    return int(10 ** minor_unit_digits(currency))
+    code = _normalise(currency)
+    iso = int(10 ** minor_unit_digits(code))
+    return META_OFFSET_OVERRIDES.get(code, iso)
+
+
+def _scale(code: str, offset: int | None) -> int:
+    # `offset or default` would turn an explicit offset=0 - a bad value read
+    # from somewhere - into the table default without a word. None alone means
+    # "not given"; anything else is validated by Money itself.
+    return offset_for(code) if offset is None else offset
 
 
 def _normalise(currency: str) -> str:
@@ -159,18 +187,18 @@ def _to_decimal(value: Decimal | int | str | float) -> Decimal:
     """Coerce to Decimal without inheriting binary float error.
 
     Floats go through ``str`` so ``0.1`` means 0.1 and not
-    0.1000000000000000055511151231257827.
+    0.1000000000000000055511151231257827. Infinity and NaN are refused: they
+    parse as Decimals, and then fail somewhere far less helpful.
     """
+    if isinstance(value, bool):  # bool is an int; almost certainly a bug
+        raise CurrencyError(f"Refusing to treat {value!r} as an amount")
     try:
-        if isinstance(value, Decimal):
-            return value
-        if isinstance(value, bool):  # bool is an int; almost certainly a bug
-            raise CurrencyError(f"Refusing to treat {value!r} as an amount")
-        if isinstance(value, float):
-            return Decimal(str(value))
-        return Decimal(value)
+        result = Decimal(str(value)) if isinstance(value, float) else Decimal(value)
     except (InvalidOperation, ArithmeticError, ValueError) as exc:
         raise CurrencyError(f"Not a valid amount: {value!r}") from exc
+    if not result.is_finite():
+        raise CurrencyError(f"Not a valid amount: {value!r}")
+    return result
 
 
 def _is_power_of_ten(value: object) -> bool:
@@ -205,7 +233,13 @@ class Money:
     def from_minor(cls, minor: int, currency: str, *, offset: int | None = None) -> Money:
         """Build from a wire value, e.g. a budget read back from Meta."""
         code = _normalise(currency)
-        return cls(minor=int(minor), currency=code, offset=offset or offset_for(code))
+        if isinstance(minor, bool) or not isinstance(minor, int):
+            as_decimal = _to_decimal(minor)
+            if as_decimal != as_decimal.to_integral_value():
+                # int(70.9) is 70: a silently different budget.
+                raise CurrencyError(f"a minor-unit amount must be whole, got {minor!r}")
+            minor = int(as_decimal)
+        return cls(minor=minor, currency=code, offset=_scale(code, offset))
 
     @classmethod
     def from_display(
@@ -221,7 +255,7 @@ class Money:
         ``10.005 USD`` is a typo or a unit confusion, not a half-cent.
         """
         code = _normalise(currency)
-        scale = offset or offset_for(code)
+        scale = _scale(code, offset)
         dec = _to_decimal(amount)
         scaled = dec * scale
         if scaled != scaled.to_integral_value():

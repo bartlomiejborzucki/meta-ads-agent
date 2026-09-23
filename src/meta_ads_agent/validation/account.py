@@ -39,7 +39,7 @@ class AccountContext(StrictModel):
         default=None,
         description=(
             "Meta's minor-unit multiplier for this account's currency. When "
-            "present it OUTRANKS our ISO table - see meta_ads_agent.money."
+            "present it OUTRANKS our built-in table - see meta_ads_agent.money."
         ),
     )
     timezone_name: str | None = None
