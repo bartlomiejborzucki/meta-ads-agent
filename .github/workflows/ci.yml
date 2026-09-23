@@ -135,6 +135,7 @@ jobs:
           import meta_ads_agent
           root = Path(meta_ads_agent.__file__).parent / "_data"
           assert (root / "capabilities.yaml").is_file(), "capabilities.yaml missing from wheel"
+          assert (root / "mcp-tools.yaml").is_file(), "mcp-tools.yaml missing from wheel"
           assert (root / "templates" / "brand.yaml").is_file(), "templates missing from wheel"
           print("packaged data ok")
           PY
@@ -270,3 +271,8 @@ jobs:
         # A template that does not validate is worse than no template: the user
         # copies it, edits it, and blames their edit.
         run: uv run python scripts/validate_examples.py
+
+      - name: The MCP tool inventory matches the research document
+        # config/mcp-tools.yaml is generated from the research document, which
+        # carries the sources. An edit to one without the other fails here.
+        run: uv run python scripts/build_mcp_tool_inventory.py --check

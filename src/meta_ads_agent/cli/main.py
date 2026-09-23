@@ -99,6 +99,14 @@ def build_parser() -> argparse.ArgumentParser:
     caps.add_argument(
         "--validate", action="store_true", help="check the registry and flag stale entries"
     )
+    caps.add_argument(
+        "--compare",
+        metavar="TOOL_LIST",
+        help=(
+            "compare a live session's tool list (a file, or - for stdin) with the map; "
+            "exit 1 if they differ"
+        ),
+    )
 
     # -- validate-plan -----------------------------------------------------
     validate = subparsers.add_parser(
@@ -495,6 +503,7 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
             area=args.area,
             gaps_only=args.gaps,
             capability=args.name,
+            compare_with=args.compare,
         )
 
     if args.command == "validate-plan":

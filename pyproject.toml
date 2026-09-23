@@ -61,6 +61,7 @@ packages = ["src/meta_ads_agent"]
 # self-sufficient. See docs/reference/packaging.md.
 [tool.hatch.build.targets.wheel.force-include]
 "config/capabilities.yaml" = "meta_ads_agent/_data/capabilities.yaml"
+"config/mcp-tools.yaml" = "meta_ads_agent/_data/mcp-tools.yaml"
 "skills/meta-ads-core/assets" = "meta_ads_agent/_data/templates"
 # The skills ship inside the wheel as well as in the repository. That is what
 # makes one install command possible: `uv tool install git+...` puts the CLI

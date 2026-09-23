@@ -26,6 +26,19 @@ Then, for anything that changed shape:
 Introspection is the only reliable source. Meta's documentation pages are a
 good cross-check and have already been shown to omit tools that exist.
 
+Then save the tool list the agent gave you - its names are all that matter,
+so pasted text, JSON, or `/mcp` output all work - and compare it with the map:
+
+```bash
+meta-ads-agent capabilities --compare tools.txt
+```
+
+It reports tools the map routes work to that the session lacks (fix these
+first: a skill will reach for them), tools the session has that Meta's
+reference did not list, whether each community-reported name exists, and new
+tools whose names suggest one of the six gaps below. It exits 1 on any
+difference and changes nothing.
+
 ## 2. Check the gaps specifically
 
 Six capabilities currently route to the fallback. Each is a bet that Meta will
@@ -46,6 +59,16 @@ Finding one is good news: it means one less reason for anyone to hold an access
 token.
 
 ## 3. Update the registry
+
+If Meta's reference itself changed, update
+`docs/research/current-meta-capabilities.md` first - it carries the sources -
+and regenerate the machine-readable inventory from it:
+
+```bash
+uv run python scripts/build_mcp_tool_inventory.py
+```
+
+CI fails when the two disagree.
 
 Edit `config/capabilities.yaml`:
 

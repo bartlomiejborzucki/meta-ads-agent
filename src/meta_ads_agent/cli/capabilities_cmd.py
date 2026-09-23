@@ -26,12 +26,16 @@ def run_capabilities(
     area: str | None = None,
     gaps_only: bool = False,
     capability: str | None = None,
+    compare_with: str | None = None,
 ) -> int:
     try:
         registry = load_registry()
     except MetaAdsAgentError as exc:
         fail(str(exc))
         return 1
+
+    if compare_with:
+        return _compare(registry, compare_with, as_json=as_json)
 
     if validate:
         return _validate(registry)
@@ -213,3 +217,77 @@ def _validate(registry: Registry) -> int:
     echo("")
     echo("  registry ok")
     return 0
+
+
+def _compare(registry: Registry, source: str, *, as_json: bool) -> int:
+    """Hold a live session's tool list up to the map. Exit 1 when they differ."""
+    import sys
+    from pathlib import Path
+
+    from meta_ads_agent.tool_inventory import compare, load_inventory
+
+    try:
+        text = sys.stdin.read() if source == "-" else Path(source).expanduser().read_text("utf-8")
+        inventory = load_inventory()
+        drift = compare(text, registry, inventory)
+    except FileNotFoundError:
+        fail(f"{source} not found")
+        return 2
+    except MetaAdsAgentError as exc:
+        fail(str(exc))
+        return 2
+
+    if as_json:
+        emit_json(
+            {
+                "map_reviewed": str(inventory.reviewed) if inventory.reviewed else None,
+                "live_tools": len(drift.live),
+                "missing": drift.missing,
+                "missing_unmapped": drift.missing_unmapped,
+                "new": drift.new,
+                "unverified_confirmed": drift.unverified_confirmed,
+                "unverified_absent": drift.unverified_absent,
+                "gap_candidates": drift.gap_candidates,
+                "clean": drift.clean,
+            }
+        )
+        return 0 if drift.clean else 1
+
+    heading("Live tools against the capability map")
+    echo(f"  session   {len(drift.live)} ads_* tool(s)")
+    echo(f"  map       Meta's reference as read on {inventory.reviewed or 'an unknown date'}")
+    if drift.missing:
+        echo("")
+        echo("  MISSING - the map routes work to these, and this session lacks them:", "red")
+        for tool, caps in drift.missing.items():
+            echo(f"    {tool:<42} used by {', '.join(caps)}")
+    if drift.missing_unmapped:
+        echo("")
+        echo("  Also absent (documented, not routed to by the map):")
+        for tool in drift.missing_unmapped:
+            echo(f"    {tool}")
+    if drift.new:
+        echo("")
+        echo("  NEW - in this session, not in Meta's reference when the map was written:")
+        for tool in drift.new:
+            echo(f"    {tool}")
+    if drift.unverified_confirmed or drift.unverified_absent:
+        echo("")
+        echo("  Community-reported names")
+        for tool in drift.unverified_confirmed:
+            echo(f"    {tool:<42} present - confirmed by this session")
+        for tool in drift.unverified_absent:
+            echo(f"    {tool:<42} absent from this session")
+    if drift.gap_candidates:
+        echo("")
+        echo("  Worth reading - may close a fallback gap (a name is a hint, not proof):", "yellow")
+        for capability, tools in drift.gap_candidates.items():
+            echo(f"    {capability:<32} {', '.join(tools)}")
+    echo("")
+    if drift.clean:
+        echo("  The session matches the map.")
+    else:
+        echo(
+            "  Refresh the map by hand: docs/reference/capability-refresh.md. Nothing was changed."
+        )
+    return 0 if drift.clean else 1

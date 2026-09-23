@@ -442,7 +442,8 @@ This is the largest gap and the one to read first.
   designated test ad account.
 - **The capability map was read, not introspected.** `config/capabilities.yaml`
   records Meta's published tool reference as of 2026-09-16. No authenticated
-  session has confirmed it. Three tools a community source reports are kept in
+  session has confirmed it. Anyone with one can: `meta-ads-agent capabilities
+  --compare` takes the session's tool list and reports every difference. Three tools a community source reports are kept in
   a separate, explicitly unverified section of
   [the capability document](docs/research/current-meta-capabilities.md).
 - **The Codex plugin has not been installed.** Codex was not available on the

@@ -52,6 +52,7 @@ validation.
 
 ```bash
 meta-ads-agent capabilities [NAME] [--json] [--area AREA] [--gaps] [--validate]
+  [--compare TOOL_LIST]
 ```
 
 Prints the capability registry: who owns each capability, its risk class,
@@ -65,7 +66,10 @@ meta-ads-agent capabilities --validate           # check the registry, flag stal
 
 This is the project's **recorded** mapping, not live introspection of a
 connected MCP session. The output says so. To see what a session actually
-exposes, ask your agent to list its tools.
+exposes, ask your agent to list its tools - and then hand that list to
+`--compare` (a file, or `-` for stdin), which reports what the session lacks,
+what it has that the map does not, and which new tools may close a fallback
+gap. It exits 1 when the session and the map differ, and changes nothing.
 
 ## render-plan
 
