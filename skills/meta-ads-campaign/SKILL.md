@@ -18,42 +18,33 @@ it cannot work without.
 <!-- shared:preflight start - generated from packaging/shared/preflight.md by scripts/sync_skill_blocks.py - edit there -->
 ## Preflight: two checks, kept separate
 
-These are independent questions with different answers and different
-consequences, so never let one stand in for the other.
+Independent questions; never let one answer stand in for the other.
 
-**1. Meta's official Ads MCP - the execution layer.** List the tools available
-in this session and look for names beginning `ads_`. If there are none,
-nothing in this skill can run against a real account: say so, and help the
-user connect it - `connect-meta-mcp.md`, under `references/` in the
+**1. Meta's official Ads MCP - the execution layer.** Look for tools named
+`ads_*` in this session. With none, nothing here can reach an account: say so
+and help the user connect it - `connect-meta-mcp.md` under `references/` in the
 `meta-ads-core` skill, or
 <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/references/connect-meta-mcp.md>.
-The local CLI is not a substitute; it deliberately does not cover what the MCP
-covers.
+The local CLI does not replace it.
 
-**2. The local `meta-ads-agent` CLI - optional, separately installed, usually
-absent.** The skills install without it, so assume it is missing until a probe
-says otherwise:
+**2. The local `meta-ads-agent` CLI - optional, usually absent.** Assume it is
+missing until this succeeds:
 
 ```bash
 meta-ads-agent --version
 ```
 
-"command not found" is the expected answer for most users, not a fault, and
-not something to work around. **Do not put a `meta-ads-agent ...` command in
-front of someone before that probe has succeeded.** A command that fails at
-their prompt costs more than the step it was meant to save, and it makes the
-rest of your advice look equally unchecked. Say "that step needs the optional
-CLI, which is not installed here" and carry on with what the MCP can do.
+"command not found" is the normal answer, not a fault. **Show no
+`meta-ads-agent ...` command before that probe has succeeded** - a command that
+fails at the user's prompt costs more than the step it saves. Say "that step
+needs the optional CLI, which is not installed here" and carry on.
 
-With the MCP connected and no CLI, all of this still works in full: audits,
-reporting, Ad Library research, previews, tracking diagnosis, creative work,
-optimisation diagnosis, and the MCP-side changes that follow it. Workspace
-files under `.meta-ads/` can be written directly - the templates are in the
-`meta-ads-core` skill's `assets/` directory.
-
-Only these need the CLI: campaign plan validation (and therefore campaign
-builds), local image and video upload, video / existing-post / multi-variant
-creatives, and deletion.
+The MCP alone covers audits, reporting, Ad Library research, previews,
+tracking, creative, optimisation and the changes that follow; `.meta-ads/`
+files can be written directly from the templates in `meta-ads-core`'s
+`assets/`. Only these need the CLI: plan validation (so campaign builds),
+local image and video upload, video / existing-post / multi-variant
+creatives, deletion, and the `report` arithmetic (which has a by-hand route).
 <!-- shared:preflight end -->
 
 ## The pipeline
@@ -166,35 +157,31 @@ how to write them.
 <!-- shared:no-cli-writes start - generated from packaging/shared/no-cli-writes.md by scripts/sync_skill_blocks.py - edit there -->
 ## Building with no CLI: stop at the plan
 
-Plan validation is the gate between a draft and spent money. It checks the
-things that are invisible to a careful reader: minor-unit currency
-arithmetic, a budget set on exactly one level, whether the Page, Instagram
-identity and dataset actually exist on this account, EU transparency fields,
-special-ad-category consistency, and whether each local asset is the type it
-claims to be. Reading the plan attentively is not the same check.
+Plan validation is the gate between a draft and spent money. It catches what a
+careful reader misses: minor-unit currency arithmetic, a budget on exactly one
+level, whether the Page, Instagram identity and dataset exist on this account,
+EU transparency fields, special-category consistency, and whether each local
+asset is the type it claims.
 
 So when the probe says the CLI is absent: write the plan, show it, and **stop
 before the first write.** Do not create objects and validate afterwards - a
-wrong campaign that already exists is much harder to argue with than one that
-does not, even paused.
+wrong campaign that already exists, even paused, is much harder to argue with.
 
-Then give the user the routes forward, and say which you recommend:
+Then offer the routes forward, and say which you recommend:
 
 1. **Validate without installing anything**, if `uv` is on their PATH:
    ```bash
    uvx --from "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
      meta-ads-agent validate-plan <plan>
    ```
-2. **Install it**, if they expect to build campaigns again:
+2. **Install it**, if they will build campaigns again:
    ```bash
    uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git"
    meta-ads-agent doctor
    ```
-3. **Build it by hand** in Ads Manager from the plan you just showed them. The
-   plan is a complete specification; it does not need this tooling to be
-   useful.
-4. **Leave the plan as the deliverable** and continue with the read-only work -
-   audit, research, creative, reporting - none of which needs the CLI.
+3. **Build it by hand** in Ads Manager from the plan - it is a complete
+   specification.
+4. **Keep the plan as the deliverable** and continue with the read-only work.
 
 Offering no route forward is not an answer, and neither is quietly proceeding.
 <!-- shared:no-cli-writes end -->

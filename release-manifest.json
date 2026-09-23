@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "0.3.0",
   "payload_root": "skills",
-  "digest": "f87310d07a5bfe62e429c4105bdd1b80d47977422a36d48c95374b9527190ee1",
+  "digest": "cf8d93036a8400c94930c556a92fcdd90d5d0cf7c56c94b0d4bacda8ae34a798",
   "skills": [
     "meta-ads-audit",
     "meta-ads-campaign",
@@ -24,8 +24,8 @@
   "files": [
     {
       "path": "meta-ads-audit/SKILL.md",
-      "sha256": "25ef020b47e6b3887ecfabe4b3519c238e1d66de254d60dac047aa4da5a750ff",
-      "size": 8152
+      "sha256": "ab77a08a41b078b6858e8815f9683a492efe66fe8385f74d033c9bdbbc7c432a",
+      "size": 7660
     },
     {
       "path": "meta-ads-audit/references/audit-checklist.md",
@@ -34,8 +34,8 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "75909f2511db235843ab123cf505920b27540bffc919119a59f1aa8e74e3c392",
-      "size": 12891
+      "sha256": "aeacbbf1614a96ed204916d13af4b826e186a445db5c82ec00ec1684ff09f304",
+      "size": 12124
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
@@ -59,8 +59,8 @@
     },
     {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "fab3b824cacf117146fc45486c47caed7a9d64d8655eb65e93701e88cdc7010e",
-      "size": 11454
+      "sha256": "9a930576fe1f8f3eea92edb7e30d9ae095c90f78830cf00096cb5b4da46a9a99",
+      "size": 10687
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
@@ -114,8 +114,8 @@
     },
     {
       "path": "meta-ads-creative/SKILL.md",
-      "sha256": "92787359df7f0ddd3e518abd7f174a811a009f7fc02250d2649eb766cacc7357",
-      "size": 8094
+      "sha256": "e0b76b4ccec9f3206f18f92c6a255de14f6376d5d9c261ae7a434748594f7076",
+      "size": 7602
     },
     {
       "path": "meta-ads-creative/references/angles-and-copy.md",
@@ -124,8 +124,8 @@
     },
     {
       "path": "meta-ads-optimize/SKILL.md",
-      "sha256": "f14d3e21b69f2972ab8aceab36135c8136c8fedfecde5ec10c02e6be100dfc2e",
-      "size": 11595
+      "sha256": "aa0d602a94bf45ce196e7a49d98761a1e4d5462536bf442e32075217cd8ecf28",
+      "size": 11103
     },
     {
       "path": "meta-ads-optimize/references/diagnosis-playbook.md",
@@ -139,8 +139,8 @@
     },
     {
       "path": "meta-ads-preview/SKILL.md",
-      "sha256": "e93643d0ebd4fd2a69645f91b467fe9ac0a6d6ef8322b0d2245c493b6c89816e",
-      "size": 7894
+      "sha256": "350f0aecf296af9df3abbd636f9c8f501e4c7954df30abd39ae2641399aa75b4",
+      "size": 7402
     },
     {
       "path": "meta-ads-preview/references/placement-qa.md",
@@ -149,8 +149,8 @@
     },
     {
       "path": "meta-ads-report/SKILL.md",
-      "sha256": "94fd81f0519df90b4253701be8f4f7018a2b7b3f4e9c20fc3ad866433b10c20b",
-      "size": 9346
+      "sha256": "4fc3208598232850e592b4b75919e955aac7eaf30d71b4842bb15d277e656483",
+      "size": 8854
     },
     {
       "path": "meta-ads-report/references/metrics-and-comparisons.md",
@@ -159,13 +159,13 @@
     },
     {
       "path": "meta-ads-research/SKILL.md",
-      "sha256": "3c1f87e2d3a838e85f28b2cbecd1dbf36ef99be8c0e6ef4ad638756a389e41b8",
-      "size": 7509
+      "sha256": "3aba15b2f442a96ea02878bf9b481973235ef80b7058bc6655ffc0e32960db0d",
+      "size": 7017
     },
     {
       "path": "meta-ads-tracking/SKILL.md",
-      "sha256": "6001035cec2c2ac20dce20e327290cbbb68e696b0cbdcb16a6ae28569418b07f",
-      "size": 10080
+      "sha256": "45692bfdf12bf59f8de6e2b790c2f9cfad042463801b9e9bacfb4ae050c81a94",
+      "size": 9588
     },
     {
       "path": "meta-ads-tracking/references/signal-quality.md",
