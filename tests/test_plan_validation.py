@@ -37,6 +37,16 @@ class TestHappyPath:
     def test_rendering_includes_a_verdict(self, plan, account) -> None:  # type: ignore[no-untyped-def]
         assert "VALID" in validate_plan(plan, account=account, check_assets=False).render()
 
+    def test_rendering_puts_errors_then_warnings_then_notes(self, plan) -> None:  # type: ignore[no-untyped-def]
+        # Sorting by the severity string put notes ahead of warnings.
+        report = validate_plan(plan, account=None, check_assets=False)
+        report.add(Severity.ERROR, "zz.error", "an error")
+        levels = [line.split(":")[0] for line in report.render().splitlines() if ":" in line]
+        ranks = {"ERROR": 0, "WARNING": 1, "INFO": 2}
+        seen = [ranks[level] for level in levels if level in ranks]
+        assert seen == sorted(seen)
+        assert {"ERROR", "WARNING", "INFO"} <= set(levels)
+
 
 class TestAccountContext:
     def test_absent_context_warns_rather_than_blocking(self, plan) -> None:  # type: ignore[no-untyped-def]
@@ -250,6 +260,18 @@ class TestIdentityAndTracking:
         assert "optimization_goal.invalid" in codes(
             validate_plan(plan, account=account, check_assets=False), Severity.ERROR
         )
+
+    def test_an_invalid_objective_is_reported_once_not_per_ad_set(self, account) -> None:  # type: ignore[no-untyped-def]
+        def two_ad_sets(raw):  # type: ignore[no-untyped-def]
+            import copy
+
+            second = copy.deepcopy(raw["campaign"]["ad_sets"][0])
+            second["name"] = "second"
+            raw["campaign"]["ad_sets"].append(second)
+
+        account.valid_objectives = ["OUTCOME_SALES"]
+        report = validate_plan(build(two_ad_sets), account=account, check_assets=False)
+        assert [f.code for f in report.findings].count("objective.invalid") == 1
 
     def test_empty_discovered_enums_mean_we_did_not_look(self, plan, account) -> None:  # type: ignore[no-untyped-def]
         # An empty list must not be read as "nothing is valid" - that would

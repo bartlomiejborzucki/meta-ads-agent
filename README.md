@@ -358,11 +358,11 @@ meta-ads-agent validate-plan .meta-ads/campaigns/acme-webinar/plan.yaml
 ```
 
 ```
+ERROR    dsa.missing_fields  targeting PL requires beneficiary, payor
+WARNING  currency.unverified plan budgets are in PLN, not verified against the account
 INFO     budget.resolved     daily budget at ad_set level: 70.00 PLN (7000 minor units)
 INFO     dsa.present         EU delivery to PL with beneficiary 'Acme Sp. z o.o.'
 INFO     routing.fallback    single_video will use the Business SDK fallback
-WARNING  currency.unverified plan budgets are in PLN, not verified against the account
-ERROR    dsa.missing_fields  targeting PL requires beneficiary, payor
 
 BLOCKED: 1 error(s), 1 warning(s), 3 note(s)
 ```
