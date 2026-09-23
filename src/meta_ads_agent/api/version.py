@@ -15,6 +15,8 @@ from __future__ import annotations
 import os
 import re
 
+from meta_ads_agent.errors import ConfigError
+
 # Graph/Marketing API version current when this release was tested (2026-09-16).
 # facebook-business 26.0.1 is the matching SDK major.
 DEFAULT_GRAPH_API_VERSION = "v26.0"
@@ -31,7 +33,7 @@ def graph_api_version(override: str | None = None) -> str:
     """Resolve the version to use: argument, then environment, then default."""
     value = (override or os.environ.get(ENV_VAR) or DEFAULT_GRAPH_API_VERSION).strip()
     if not _VERSION_RE.match(value):
-        raise ValueError(
+        raise ConfigError(
             f"{ENV_VAR}={value!r} is not a Graph API version. Expected a form "
             f"like {DEFAULT_GRAPH_API_VERSION!r}."
         )

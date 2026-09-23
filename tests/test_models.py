@@ -389,3 +389,14 @@ class TestSchedule:
 
         with pytest.raises(ValidationError, match="after start"):
             build(mutate)
+
+    def test_mixing_offset_and_naive_times_is_a_validation_error(self) -> None:
+        # Comparing them raised TypeError, which escaped pydantic as a crash.
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["schedule"] = {
+                "start": "2026-10-01T00:00:00Z",
+                "end": "2026-10-08T00:00:00",
+            }
+
+        with pytest.raises(ValidationError, match="UTC offset"):
+            build(mutate)

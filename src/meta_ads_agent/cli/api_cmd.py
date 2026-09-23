@@ -13,7 +13,7 @@ an ad.
 
 from __future__ import annotations
 
-from meta_ads_agent.api.client import ApiClient
+from meta_ads_agent.api.client import ACCOUNT_ENV, ApiClient, normalise_account_id
 from meta_ads_agent.api.creatives import (
     create_existing_post_creative,
     create_multi_variant_creative,
@@ -23,7 +23,7 @@ from meta_ads_agent.api.deletion import DeletableType, delete_object
 from meta_ads_agent.api.media import upload_image, upload_video
 from meta_ads_agent.capabilities import Provider, RiskLevel, load_registry
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading
-from meta_ads_agent.errors import ApiFallbackUnavailable, DryRun, MetaAdsAgentError
+from meta_ads_agent.errors import ApiFallbackUnavailable, ConfigError, DryRun, MetaAdsAgentError
 from meta_ads_agent.models.plan import CopyVariant
 from meta_ads_agent.state.actionlog import ActionLog, ActionRecord
 from meta_ads_agent.state.assets import AssetStore
@@ -44,6 +44,21 @@ def _client(dry_run: bool) -> ApiClient | None:
         raise
 
 
+def _target_account(account: str | None, client: ApiClient | None, dry_run: bool) -> str:
+    """The ad account a command acts on, in its one canonical spelling.
+
+    Only a dry run may proceed without one - it describes the call rather
+    than making it. A real call with no account is refused here, before the
+    placeholder can reach Meta as ``act_<no account configured>``.
+    """
+    target = account or (client.credentials.ad_account_id if client else None)
+    if target:
+        return normalise_account_id(target)
+    if dry_run:
+        return "<no account configured>"
+    raise ConfigError(f"No ad account given and {ACCOUNT_ENV} is not set. Pass --account act_<id>.")
+
+
 def _context(capability: str) -> tuple[Workspace, AssetStore, ActionLog, str]:
     """Resolve workspace, stores, and the reason this fallback is being used."""
     workspace = Workspace.locate()
@@ -62,11 +77,7 @@ def run_upload_image(path: str, *, account: str | None, dry_run: bool, as_json: 
     try:
         _ws, store, log, reason = _context(capability)
         client = _client(dry_run)
-        target = (
-            account
-            or (client.credentials.ad_account_id if client else None)
-            or "<no account configured>"
-        )
+        target = _target_account(account, client, dry_run)
         result = upload_image(path, target, client=client, store=store, dry_run=dry_run)
     except DryRun as exc:
         echo(str(exc), "yellow")
@@ -125,11 +136,7 @@ def run_upload_video(
     try:
         _ws, store, log, reason = _context(capability)
         client = _client(dry_run)
-        target = (
-            account
-            or (client.credentials.ad_account_id if client else None)
-            or "<no account configured>"
-        )
+        target = _target_account(account, client, dry_run)
         result = upload_video(
             path,
             target,
@@ -209,11 +216,7 @@ def run_create_creative(
     try:
         _ws, _store, log, reason = _context(capability)
         client = _client(dry_run)
-        target = (
-            account
-            or (client.credentials.ad_account_id if client else None)
-            or "<no account configured>"
-        )
+        target = _target_account(account, client, dry_run)
 
         if mode == "post":
             if not post_id:

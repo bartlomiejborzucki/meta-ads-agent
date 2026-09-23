@@ -9,9 +9,12 @@ from __future__ import annotations
 import argparse
 import sys
 
+from pydantic import ValidationError as PydanticValidationError
+
 from meta_ads_agent import __version__
 from meta_ads_agent.cli.output import fail
 from meta_ads_agent.errors import MetaAdsAgentError
+from meta_ads_agent.redaction import redact
 
 _EPILOG = """\
 This CLI is deliberately small.
@@ -364,6 +367,11 @@ def main(argv: list[str] | None = None) -> int:
     except MetaAdsAgentError as exc:
         fail(str(exc))
         return 1
+    except PydanticValidationError as exc:
+        # A bad value on the command line (``--cta sign_up``) reaches a model
+        # before it reaches Meta. That is a usage error, not a crash.
+        fail(redact(str(exc)))
+        return 2
     except KeyboardInterrupt:
         fail("interrupted. Nothing was left half-written - state is flushed after each step.")
         return 130

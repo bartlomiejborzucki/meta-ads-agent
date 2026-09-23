@@ -30,6 +30,7 @@ from meta_ads_agent.api.version import (
 from meta_ads_agent.errors import (
     ApiCallFailed,
     ApiFallbackUnavailable,
+    ConfigError,
     DryRun,
     ValidationError,
 )
@@ -59,7 +60,7 @@ class TestGraphApiVersion:
         if bad == "":
             assert graph_api_version() == DEFAULT_GRAPH_API_VERSION
         else:
-            with pytest.raises(ValueError, match="not a Graph API version"):
+            with pytest.raises(ConfigError, match="not a Graph API version"):
                 graph_api_version()
 
     def test_version_ordering(self) -> None:

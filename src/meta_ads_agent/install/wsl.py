@@ -122,7 +122,11 @@ class WslBridge:
         """
         if not re.match(r"^https://[^\s\"'<>]+$", url):
             raise ConfigError(f"refusing to open {url!r}: only https URLs are opened")
-        for argv in (["explorer.exe", url], ["cmd.exe", "/c", "start", "", url]):
+        # Neither launcher goes through a shell. An OAuth URL is full of '&',
+        # which ``cmd.exe /c start`` would treat as a command separator -
+        # truncating the URL at best, running whatever follows at worst.
+        launchers = (["explorer.exe", url], ["rundll32.exe", "url.dll,FileProtocolHandler", url])
+        for argv in launchers:
             if shutil.which(argv[0]) is None:
                 continue
             # explorer.exe returns 1 on success often enough that its exit
@@ -133,7 +137,7 @@ class WslBridge:
             except OSError:  # pragma: no cover - which() said it was there
                 continue
         raise ConfigError(
-            "no Windows browser launcher found (tried explorer.exe and cmd.exe). "
+            "no Windows browser launcher found (tried explorer.exe and rundll32.exe). "
             f"Open this URL in your Windows browser by hand:\n    {url}\n"
             "A browser started inside WSL is not used as a fallback: it has a "
             "different profile and the OAuth redirect would not reach it."

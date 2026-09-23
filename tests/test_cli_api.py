@@ -118,6 +118,32 @@ class TestUploadImage:
         assert code == 1
         assert "Invalid image file" in err
 
+    def test_no_account_is_refused_before_any_upload(
+        self,
+        sdk: Recorder,
+        project: Path,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("META_AD_ACCOUNT_ID")
+        image = write_png(project / "hero.png", 600, 600)
+        code, _, err = run(["api", "upload-image", str(image)], capsys)
+        assert code == 1
+        assert "--account" in err
+        assert sdk.image_uploads == []
+
+    def test_both_spellings_of_an_account_share_one_upload(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        image = write_png(project / "hero.png", 600, 600)
+        run(["api", "upload-image", str(image), "--account", "1234567890"], capsys)
+        code, out, _ = run(
+            ["api", "upload-image", str(image), "--account", "act_1234567890"], capsys
+        )
+        assert code == 0
+        assert "not re-uploaded" in out
+        assert len(sdk.image_uploads) == 1
+
 
 class TestUploadVideo:
     def test_uploads_waits_and_reports(
@@ -153,6 +179,33 @@ class TestUploadVideo:
 
 
 class TestCreateCreative:
+    def test_an_invalid_cta_is_a_usage_error_not_a_traceback(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        code, _, err = run(
+            [
+                "api",
+                "create-creative",
+                "--video",
+                "--name",
+                "angle-a video",
+                "--page-id",
+                "1111111111",
+                "--video-id",
+                "700000000000001",
+                "--url",
+                "https://acme.example.com/webinar",
+                "--primary-text",
+                "Friday afternoons, returned.",
+                "--cta",
+                "sign_up",
+            ],
+            capsys,
+        )
+        assert code == 2
+        assert "sign_up" in err
+        assert sdk.creatives == []
+
     def test_a_video_creative(
         self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:

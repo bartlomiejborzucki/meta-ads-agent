@@ -131,8 +131,7 @@ class ApiClient:
             raise ApiFallbackUnavailable(
                 f"No ad account given and {ACCOUNT_ENV} is not set. Pass --account act_<id>."
             )
-        if not target.startswith("act_"):
-            target = f"act_{target}"
+        target = normalise_account_id(target)
         self.connect()
         return AdAccount(target, api=self._api)
 
@@ -174,3 +173,13 @@ def wrap_sdk_error(exc: Exception, *, stage: str, operation: str) -> ApiCallFail
         meta_subcode=subcode,
         retry_safe=retry_safe,
     )
+
+
+def normalise_account_id(ad_account_id: str) -> str:
+    """The one spelling of an ad account id: ``act_<digits>``.
+
+    ``123`` and ``act_123`` are the same account, and the asset manifest keys
+    uploads by account - two spellings would mean two uploads of one file.
+    """
+    target = ad_account_id.strip()
+    return target if target.startswith("act_") else f"act_{target}"

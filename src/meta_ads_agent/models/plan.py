@@ -100,6 +100,12 @@ class Schedule(StrictModel):
 
     @model_validator(mode="after")
     def _ordered(self) -> Schedule:
+        if self.start and self.end and (self.start.tzinfo is None) != (self.end.tzinfo is None):
+            # Comparing them raises TypeError, which pydantic does not turn
+            # into a validation error - validate-plan would crash instead.
+            raise ValueError(
+                "schedule start and end must both carry a UTC offset, or neither should"
+            )
         if self.start and self.end and self.end <= self.start:
             raise ValueError("schedule end must be after start")
         return self

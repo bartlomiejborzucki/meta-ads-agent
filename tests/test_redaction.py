@@ -70,6 +70,11 @@ class TestRedactStrings:
     def test_ordinary_text_is_untouched(self, innocent: str) -> None:
         assert redact(innocent) == innocent
 
+    def test_oauth_authorization_header_is_masked(self) -> None:
+        token = "opaque0token0value0without0prefix"
+        assert token not in redact(f"Authorization: OAuth {token}")
+        assert redact("finish the OAuth callback") == "finish the OAuth callback"
+
     def test_empty_input(self) -> None:
         assert redact("") == ""
 
@@ -95,6 +100,22 @@ class TestRedactUrl:
         url = "https://graph.facebook.com/v26.0/act_1/ads?fields=id,name&limit=25"
         assert redact_url(url) == url
 
+    @pytest.mark.parametrize(
+        "param", ["fb_exchange_token", "code", "input_token", "unheard_of_param"]
+    )
+    def test_unknown_query_parameters_drop_the_query(self, param: str) -> None:
+        # Opaque on purpose: the old filter only caught values shaped like a
+        # token or parameters it had been told about.
+        url = f"https://graph.facebook.com/v26.0/oauth?{param}=opaque123&limit=5"
+        result = redact_url(url)
+        assert "opaque123" not in result
+        assert "REDACTED_QUERY" in result
+
+    def test_credentials_in_the_authority_are_removed(self) -> None:
+        result = redact_url("https://user:hunter22@example.com/path")
+        assert "hunter22" not in result
+        assert result.endswith("@example.com/path")
+
     def test_no_query_is_a_no_op(self) -> None:
         assert redact_url("https://example.com/path") == "https://example.com/path"
         assert redact_url("") == ""
@@ -110,6 +131,15 @@ class TestRedactMapping:
         }
         result = redact_mapping(payload)
         assert all(value == MASK for value in result.values())
+
+    @pytest.mark.parametrize(
+        "key",
+        ["metaAccessToken", "pageAccessToken", "X-Access-Token", "user_token", "clientSecret"],
+    )
+    def test_secret_keys_masked_whatever_the_value_looks_like(self, key: str) -> None:
+        # A value that matches none of the string patterns, so only the key
+        # match can mask it. The earlier test passed on the value alone.
+        assert redact_mapping({key: "opaque"}) == {key: MASK}
 
     def test_nested_structures_are_walked(self) -> None:
         payload = {

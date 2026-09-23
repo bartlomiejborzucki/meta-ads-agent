@@ -65,7 +65,7 @@ class FakeWindows:
         if argv[0] == "cmd.exe" and "echo %USERPROFILE%" in " ".join(argv):
             # cmd.exe really does terminate with CRLF.
             return _ok(self.profile + "\r")
-        if argv[0] in ("explorer.exe", "cmd.exe"):
+        if argv[0] in ("explorer.exe", "rundll32.exe"):
             self.opened.append(argv)
             return _ok("")
         raise AssertionError(f"unexpected call across the boundary: {argv}")
@@ -402,6 +402,22 @@ class TestOAuthOpensWindowsChrome:
             bridge.open_url("https://www.facebook.com/dialog/oauth")
         assert "not used as a fallback" in str(error.value)
         assert windows.opened == []
+
+    def test_no_launcher_goes_through_a_shell(
+        self, windows: FakeWindows, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An OAuth URL's '&' must reach the browser, not a command parser."""
+        url = "https://www.facebook.com/dialog/oauth?client_id=1&redirect_uri=x&calc"
+        for missing in ((), ("explorer.exe",)):
+            windows.opened.clear()
+            monkeypatch.setattr(
+                "meta_ads_agent.install.wsl.shutil.which",
+                lambda name, missing=missing: None if name in missing else name,
+            )
+            WslBridge(runner=windows.runner, available=True).open_url(url)
+            (argv,) = windows.opened
+            assert argv[0] != "cmd.exe"
+            assert argv[-1] == url
 
     def test_only_https_urls_are_opened(self, windows: FakeWindows) -> None:
         bridge = WslBridge(runner=windows.runner, available=True)

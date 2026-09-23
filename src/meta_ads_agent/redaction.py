@@ -43,8 +43,34 @@ SECRET_KEYS = frozenset(
     }
 )
 
-# Query parameters stripped from any URL before it is shown.
-_SECRET_QUERY_PARAMS = frozenset({"access_token", "client_secret", "appsecret_proof"})
+# Normalised key suffixes that mark a value as a credential whatever comes
+# before them: ``page_access_token``, ``x_access_token``, ``user_token``.
+_SECRET_KEY_SUFFIXES = ("_token", "_secret", "_password", "_api_key")
+
+# Query parameters known to carry nothing sensitive. A URL whose query has any
+# other parameter loses the whole query: listing the harmless ones is a closed
+# set, listing the dangerous ones (fb_exchange_token, code, input_token, ...)
+# never is.
+_HARMLESS_QUERY_PARAMS = frozenset(
+    {
+        "fields",
+        "limit",
+        "after",
+        "before",
+        "since",
+        "until",
+        "date_preset",
+        "time_range",
+        "time_increment",
+        "level",
+        "breakdowns",
+        "action_breakdowns",
+        "filtering",
+        "summary",
+        "locale",
+        "format",
+    }
+)
 
 _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     # key=value / key: value / "key": "value" in prose, JSON, or shell output.
@@ -61,6 +87,9 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Authorization headers.
     (re.compile(r"(?i)\b(Bearer)\s+([A-Za-z0-9._\-|]{8,})"), r"\1 " + MASK),
+    # Graph also accepts ``Authorization: OAuth <token>``. "OAuth" is common in
+    # prose ("OAuth callback"), so only a token-length word after it counts.
+    (re.compile(r"\b(OAuth)\s+([A-Za-z0-9._\-|]{20,})"), r"\1 " + MASK),
     # Meta access tokens have a recognisable shape: EAA... base64-ish and long.
     # Catch them even when they appear bare, with no key naming them.
     (re.compile(r"\bEAA[A-Za-z0-9]{12,}\b"), MASK),
@@ -83,18 +112,24 @@ def redact_url(url: str) -> str:
     """Drop the query string from a URL that may carry credentials.
 
     Graph API URLs put ``access_token`` in the query, so the whole query is
-    replaced rather than filtered field by field - a parameter we have not
-    thought of is more likely than one we have.
+    replaced unless every parameter in it is known to be harmless - a
+    parameter we have not thought of is more likely than one we have.
+    Credentials in the authority (``user:pass@host``) are always removed.
     """
     if not url:
         return url
     parts = urlsplit(url)
-    if not parts.query:
+    netloc = parts.netloc
+    if "@" in netloc:
+        netloc = "[REDACTED]@" + netloc.rsplit("@", 1)[1]
+    query = parts.query
+    if query:
+        names = {pair.split("=", 1)[0].lower() for pair in query.split("&") if pair}
+        if not names <= _HARMLESS_QUERY_PARAMS:
+            query = "[REDACTED_QUERY]"
+    if netloc == parts.netloc and query == parts.query:
         return url
-    lowered = parts.query.lower()
-    if any(p in lowered for p in _SECRET_QUERY_PARAMS):
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, "[REDACTED_QUERY]", ""))
-    return url
+    return urlunsplit((parts.scheme, netloc, parts.path, query, parts.fragment))
 
 
 def redact_mapping(data: Any, *, _depth: int = 0) -> Any:
@@ -109,7 +144,7 @@ def redact_mapping(data: Any, *, _depth: int = 0) -> Any:
     if isinstance(data, dict):
         out: dict[Any, Any] = {}
         for key, value in data.items():
-            if isinstance(key, str) and _normalise_key(key) in SECRET_KEYS:
+            if isinstance(key, str) and _is_secret_key(key):
                 out[key] = MASK
             else:
                 out[key] = redact_mapping(value, _depth=_depth + 1)
@@ -123,7 +158,14 @@ def redact_mapping(data: Any, *, _depth: int = 0) -> Any:
 
 
 def _normalise_key(key: str) -> str:
-    return re.sub(r"[^a-z0-9]", "_", key.strip().lower()).strip("_")
+    # Split camelCase before lowering, so metaAccessToken -> meta_access_token.
+    split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", key.strip())
+    return re.sub(r"[^a-z0-9]+", "_", split.lower()).strip("_")
+
+
+def _is_secret_key(key: str) -> bool:
+    name = _normalise_key(key)
+    return name in SECRET_KEYS or name.endswith(_SECRET_KEY_SUFFIXES)
 
 
 def fingerprint(secret: str | None) -> str:
