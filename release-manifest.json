@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "0.3.0",
   "payload_root": "skills",
-  "digest": "be9f960962144ed3998d8d6eb4a638b0a8e47b9e3be87d3a0702d68a1550c9d0",
+  "digest": "f87310d07a5bfe62e429c4105bdd1b80d47977422a36d48c95374b9527190ee1",
   "skills": [
     "meta-ads-audit",
     "meta-ads-campaign",
@@ -69,8 +69,8 @@
     },
     {
       "path": "meta-ads-core/assets/brand.yaml",
-      "sha256": "977a605229aa15ae6ddc11217e96ee4817c56dea87506023375a59e0ba4d48e0",
-      "size": 5280
+      "sha256": "90bfb91cefe2ecd1cd45817b50ad4faad009c002cf2de557a5358a2bce4285d9",
+      "size": 5380
     },
     {
       "path": "meta-ads-core/assets/offer.yaml",
@@ -124,8 +124,8 @@
     },
     {
       "path": "meta-ads-optimize/SKILL.md",
-      "sha256": "4ba8cb212b2a96fcc6e34b4ed48072404feb23a37f2e121fc0b32e2577c01344",
-      "size": 10178
+      "sha256": "f14d3e21b69f2972ab8aceab36135c8136c8fedfecde5ec10c02e6be100dfc2e",
+      "size": 11595
     },
     {
       "path": "meta-ads-optimize/references/diagnosis-playbook.md",
@@ -134,8 +134,8 @@
     },
     {
       "path": "meta-ads-optimize/references/fatigue-signals.md",
-      "sha256": "9e310ab756140f908f3d40516b7276088450162144b58170f90bd694e7e2f24c",
-      "size": 6629
+      "sha256": "3f7816eadc3ec0c35236fcff1659f7ecf306d9b9f4ddd6a236df413df33ce87e",
+      "size": 6874
     },
     {
       "path": "meta-ads-preview/SKILL.md",
@@ -149,13 +149,13 @@
     },
     {
       "path": "meta-ads-report/SKILL.md",
-      "sha256": "0ebb44d303e8703e05834161ed5695ce6ed86c60f637b9998c836392939dd033",
-      "size": 8745
+      "sha256": "94fd81f0519df90b4253701be8f4f7018a2b7b3f4e9c20fc3ad866433b10c20b",
+      "size": 9346
     },
     {
       "path": "meta-ads-report/references/metrics-and-comparisons.md",
-      "sha256": "12a03c445ec579e7a70b6435981922ab1863ba527a29b0232208190009cd944a",
-      "size": 5448
+      "sha256": "a83e2f99cceaa6679f009176f402fe1f5ee435661548cefb6e35d7c51c7ed8b7",
+      "size": 6367
     },
     {
       "path": "meta-ads-research/SKILL.md",

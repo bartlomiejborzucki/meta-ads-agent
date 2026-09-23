@@ -2,6 +2,24 @@
 
 ## Reading a change correctly
 
+When the preflight found the local CLI, save the daily rows
+(`time_increment=1`) as JSON and let it apply every rule in this section:
+
+```bash
+meta-ads-agent report compare insights.json --days 7 \
+  --result-event offsite_conversion.fb_pixel_lead --attribution-days 7 --currency PLN
+```
+
+It aligns equal windows (or `--boundary DATE` to a known change), recomputes
+every rate from sums, applies the user's noise band and volume floors from
+`brand.yaml`, and labels each metric `signal`, `noise`, `insufficient`,
+`observed` or `unavailable`. It flags incomplete windows, entities live in only
+one window, and a current window still inside attribution, and reads the metric
+chain below off its labels. Input shape: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/report-input.md>.
+
+The rules are written out here so the result can be checked, and followed by
+hand when there is no CLI.
+
 Two conditions before a change is treated as signal:
 
 1. **It exceeds a noise band.** 10-15% on a rate metric is a reasonable

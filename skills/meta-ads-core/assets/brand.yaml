@@ -85,6 +85,8 @@ thresholds:
   # Below these the honest answer is "insufficient evidence".
   min_conversions_for_decision: 30
   min_clicks_for_decision: 500
+  # How far a rate must move between periods to count as a change (percent).
+  noise_band_pct: 10.0
   # How far CTR must fall below an entity's OWN baseline before fatigue becomes
   # a candidate explanation. A default, not a law.
   ctr_decline_pct_for_fatigue: 30.0

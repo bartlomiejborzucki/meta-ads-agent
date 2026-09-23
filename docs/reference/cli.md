@@ -133,6 +133,41 @@ apply a different plan to existing structure.
 It never contacts Meta. The reconciliation read belongs to the agent through
 the MCP, and the output says so.
 
+## report
+
+```bash
+meta-ads-agent report compare INSIGHTS --days N [--end DATE | --boundary DATE]
+  [--result-event ACTION_TYPE] [--attribution-days N] [--currency CODE]
+  [--brand-file FILE] [--json]
+meta-ads-agent report fatigue INSIGHTS [--days 7] [--end DATE] [--currency CODE]
+  [--brand-file FILE] [--json]
+meta-ads-agent report pacing INSIGHTS (--daily-budget AMOUNT | --lifetime-budget AMOUNT)
+  [--start DATE] [--end DATE] [--as-of DATE] [--currency CODE] [--json]
+```
+
+Read-only and offline arithmetic over insights rows the agent read from Meta.
+Input format and thresholds: [report-input.md](report-input.md).
+
+- **compare** - two equal, adjacent windows: the last `--days` ending at
+  `--end` (default: the last day in the data), or starting at `--boundary`, the
+  day a known change happened. Every rate is recomputed from sums. Each metric
+  is labelled `signal`, `noise`, `insufficient` (below a volume floor),
+  `observed` (a count) or `unavailable`, and the metric chain's documented
+  rules are read off those labels. Incomplete windows, entities live in only
+  one window, and a current window still inside `--attribution-days` are
+  flagged.
+- **fatigue** - per ad: CTR against its own best earlier window of the same
+  length, the frequency condition (from a window-long row, else `unknown`),
+  spend since the decline began, days with delivery, and which siblings in
+  the ad set held up. Below the click floor: insufficient evidence.
+- **pacing** - a daily budget's utilisation and the days far under or over
+  it, or a lifetime budget's spend against a straight-line schedule, the
+  projection at the current rate, and the daily spend needed to finish.
+  Amounts are display amounts in the account currency.
+
+None of them concludes anything. They print the numbers and the rule behind
+each label; the report and optimise skills interpret them.
+
 ## install
 
 ```bash

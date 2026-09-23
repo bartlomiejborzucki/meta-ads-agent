@@ -163,6 +163,23 @@ another in the same ad set, same audience, same period, held up, the audience
 and the auction are probably fine and the creative is the variable. If *all*
 of them declined together, it is not the creative.
 
+**Compute the signals, do not estimate them.** When the preflight found the
+CLI, save ad-level daily rows as JSON - plus, for frequency, one row per ad
+covering exactly the current window, since daily reach does not add up - and
+run:
+
+```bash
+meta-ads-agent report fatigue insights.json --days 7 --currency PLN
+```
+
+It reports each ad's CTR against its own best earlier window, the frequency
+condition (or `unknown`, never assumed), spend since the decline began, days
+with delivery, which siblings held up, and whether a whole ad set declined
+together - with the user's thresholds printed alongside. Below the click floor
+it says `INSUFFICIENT EVIDENCE` instead of a number. Ruling out tracking, edits,
+the auction and seasonality is still the diagnosis above, and still yours.
+Input shape: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/report-input.md>.
+
 Thresholds are **configurable defaults with reasoning**, not platform rules.
 Anyone quoting "frequency above 4 means fatigue" as a law is describing their
 own account. Details, with the uncertainty marked:
@@ -178,7 +195,18 @@ ads_get_ad_entities   → daily budget, actual spend, schedule, results
 
 Report: the daily budget, actual daily spend against it, days remaining on any
 schedule, lifetime budget consumed against elapsed schedule, and cost per
-result over the period.
+result over the period. With the CLI, the arithmetic is one command:
+
+```bash
+meta-ads-agent report pacing insights.json --daily-budget 70 --currency PLN
+meta-ads-agent report pacing insights.json --lifetime-budget 3000 \
+  --start 2026-09-01 --end 2026-09-30 --currency PLN
+```
+
+It gives utilisation, the days far under or over the daily figure, and for a
+lifetime budget the straight-line expectation, the projection at the current
+rate, and what each remaining day would need. Budgets are display amounts in
+the account currency, read from Meta.
 
 - **Underspending** - the audience may be too narrow, the bid too low, delivery
   limited, or the creative not competitive. Raising the budget does not fix

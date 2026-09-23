@@ -92,6 +92,15 @@ class Thresholds(StrictModel):
         ),
     )
     min_clicks_for_decision: int = Field(default=500, ge=1)
+    noise_band_pct: float = Field(
+        default=10.0,
+        gt=0,
+        description=(
+            "How far a rate must move between periods before it is treated as a "
+            "change rather than noise. The report reference's default range is "
+            "10-15%; this is its low end."
+        ),
+    )
     ctr_decline_pct_for_fatigue: float = Field(
         default=30.0,
         gt=0,

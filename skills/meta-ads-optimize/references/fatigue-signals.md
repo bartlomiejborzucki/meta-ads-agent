@@ -7,6 +7,11 @@ auction shift looks like, and an auction shift is not fixed by new creative.
 Everything here is a **heuristic with reasoning attached**, configurable per
 advertiser. Meta enforces none of it.
 
+The signals below are arithmetic, and `meta-ads-agent report fatigue` computes
+them when the CLI is available - own-baseline CTR, frequency from a window row,
+spend since decline, siblings. The conclusion is not arithmetic, and stays with
+you.
+
 ## Two conditions, both required
 
 A starting point, not a law:

@@ -468,20 +468,17 @@ refuses it (`asset.placement_unsupported`) until it is real.
 (The `naming` and `utm` templates in `brand.yaml`, and `tracking.utm` in a
 plan, used to be on this list. `meta-ads-agent render-plan` applies them now.)
 
-### Promised as code, still prose
+### Arithmetic that needs the CLI
 
 [ADR-008](docs/architecture/adr/ADR-008-deterministic-vs-agent-layer.md) says
-arithmetic belongs in Python and judgement in skills. Two places do not yet
-honour that, and both involve numbers that are easy to get quietly wrong:
-
-- **Creative fatigue signals.** CTR against an entity's own baseline, frequency,
-  spend since decline, creative age. The *conclusion* is judgement and belongs
-  in the skill; the *signals* are arithmetic and should not be. Flagged in
-  [the skill](skills/meta-ads-optimize/references/fatigue-signals.md).
-- **Period comparison.** Equal-length window alignment, noise bands, and volume
-  floors are all described in
-  [the report reference](skills/meta-ads-report/references/metrics-and-comparisons.md)
-  and all computed by the model. There is no `report` module.
+arithmetic belongs in Python and judgement in skills. Period comparison,
+fatigue signals and budget pacing are now `meta-ads-agent report compare`,
+`fatigue` and `pacing`. Without the CLI the skills still do that arithmetic in
+prose, from the same written rules, and say so. The input is insights rows as
+the Marketing API documents them; the official MCP's own response shape is not
+published, so the agent maps it onto those fields
+([report-input.md](docs/reference/report-input.md)) and that mapping is
+unverified against a live session.
 
 ### Features not built
 

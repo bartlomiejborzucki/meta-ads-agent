@@ -7,7 +7,9 @@ and YAML, which is what makes the default install credential-free and small.
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import sys
+from decimal import Decimal, InvalidOperation
 
 from pydantic import ValidationError as PydanticValidationError
 
@@ -31,6 +33,7 @@ and the few capabilities the official MCP does not expose.
   meta-ads-agent render-plan FILE    apply brand naming and UTM templates
   meta-ads-agent validate-plan FILE  check a plan before anything is created
   meta-ads-agent state [SLUG]        what exists, and how to resume
+  meta-ads-agent report ...          compare periods, fatigue signals, pacing
   meta-ads-agent api ...             the Marketing API fallback
 
 Docs: docs/getting-started/
@@ -130,6 +133,64 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--brand-file", help="brand config (default: workspace)")
     render.add_argument("--write", action="store_true", help="save the rendered plan")
     render.add_argument("--json", action="store_true")
+
+    # -- report ------------------------------------------------------------
+    report = subparsers.add_parser(
+        "report",
+        help="insights arithmetic: period comparison, fatigue signals, pacing",
+        description=(
+            "Read-only and offline. Takes insights JSON the agent read from Meta "
+            "(daily rows, time_increment=1) and prints numbers with the rules that "
+            "produced each label. Interpretation stays with the report and optimise "
+            "skills. Input format: docs/reference/report-input.md."
+        ),
+    )
+    report_sub = report.add_subparsers(dest="report_command", metavar="<analysis>")
+    report_common = argparse.ArgumentParser(add_help=False)
+    report_common.add_argument("insights", help="insights JSON file")
+    report_common.add_argument("--currency", help="account currency, for labelling amounts")
+    report_common.add_argument("--json", action="store_true")
+
+    compare = report_sub.add_parser(
+        "compare",
+        parents=[report_common],
+        help="two equal-length periods, rates from sums, noise and volume stated",
+    )
+    compare.add_argument("--days", type=int, required=True, help="length of each window")
+    where = compare.add_mutually_exclusive_group()
+    where.add_argument("--end", type=_date, help="last day of the current window")
+    where.add_argument(
+        "--boundary", type=_date, help="first day after a known change; windows meet here"
+    )
+    compare.add_argument(
+        "--result-event",
+        help="action_type counted as a result, e.g. offsite_conversion.fb_pixel_lead",
+    )
+    compare.add_argument(
+        "--attribution-days", type=int, help="click attribution window in days, e.g. 7"
+    )
+    compare.add_argument("--brand-file", help="brand config for thresholds (default: workspace)")
+
+    fatigue = report_sub.add_parser(
+        "fatigue",
+        parents=[report_common],
+        help="per-ad CTR vs its own baseline, frequency, spend since decline, siblings",
+    )
+    fatigue.add_argument("--days", type=int, default=7, help="window length (default 7)")
+    fatigue.add_argument("--end", type=_date, help="last day of the current window")
+    fatigue.add_argument("--brand-file", help="brand config for thresholds (default: workspace)")
+
+    pacing = report_sub.add_parser(
+        "pacing", parents=[report_common], help="spend against a daily or lifetime budget"
+    )
+    budget_kind = pacing.add_mutually_exclusive_group(required=True)
+    budget_kind.add_argument("--daily-budget", type=_amount, help="display amount per day")
+    budget_kind.add_argument("--lifetime-budget", type=_amount, help="display amount in total")
+    pacing.add_argument("--start", type=_date, help="first day (lifetime: schedule start)")
+    pacing.add_argument("--end", type=_date, help="last day (lifetime: schedule end)")
+    pacing.add_argument(
+        "--as-of", type=_date, help="lifetime: the day to pace to (default: last in data)"
+    )
 
     # -- state -------------------------------------------------------------
     state = subparsers.add_parser(
@@ -393,6 +454,23 @@ def main(argv: list[str] | None = None) -> int:
         return 130
 
 
+def _date(value: str) -> _dt.date:
+    try:
+        return _dt.date.fromisoformat(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"not a date (YYYY-MM-DD): {value!r}") from exc
+
+
+def _amount(value: str) -> Decimal:
+    try:
+        amount = Decimal(value)
+    except InvalidOperation as exc:
+        raise argparse.ArgumentTypeError(f"not an amount: {value!r}") from exc
+    if not amount.is_finite() or amount <= 0:
+        raise argparse.ArgumentTypeError(f"an amount must be positive: {value!r}")
+    return amount
+
+
 def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     # Imported lazily so `--help` and `doctor` stay fast and so a missing
     # optional dependency cannot break unrelated commands.
@@ -437,6 +515,9 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         return run_render_plan(
             args.plan, brand_path=args.brand_file, write=args.write, as_json=args.json
         )
+
+    if args.command == "report":
+        return _dispatch_report(args, parser)
 
     if args.command == "state":
         from meta_ads_agent.cli.state_cmd import run_state
@@ -560,3 +641,42 @@ def _dispatch_api(args: argparse.Namespace, parser: argparse.ArgumentParser) -> 
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    from meta_ads_agent.cli import report_cmd
+
+    if args.report_command == "compare":
+        return report_cmd.run_compare(
+            args.insights,
+            days=args.days,
+            end=args.end,
+            boundary=args.boundary,
+            result_event=args.result_event,
+            currency=args.currency,
+            attribution_days=args.attribution_days,
+            brand_path=args.brand_file,
+            as_json=args.json,
+        )
+    if args.report_command == "fatigue":
+        return report_cmd.run_fatigue(
+            args.insights,
+            days=args.days,
+            end=args.end,
+            currency=args.currency,
+            brand_path=args.brand_file,
+            as_json=args.json,
+        )
+    if args.report_command == "pacing":
+        return report_cmd.run_pacing(
+            args.insights,
+            daily_budget=args.daily_budget,
+            lifetime_budget=args.lifetime_budget,
+            start=args.start,
+            end=args.end,
+            as_of=args.as_of,
+            currency=args.currency,
+            as_json=args.json,
+        )
+    parser.parse_args(["report", "--help"])
+    return 2

@@ -106,6 +106,17 @@ one period, a budget changed mid-period, a paused ad set, a public holiday, a
 period that spans a weekend differently. Say so rather than presenting the
 delta as clean.
 
+### The arithmetic
+
+Equal windows, rates recomputed from sums, the noise band and the volume floors
+are rules, not judgement, and easy to get quietly wrong by hand. When the
+preflight found the local CLI, it computes all of them from saved insights
+rows: [references/metrics-and-comparisons.md](references/metrics-and-comparisons.md)
+has the command and what its labels mean. Report its labels as they are; the
+*why* is still yours, from the activity log and breakdowns. With no CLI, follow
+the same reference by hand and show the sums you computed rates from - this
+skill needs nothing but the MCP.
+
 ## Attribution
 
 Report which attribution window the numbers represent, where Meta exposes it.
