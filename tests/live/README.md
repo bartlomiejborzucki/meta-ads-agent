@@ -82,7 +82,7 @@ every push.
 
 ## Nothing here yet
 
-0.1.0 ships no live tests. The offline suite covers every code path; what is
+No live tests ship yet. The offline suite covers every code path; what is
 missing is confirmation that Meta accepts the request **shapes**, and writing
 those tests responsibly requires a designated test account that the author of
 this release did not have.

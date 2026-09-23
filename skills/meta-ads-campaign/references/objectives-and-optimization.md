@@ -29,7 +29,7 @@ Work backwards from what counts as a result.
 | --- | --- |
 | Purchases on a website | a sales objective with an offsite-conversion goal |
 | Leads via a form on their site | a leads objective with an offsite-conversion goal |
-| Leads via a Meta instant form | a leads objective with an on-Meta destination - but note we cannot create or read lead forms in 0.1.0; the user must supply a form id |
+| Leads via a Meta instant form | a leads objective with an on-Meta destination - but note we cannot create or read lead forms; the user must supply a form id |
 | Traffic to a page | a traffic objective, usually landing-page views over link clicks |
 | Reach or recall | an awareness objective |
 

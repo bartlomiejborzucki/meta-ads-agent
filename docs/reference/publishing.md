@@ -38,7 +38,7 @@ Run these before the first public push. All should be green.
 
 ```bash
 uv sync --extra dev
-uv run pytest                                      # 523 tests
+uv run pytest                                      # ~700 tests
 uv run ruff format --check src tests scripts
 uv run ruff check src tests scripts
 uv run mypy
@@ -119,16 +119,16 @@ Worth doing immediately:
 - **Actions permissions:** the workflows need `issues: write` for the upstream
   monitor and `contents: write` for releases. Both are declared per-job.
 
-## 5. First release
+## 5. Releasing
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.1          # the version in pyproject.toml
+git push origin v0.2.1
 ```
 
 `.github/workflows/release.yml` then runs the full verification, checks that the
 tag, `__version__`, and **both** plugin manifests agree, checks the changelog
-has a `## [0.1.0]` entry, builds the wheel and sdist, installs the wheel in a
+has a `## [<version>]` entry, builds the wheel and sdist, installs the wheel in a
 clean environment, and creates a GitHub release marked pre-release with notes
 extracted from `CHANGELOG.md`.
 

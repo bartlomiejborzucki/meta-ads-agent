@@ -9,6 +9,52 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.2.1] - 2026-09-23
+
+**Security and correctness fixes from a review of 0.2.0.** `MIGRATION: none
+required`. Recorded in [SECURITY.md](SECURITY.md#021-review); what comes next
+is in [docs/roadmap.md](docs/roadmap.md).
+
+### Security
+
+- `redact_mapping` masked no camelCase key: `metaAccessToken` and
+  `pageAccessToken` were printed in full. Keys are split on case, and any key
+  ending in `_token`, `_secret`, `_password` or `_api_key` is masked.
+- `redact_url` kept `fb_exchange_token`, `code`, `input_token` and any other
+  parameter it had not been told about. A query now survives only if every
+  parameter is known to be harmless, and `user:pass@` is always removed.
+- `Authorization: OAuth <token>` is masked, as `Bearer` already was.
+- `open-url` no longer falls back to `cmd.exe /c start`, which treated the
+  `&` in an OAuth URL as a command separator. The fallback is
+  `rundll32.exe url.dll,FileProtocolHandler`, which parses nothing.
+
+### Fixed
+
+- With no `--account` and no `META_AD_ACCOUNT_ID`, a real `api` call went to
+  `act_<no account configured>`. It is now refused before anything is sent;
+  the placeholder remains only in dry-run output.
+- `123` and `act_123` were two asset-manifest keys, so the same file could be
+  uploaded twice. Account ids are normalised once.
+- A schedule with a UTC offset on one end and not the other crashed
+  `validate-plan` with a traceback. It is a validation error.
+- A lowercase `--cta` and a malformed `META_GRAPH_API_VERSION` escaped as
+  tracebacks. They are a usage error (exit 2) and a configuration error.
+- CI: the PyPI job could run from a manual dispatch on any branch, skipping
+  the tag and changelog checks. It now requires a `v*` tag. The step that was
+  meant to assert the upgraded installation is complete only printed a status,
+  for the wrong directory; it now asserts it for the right one.
+
+### Documentation
+
+- `docs/reference/cli.md` documents `install`, `upgrade`, `migrate`,
+  `mcp-config` and `open-url`, and a test fails if a command has no section.
+  Its `api` section no longer claims every dry run works without credentials:
+  a `delete` dry run reads the object from Meta.
+- Stale "0.1.0" statements and hard-coded test counts removed from the
+  README, publishing guide, SECURITY.md, the capability map and three skill
+  references.
+- [docs/roadmap.md](docs/roadmap.md): the plan for 0.3 to 1.0.
+
 ## [0.2.0] - 2026-09-21
 
 **Packaging and updates.** Two failures with one root: the project assumed the
@@ -296,6 +342,7 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/releases/tag/v0.1.0

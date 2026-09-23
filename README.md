@@ -435,8 +435,8 @@ This is the largest gap and the one to read first.
   fallback path (uploads, creatives, deletion) has only ever run against a
   faked SDK. The request *shapes* are written from Meta's documentation and
   the SDK's own resource objects, and they are unconfirmed.
-- **No live integration tests ship.** 523 offline tests give 90% line coverage,
-  which proves our logic and proves nothing about Meta's acceptance. The rules
+- **No live integration tests ship.** The offline suite (about 700 tests,
+  close to 90% line coverage) proves our logic and proves nothing about Meta's acceptance. The rules
   for writing them responsibly are in
   [`tests/live/README.md`](tests/live/README.md); what is needed is a
   designated test ad account.
@@ -500,7 +500,7 @@ Roughly in the order they would be useful.
 | **A/B tests and lift studies** | `ads_experiment_*` is in the capability map with no workflow. Creating a test splits live delivery, so it needs the approval treatment doing properly. |
 | **Lookalike audience workflows** | Creation is covered by the MCP; there is no guided workflow for source selection and sizing. |
 | **Multi-account operation** | Everything assumes one ad account per workspace. |
-| **Scheduled reporting and monitoring** | Deliberately absent from 0.1.0 — see below. |
+| **Scheduled reporting and monitoring** | Deliberately absent so far — see below. |
 
 ### Deliberately out of scope
 
@@ -513,7 +513,7 @@ Not gaps. Decisions, with reasoning, that will not change without an ADR:
   interface; local files are sufficient
   ([architecture overview](docs/architecture/overview.md)).
 - **A proxy in front of Meta's MCP.** It would make the approval model
-  enforceable rather than advisory, and was considered and rejected for 0.1.0
+  enforceable rather than advisory, and was considered and rejected
   ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md)). If the advisory model
   proves insufficient in practice, this is the change to revisit — as an
   opt-in, not a default.
@@ -545,12 +545,13 @@ covers one of our six gaps is among the most useful things you can send:
 | [Workspace](docs/reference/workspace.md) | what `.meta-ads/` holds, and what to version |
 | [Privacy](docs/reference/privacy.md) | what is stored, and what never is |
 | [Publishing](docs/reference/publishing.md) | exact commands to push this to GitHub |
+| [Roadmap](docs/roadmap.md) | what comes next, and what waits for a test account |
 | [Contributing](CONTRIBUTING.md) | including where things go, and why |
 
 ## Relationship to upstream projects
 
 Eleven community projects were reviewed at pinned commits before any code was
-written. **0.1.0 contains no adapted third-party material** — every influence
+written. **The project contains no adapted third-party material** — every influence
 was reimplemented from scratch, and the credit is recorded anyway in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
@@ -582,7 +583,7 @@ customer data is the highest-priority class of bug here.
 
 ## Status
 
-**0.1.0 — initial development release. Not production-ready.**
+**0.2.x — early development releases. Not production-ready.**
 
 It works, it is tested, and it is honest about what it has not proven. Use it on
 an account you are willing to watch. [What's missing](#whats-missing) is the

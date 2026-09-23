@@ -301,6 +301,27 @@ class TestDocumentationLinks:
         assert broken == [], "broken relative links:\n  " + "\n  ".join(broken)
 
 
+class TestCliReference:
+    """docs/reference/cli.md promises "every command". Hold it to that."""
+
+    def test_every_command_has_a_section(self) -> None:
+        import argparse
+
+        from meta_ads_agent.cli.main import build_parser
+
+        parser = build_parser()
+        (commands,) = [
+            action
+            # argparse has no public API for listing subcommands.
+            for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction)
+        ]
+        text = (REPO / "docs" / "reference" / "cli.md").read_text(encoding="utf-8")
+        sections = set(re.findall(r"^## (\S+)$", text, flags=re.MULTILINE))
+        missing = sorted(set(commands.choices) - sections)
+        assert missing == [], f"commands with no section in docs/reference/cli.md: {missing}"
+
+
 class TestIndependenceDisclaimer:
     def test_the_readme_disclaims_affiliation(self) -> None:
         readme = (REPO / "README.md").read_text(encoding="utf-8")

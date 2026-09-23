@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "payload_root": "skills",
-  "digest": "436e4ccca887d4ac8ac8972c90c37ad2d79953caa77c5e3950a7c7176de3d012",
+  "digest": "d92f3bd6c942188ee323c68e2b3d8b5a693eb8a6f2b9733848b1b7d591db1800",
   "skills": [
     "meta-ads-audit",
     "meta-ads-campaign",
@@ -34,8 +34,8 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "7bb0ae9d05d1b9afe356cfb6167ab129ecd25b67a6cecfd041c99437822d5441",
-      "size": 12166
+      "sha256": "91c253f54302fc4acb6b7608ec0d26b8fa0cde0822b69adae50213826258d689",
+      "size": 12161
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
@@ -49,8 +49,8 @@
     },
     {
       "path": "meta-ads-campaign/references/objectives-and-optimization.md",
-      "sha256": "6f192ca6135c584fdae3f8ac2be07f9ae42bc625001ace18ef9fba0964b5f429",
-      "size": 5046
+      "sha256": "8bc59dfed84c55ec52a8004f2aaf50c763f961065d3aa6625a76403699beb100",
+      "size": 5037
     },
     {
       "path": "meta-ads-campaign/references/special-categories-and-dsa.md",
@@ -89,8 +89,8 @@
     },
     {
       "path": "meta-ads-core/references/execution-routing.md",
-      "sha256": "520212386cab06e034a62fa86518465969be7a3f5397e92c90aeb4c6c5f6e1eb",
-      "size": 4959
+      "sha256": "24c0b27c34ed6bd8c9df4c5748cda89da909eb5540300adffef7cd96da7fd1c3",
+      "size": 4964
     },
     {
       "path": "meta-ads-core/references/mcp-tool-map.md",

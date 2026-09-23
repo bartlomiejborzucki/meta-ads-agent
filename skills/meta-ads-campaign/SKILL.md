@@ -232,7 +232,7 @@ upload entirely.
 | existing Instagram post | MCP - `ads_boost_ig_post` |
 | existing Facebook Page post | fallback - `api create-creative --post` |
 | several copy variants | fallback - `api create-creative --variants` |
-| carousel | not supported in 0.1.0 - say so |
+| carousel | not supported yet - say so |
 
 Say which one you used and why. Copy and angles come from `meta-ads-creative`.
 

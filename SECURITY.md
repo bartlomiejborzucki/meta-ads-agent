@@ -106,7 +106,7 @@ useful.
 and they belong to Meta's server. This project shapes agent behaviour through
 skills; it cannot gate a transport it does not own. A sufficiently confused
 agent can still call `ads_activate_entity`. Mitigating this properly would mean
-proxying Meta's MCP, which was considered and rejected for 0.1.0 - see
+proxying Meta's MCP, which was considered and rejected - see
 [ADR-001](docs/architecture/adr/ADR-001-mcp-first.md) and
 [ADR-004](docs/architecture/adr/ADR-004-write-safety.md).
 
@@ -184,7 +184,31 @@ A fabricated image header also reported `0x0` dimensions rather than
 "unknown", which would have let downstream code reason about an aspect ratio of
 zero. Now reported as unknown, with a warning.
 
+### 0.2.1 review
+
+**Reviewed 2026-09-23**, over 0.2.0. Three findings, fixed in 0.2.1 with
+regression tests that fail against the 0.2.0 code:
+
+1. **Secret-named keys printed in full.** `redact_mapping` lowered keys before
+   normalising them, so `metaAccessToken` became `metaaccesstoken` and matched
+   nothing; `pageAccessToken` and `X-Access-Token` were not listed at all. The
+   test claiming camelCase was covered passed only because its sample value
+   looked like an `EAA` token. Keys are now split on case, and any key ending
+   in `_token`, `_secret`, `_password` or `_api_key` is masked.
+2. **Credentials in URL queries.** `redact_url` removed the query only when
+   one of three named parameters was present, so `fb_exchange_token`, `code`
+   and `input_token` were printed. A query now survives only if every
+   parameter is on a short known-harmless list; `user:pass@` is always
+   removed; `Authorization: OAuth <token>` is masked like Bearer.
+3. **A shell in `open-url`.** The fallback launcher was `cmd.exe /c start`,
+   which treats `&` as a command separator, and an https URL may contain one.
+   Replaced by `rundll32.exe url.dll,FileProtocolHandler`, which parses
+   nothing. Checked against a fake Windows only.
+
+Also fixed: with no ad account configured, a real `api` call targeted
+`act_<no account configured>` instead of being refused.
+
 ## Supported versions
 
-0.1.0 is an initial development release and is **not production-ready**. Fixes
-land on `main`. There is no backport policy yet.
+0.2.x are early development releases and are **not production-ready**. Fixes
+land on `master`. There is no backport policy yet.

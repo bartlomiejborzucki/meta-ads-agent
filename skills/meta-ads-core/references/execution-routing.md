@@ -42,7 +42,7 @@ logs, Ad Library - belongs to the MCP.
 
 | Capability | Note |
 | --- | --- |
-| Carousel creatives | Not in 0.1.0. Planned. |
+| Carousel creatives | Not supported yet. Planned. |
 | Lead form creation or reading | No MCP tool. A campaign can still use a form id the user supplies. |
 | Automated rules | No MCP tool, and out of scope: an autonomous spend optimiser contradicts the approval model. |
 | Partnership / branded-content ads | Out of scope. |

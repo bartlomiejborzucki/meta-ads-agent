@@ -287,7 +287,7 @@ capabilities:
     risk_level: create_paused
     requires_confirmation: false
     last_reviewed: 2026-09-16
-    notes: NOT IMPLEMENTED in 0.1.0. Second milestone. See CHANGELOG roadmap.
+    notes: NOT IMPLEMENTED. Second milestone. See CHANGELOG roadmap.
 
   - name: list_creatives
     area: creatives
@@ -486,7 +486,7 @@ capabilities:
     requires_confirmation: false
     last_reviewed: 2026-09-16
     notes: >
-      NOT SUPPORTED in 0.1.0. No MCP tool. Lead-gen campaigns can still use an
+      NOT SUPPORTED. No MCP tool. Lead-gen campaigns can still use an
       existing form id supplied by the user; we cannot create or read forms.
 
   - name: automated_rules

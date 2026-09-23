@@ -111,12 +111,83 @@ apply a different plan to existing structure.
 It never contacts Meta. The reconciliation read belongs to the agent through
 the MCP, and the output says so.
 
+## install
+
+```bash
+meta-ads-agent install [--target agents|windows-codex|path] [--path DIR]
+  [--windows-home DIR] [--dry-run] [--force] [--no-backup] [--json]
+```
+
+Copies the skills shipped inside the installed package into a directory an
+agent reads, and verifies every file against `release-manifest.json`.
+`agents` (the default) is `~/.agents/skills`; `windows-codex` is the Windows
+user profile seen from WSL; `path` is `--path`. Safe to re-run: a current
+installation is left alone and a partial one is completed. `--force` rewrites
+files that already match. Detail, including the update order and what
+`--no-backup` gives up: [packaging.md](packaging.md).
+
+## upgrade
+
+```bash
+meta-ads-agent upgrade [--target ...] [--path DIR] [--workspace DIR]
+  [--allow-migration-scripts] [--rollback] [--dry-run] [--json]
+```
+
+The skills first, then any outstanding workspace migrations. The installed
+version is recorded only after every file is verified, so an interrupted
+upgrade reports itself as interrupted. Re-running finishes it; `--rollback`
+restores the backup it took first and stops.
+
+## migrate
+
+```bash
+meta-ads-agent migrate [--workspace DIR] [--allow-migration-scripts]
+  [--dry-run] [--json]
+```
+
+Workspace migrations only, applied once each and recorded in
+`.meta-ads/.migrations.json` as each succeeds. The workspace is copied aside
+before the first change. A migration carried out by a script shipped in the
+payload runs only with `--allow-migration-scripts`, and only if the script's
+SHA-256 matches the manifest.
+
+## mcp-config
+
+```bash
+meta-ads-agent mcp-config --client-id APP_ID [--config FILE | --windows
+  [--windows-home DIR]] [--dry-run] [--json]
+```
+
+Writes the `[mcp_servers.meta-ads]` block into a Codex `config.toml` - by
+default `~/.codex/config.toml`, with `--windows` the Windows profile's copy
+from inside WSL. Only that block is written; every other line, including
+other servers and comments, is preserved byte for byte. The client id is your
+Meta App ID, not a secret.
+
+## open-url
+
+```bash
+meta-ads-agent open-url URL [--json]
+```
+
+Opens an `https` URL in the Windows browser from inside WSL, so an OAuth
+round trip lands in the profile you are already signed into. Neither launcher
+it tries (`explorer.exe`, then `rundll32.exe url.dll,FileProtocolHandler`)
+goes through a shell, so the `&` in an OAuth URL reaches the browser intact.
+There is no Linux browser fallback: if neither is found, the URL is printed
+for you to open by hand. See
+[install-windows-wsl.md](../getting-started/install-windows-wsl.md).
+
 ## api
 
 The fallback. Needs the `api` extra and `META_ACCESS_TOKEN`. Every subcommand
-takes `--account`, `--json`, and `--dry-run`.
+takes `--json` and `--dry-run`; every one except `delete` takes `--account`
+(`123` and `act_123` are the same account). With no `--account` and no
+`META_AD_ACCOUNT_ID`, a real call is refused before anything is sent.
 
-**Dry runs work before any credentials exist** - that is their point.
+**Dry runs of uploads and creatives work before any credentials exist** -
+that is their point. A `delete` dry run is the exception: it reads the object
+from Meta to refuse an ACTIVE one, so it needs a token.
 
 ```bash
 meta-ads-agent api upload-image PATH
