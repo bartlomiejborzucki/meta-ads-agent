@@ -237,7 +237,7 @@ into one, get it confirmed, then act.
 
 - Mutate as the first response to a performance question.
 - Pause an ad on one metric.
-- Raise a budget without approval, both values, and the currency.
+- Change a budget without approval, both values, and the currency.
 - Apply a change without verifying it afterwards.
 - Present a heuristic as a platform rule.
 - Conclude from a sample below the user's own floors.

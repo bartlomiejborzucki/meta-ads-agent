@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "0.2.1",
   "payload_root": "skills",
-  "digest": "f79db706be41c7ac10068b437b546b02636487f8c40650a5121db09246b207d2",
+  "digest": "be9f960962144ed3998d8d6eb4a638b0a8e47b9e3be87d3a0702d68a1550c9d0",
   "skills": [
     "meta-ads-audit",
     "meta-ads-campaign",
@@ -59,8 +59,8 @@
     },
     {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "1b3ab4f7ed95ab8f72bca310dee6250128c3d86750750fff32bae6f9bd7764e1",
-      "size": 11441
+      "sha256": "fab3b824cacf117146fc45486c47caed7a9d64d8655eb65e93701e88cdc7010e",
+      "size": 11454
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
@@ -104,8 +104,8 @@
     },
     {
       "path": "meta-ads-core/references/safety-policy.md",
-      "sha256": "73bfe44183009246a3f61585a563fd545acea26dba4eaeac0dabf524afdcae9e",
-      "size": 4915
+      "sha256": "bf5757bae921375a1e4c7206c3cb77f7cbbe769e3b9fc64fbfe3c81ec842b76c",
+      "size": 5361
     },
     {
       "path": "meta-ads-core/references/workspace-and-state.md",
@@ -124,8 +124,8 @@
     },
     {
       "path": "meta-ads-optimize/SKILL.md",
-      "sha256": "35b089c64abe56e8eb92e2b241d15bba6462b9943473d7cd2e945807dbfd4664",
-      "size": 10177
+      "sha256": "4ba8cb212b2a96fcc6e34b4ed48072404feb23a37f2e121fc0b32e2577c01344",
+      "size": 10178
     },
     {
       "path": "meta-ads-optimize/references/diagnosis-playbook.md",

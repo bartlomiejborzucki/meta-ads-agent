@@ -103,7 +103,7 @@ Details: [references/execution-routing.md](references/execution-routing.md).
 | Create campaigns / ad sets / ads **PAUSED** | the user asked you to build something |
 | Edit a paused entity | the user asked for the edit |
 | Edit a live entity in a way that changes delivery | explicit approval |
-| Raise a budget | explicit approval, with old and new shown in account currency |
+| Change a budget, up or down | explicit approval, with old and new shown in account currency |
 | Activate anything | explicit approval, after preview and QA |
 | Delete | explicit approval, plus why pausing is not enough |
 | Anything touching many entities | show the list, then get approval |

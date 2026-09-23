@@ -23,6 +23,6 @@
   "metadata": {
     "note": "The Meta Ads MCP server is deliberately NOT bundled here. Meta's OAuth client id is the Meta App ID of an app the user controls, so any value shipped in this manifest would be wrong for everyone. Connect it once with the command in docs/getting-started/connect-meta-mcp.md; integrations/claude/mcp.json is a copy-paste template. See docs/architecture/adr/ADR-006-mcp-connection-is-user-owned.md.",
     "optionalCli": "meta-ads-agent, installed separately with uv or pip. Only needed for local asset upload, video / existing-post / multi-variant creatives, and deletion - the capabilities Meta's official MCP does not expose.",
-    "safetyModel": "Everything is created PAUSED. Activation, budget increases, deletion, and customer-list uploads require explicit user approval. The model is advisory: Meta's MCP write tools execute immediately and this plugin shapes agent behaviour rather than gating the transport."
+    "safetyModel": "Everything is created PAUSED. Activation, budget changes, deletion, and customer-list uploads require explicit user approval. The model is advisory: Meta's MCP write tools execute immediately and this plugin shapes agent behaviour rather than gating the transport."
   }
 }

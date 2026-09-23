@@ -107,7 +107,7 @@ succeeding. See [ADR-004](adr/ADR-004-write-safety.md).
 | `create_paused` | new campaign/ad set/ad, all PAUSED | the user asked to build it |
 | `update_inactive` | edit a paused entity | the user asked for the edit |
 | `update_active` | retarget or reschedule a live ad set | explicit approval |
-| `budget_increase` | raise a daily budget | explicit approval, with old and new shown in account currency |
+| `budget_increase` | change a budget, in either direction | explicit approval, with old and new shown in account currency |
 | `activate` | PAUSED -> ACTIVE | explicit approval, after preview and QA |
 | `delete` | remove an object | explicit approval, and a stated reason why pause is insufficient |
 | `bulk` | anything touching many entities | the affected list shown first, then approval |

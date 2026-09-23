@@ -39,16 +39,21 @@ because pausing the wrong ad is a real loss.
 
 ### `budget_increase` - explicit approval
 
-Any budget change. Report:
+Any budget change, **in either direction**, on any entity. The name says
+"increase" because raising is where the money goes; a cut is here too,
+because on a live entity it changes delivery and on a paused one it changes
+what activation will spend. It is not `update_inactive`. Report:
 
 - the current value, read from Meta, in the account currency
 - the proposed value in the same currency
 - the delta, and the percentage
 - which level the budget sits on (campaign or ad set)
 
-Never present a number without its currency. Use
-`meta-ads-agent validate-plan` or the money helpers rather than converting in
-your head.
+Never present a number without its currency, and never convert between
+minor units and display amounts in your head: when the preflight found the
+CLI, `validate-plan` does the arithmetic; when it did not, show the working -
+the account's `currency_offset`, the minor-unit value, the display value - so
+the user can check it.
 
 ### `activate` - explicit approval, after preview and QA
 
@@ -118,7 +123,7 @@ ceremony.
 ## Never
 
 - Activate anything the user has not seen.
-- Raise a budget without showing both values and the currency.
+- Change a budget without showing both values and the currency.
 - Assume a budget number is dollars.
 - Create anything ACTIVE.
 - Delete when pausing would do.

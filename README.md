@@ -87,7 +87,7 @@ Nothing spends money without you saying so, about that specific thing.
 | Create campaigns / ad sets / ads (**PAUSED**) | you asked for something to be built |
 | Edit a paused entity | you asked for the edit |
 | Edit a **live** entity's delivery | explicit approval |
-| Raise a budget | explicit approval, with old and new shown in account currency |
+| Change a budget, up or down | explicit approval, with old and new shown in account currency |
 | Activate anything | explicit approval, **after** previews and QA |
 | Delete | explicit approval, plus why pausing is not enough |
 | Touch many entities at once | the list shown first, then approval |

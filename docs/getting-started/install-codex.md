@@ -229,7 +229,7 @@ Build a paused campaign for this offer: <offer>, landing page <url>,
 70 PLN/day, Poland, using ./creatives/hero.jpg. Three different angles.
 ```
 
-Everything is created PAUSED. Activation, budget increases, deletion, and
+Everything is created PAUSED. Activation, budget changes, deletion, and
 customer-list uploads each require explicit approval for that specific thing -
 [the safety model](../../README.md#safety-model).
 
