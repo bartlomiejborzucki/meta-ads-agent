@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from meta_ads_agent.capabilities import Registry
 from meta_ads_agent.errors import CapabilityError
+from meta_ads_agent.models._common import looks_like_video
 from meta_ads_agent.models.plan import CampaignPlanDocument, CreativeMode, CreativePlan
 from meta_ads_agent.state.assets import AssetKind, probe_asset
 from meta_ads_agent.validation.account import AccountContext
@@ -189,7 +190,7 @@ def check_creative_routing(
         needed = set()
         for local_path in local_paths:
             needed.add(
-                "local_video_upload" if _looks_like_video_path(local_path) else "local_image_upload"
+                "local_video_upload" if looks_like_video(local_path) else "local_image_upload"
             )
         for capability in sorted(needed):
             route = registry.route(capability)
@@ -202,10 +203,6 @@ def check_creative_routing(
             "media but has no local-file ingestion tool. Uploads are "
             "deduplicated by content fingerprint.",
         )
-
-
-def _looks_like_video_path(path: str) -> bool:
-    return Path(path).suffix.lower() in {".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"}
 
 
 def check_local_assets(

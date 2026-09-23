@@ -31,6 +31,7 @@ from pathlib import Path
 from pydantic import ValidationError as PydanticValidationError
 
 from meta_ads_agent.errors import StateError, ValidationError
+from meta_ads_agent.models._common import VIDEO_EXTENSIONS
 from meta_ads_agent.models.state import AssetManifest, AssetRecord, ObjectType
 from meta_ads_agent.workspace import Workspace
 
@@ -57,7 +58,6 @@ _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"GIF89a", "image/gif"),
     (b"BM", "image/bmp"),
 )
-_VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,7 +135,7 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
     # text file named .mp4 should not.
     if (
         detected is None
-        and target.suffix.lower() in _VIDEO_EXTENSIONS
+        and target.suffix.lower() in VIDEO_EXTENSIONS
         and _ffprobe(target) is not None
     ):
         detected = AssetKind.VIDEO
@@ -150,7 +150,7 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
             raise ValidationError(
                 f"cannot confirm {target} is {_article(kind.value)}: its contents do not "
                 "match any supported format. Supported: JPEG, PNG, GIF, BMP, "
-                f"WebP images and {sorted(_VIDEO_EXTENSIONS)} video."
+                f"WebP images and {sorted(VIDEO_EXTENSIONS)} video."
             )
         raise ValidationError(
             f"{target} looks like a {detected.value} but was used as a "
@@ -161,7 +161,7 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
     if resolved is None:
         raise ValidationError(
             f"cannot tell what {target} is. Supported: JPEG, PNG, GIF, BMP, WebP "
-            f"images and {sorted(_VIDEO_EXTENSIONS)} video."
+            f"images and {sorted(VIDEO_EXTENSIONS)} video."
         )
 
     warnings: list[str] = []

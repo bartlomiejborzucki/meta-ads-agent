@@ -47,6 +47,13 @@ class AccountContext(StrictModel):
         default=None, description="Meta's numeric account status; 1 is active"
     )
     disable_reason: int | None = None
+    min_daily_budget: int | None = Field(
+        default=None,
+        description=(
+            "Meta's minimum daily budget for this account, in minor units of its "
+            "currency, as the account's min_daily_budget field reports it"
+        ),
+    )
     has_payment_method: bool | None = None
     is_queryable: bool | None = None
     is_ads_mcp_enabled: bool | None = None

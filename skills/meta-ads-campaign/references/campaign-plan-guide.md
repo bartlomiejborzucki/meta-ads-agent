@@ -116,10 +116,13 @@ account context is **not** a plan cleared for execution.
 
 After reading the account from Meta, cache it in `.meta-ads/account.yaml`. The
 shape is the `account.yaml` template in the `meta-ads-core` skill's `assets/`
-directory: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/assets/account.yaml>. Two fields matter especially:
+directory: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/assets/account.yaml>. Three fields matter especially:
 
 - `currency_offset` - Meta's own minor-unit multiplier for this account. It
   **outranks** our ISO table.
+- `min_daily_budget` - the account's field of the same name, in minor units.
+  With it, a daily budget Meta would reject is caught before the first write
+  (`budget.below_minimum`) instead of after the campaign already exists.
 - `valid_objectives`, `valid_optimization_goals`, `valid_call_to_action_types` -
   discovered enum sets. An **empty** list means "we did not look", so the
   validator skips the membership check rather than rejecting a value it has not
@@ -130,10 +133,10 @@ directory: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/ski
 Findings carry a stable `code` so you can reference one precisely.
 
 ```
+ERROR    dsa.missing_fields    targeting PL requires beneficiary, payor
+WARNING  currency.unverified   plan budgets are in PLN, not verified against the account
 INFO     budget.resolved       daily budget at ad_set level: 70.00 PLN (7000 minor units)
 INFO     routing.fallback      creative mode single_video will use the Business SDK fallback
-WARNING  currency.unverified   plan budgets are in PLN, not verified against the account
-ERROR    dsa.missing_fields    targeting PL requires beneficiary, payor
 ```
 
 The `Execution routing` section names which layer performs each step, so you

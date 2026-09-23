@@ -27,7 +27,7 @@ from meta_ads_agent.validation.checks_account import (
     check_special_categories,
 )
 from meta_ads_agent.validation.checks_adset import check_ad_set, check_names_unique
-from meta_ads_agent.validation.checks_budget import check_budgets
+from meta_ads_agent.validation.checks_budget import check_budgets, check_campaign_schedule
 from meta_ads_agent.validation.checks_creative import check_creative_routing, check_local_assets
 from meta_ads_agent.validation.report import Finding, Severity, ValidationReport
 
@@ -57,6 +57,7 @@ def validate_plan(
     check_currency(doc, account, report)
     check_objective(doc, account, report)
     check_budgets(plan.budget, "campaign.budget", account, report)
+    check_campaign_schedule(plan, report)
     check_special_categories(doc, brand, report)
     check_dsa(doc, brand, report)
     check_names_unique(doc, report)

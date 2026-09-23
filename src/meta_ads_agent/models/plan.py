@@ -37,6 +37,7 @@ from meta_ads_agent.models._common import (
     MetaId,
     PostId,
     StrictModel,
+    looks_like_video,
 )
 
 
@@ -299,10 +300,12 @@ class CreativePlan(StrictModel):
         if not self.destination_url:
             raise ValueError(f"mode={self.mode.value} requires a destination_url")
 
-        if self.mode is CreativeMode.SINGLE_IMAGE and any(a.video_id for a in self.assets):
+        if self.mode is CreativeMode.SINGLE_IMAGE and any(
+            a.video_id or (a.local_path and looks_like_video(a.local_path)) for a in self.assets
+        ):
             raise ValueError("mode=single_image cannot use a video asset")
         if self.mode is CreativeMode.SINGLE_VIDEO and not any(
-            a.video_id or (a.local_path and _looks_like_video(a.local_path)) for a in self.assets
+            a.video_id or (a.local_path and looks_like_video(a.local_path)) for a in self.assets
         ):
             raise ValueError("mode=single_video needs a video asset")
         if self.mode is not CreativeMode.MULTI_VARIANT and len(self.variants) > 1:
@@ -311,10 +314,6 @@ class CreativePlan(StrictModel):
                 "mode=multi_variant for several, or plan separate ads."
             )
         return self
-
-
-def _looks_like_video(path: str) -> bool:
-    return path.lower().endswith((".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"))
 
 
 class AdPlan(StrictModel):

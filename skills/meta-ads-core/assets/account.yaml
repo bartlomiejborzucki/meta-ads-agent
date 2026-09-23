@@ -20,6 +20,7 @@ currency: null
 currency_offset: null          # 100 for two-decimal currencies, 1 for JPY, ...
 timezone_name: null
 account_status: null           # Meta's numeric status; 1 is active
+min_daily_budget: null         # Meta's min_daily_budget, in minor units
 has_payment_method: null
 is_queryable: null
 is_ads_mcp_enabled: null

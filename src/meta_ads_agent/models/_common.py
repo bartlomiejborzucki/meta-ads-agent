@@ -8,6 +8,16 @@ from urllib.parse import urlsplit
 
 from pydantic import AfterValidator, BaseModel, ConfigDict
 
+# Video containers, by extension. An extension is a routing hint only - what a
+# file actually is comes from its header (meta_ads_agent.state.assets).
+VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"})
+
+
+def looks_like_video(path: str) -> bool:
+    """Whether *path* is named like a video. Not proof that it is one."""
+    return any(path.lower().endswith(ext) for ext in VIDEO_EXTENSIONS)
+
+
 _ACCOUNT_RE = re.compile(r"^act_\d{1,20}$")
 _NUMERIC_ID_RE = re.compile(r"^\d{1,25}$")
 # Meta object ids are numeric, but ad ids and creative ids can appear as

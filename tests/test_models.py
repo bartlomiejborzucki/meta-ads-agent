@@ -285,6 +285,16 @@ class TestCreativeModes:
         with pytest.raises(ValidationError, match="exactly one"):
             build(mutate)
 
+    def test_single_image_rejects_a_local_video_file(self) -> None:
+        # A video_id was refused, a local .mp4 was not.
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]["assets"] = [
+                {"local_path": "./clip.MP4"}
+            ]
+
+        with pytest.raises(ValidationError, match="cannot use a video asset"):
+            build(mutate)
+
     def test_single_image_rejects_a_video_asset(self) -> None:
         def mutate(raw):  # type: ignore[no-untyped-def]
             raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]["assets"] = [{"video_id": "999"}]

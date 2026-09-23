@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from meta_ads_agent.models.plan import AdSetPlan, CampaignPlanDocument
 from meta_ads_agent.validation.account import AccountContext
-from meta_ads_agent.validation.checks_budget import check_budgets, check_schedule
+from meta_ads_agent.validation.checks_budget import check_bid, check_budgets, check_schedule
 from meta_ads_agent.validation.checks_creative import check_creative
 from meta_ads_agent.validation.report import Severity, ValidationReport
 
@@ -62,6 +62,7 @@ def check_ad_set(
 
     check_tracking(ad_set, prefix, account, report)
     check_schedule(ad_set, prefix, report)
+    check_bid(ad_set, prefix, doc.campaign.currency, account, report)
     check_audiences(ad_set, prefix, account, report)
 
     for ad_index, ad in enumerate(ad_set.ads):

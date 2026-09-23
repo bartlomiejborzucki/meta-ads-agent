@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "0.2.1",
   "payload_root": "skills",
-  "digest": "d92f3bd6c942188ee323c68e2b3d8b5a693eb8a6f2b9733848b1b7d591db1800",
+  "digest": "42d1ed97b43d62ea660b5b2fa9a666fab55ff0ea9395df1a2476e1f70f02b4eb",
   "skills": [
     "meta-ads-audit",
     "meta-ads-campaign",
@@ -44,8 +44,8 @@
     },
     {
       "path": "meta-ads-campaign/references/campaign-plan-guide.md",
-      "sha256": "d8674e6be000c70964319afa805e1be05a27c278dc2cec2607db792fb41de52d",
-      "size": 5293
+      "sha256": "9f9820f6e11372befd821451080cdf68c3538365afeff8df5d3c195225ab1bc2",
+      "size": 5522
     },
     {
       "path": "meta-ads-campaign/references/objectives-and-optimization.md",
@@ -64,8 +64,8 @@
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
-      "sha256": "e24ce467d8a7affa661dd3b0a66d77d164f3b65e368d8829026b423a43f5d4f9",
-      "size": 1711
+      "sha256": "356cf86d93f4d363f6ae54c50a87efa0ea6dc5b175b4157d71e98e39441c255f",
+      "size": 1784
     },
     {
       "path": "meta-ads-core/assets/brand.yaml",

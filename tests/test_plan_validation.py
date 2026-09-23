@@ -427,6 +427,77 @@ class TestLifetimeBudgetSchedule:
             validate_plan(build(mutate), check_assets=False)
         )
 
+    @staticmethod
+    def _campaign_lifetime(raw):  # type: ignore[no-untyped-def]
+        budget = raw["campaign"]["ad_sets"][0].pop("budget")
+        raw["campaign"]["budget"] = {**budget, "level": "campaign", "type": "lifetime"}
+
+    def test_campaign_lifetime_budget_without_an_end_blocks(self) -> None:
+        # Only the ad-set budget was checked; a CBO lifetime budget passed.
+        report = validate_plan(build(self._campaign_lifetime), check_assets=False)
+        assert "schedule.lifetime_needs_end" in codes(report, Severity.ERROR)
+
+    @pytest.mark.parametrize("where", ["campaign", "ad_set"])
+    def test_campaign_lifetime_budget_with_an_end_is_fine(self, where: str) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            self._campaign_lifetime(raw)
+            owner = raw["campaign"] if where == "campaign" else raw["campaign"]["ad_sets"][0]
+            owner["schedule"] = {"start": "2026-10-01T00:00:00Z", "end": "2026-10-31T00:00:00Z"}
+
+        assert "schedule.lifetime_needs_end" not in codes(
+            validate_plan(build(mutate), check_assets=False)
+        )
+
+
+class TestBids:
+    @staticmethod
+    def _bid(strategy: str | None, amount: str | None):  # type: ignore[no-untyped-def]
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            ad_set = raw["campaign"]["ad_sets"][0]
+            if strategy:
+                ad_set["bid_strategy"] = strategy
+            if amount:
+                ad_set["bid_amount"] = amount
+
+        return build(mutate)
+
+    @pytest.mark.parametrize("strategy", ["LOWEST_COST_WITH_BID_CAP", "COST_CAP"])
+    def test_a_capped_strategy_needs_a_bid(self, strategy: str) -> None:
+        report = validate_plan(self._bid(strategy, None), check_assets=False)
+        assert "bid.amount_missing" in codes(report, Severity.ERROR)
+
+    def test_an_uncapped_strategy_refuses_a_bid(self) -> None:
+        report = validate_plan(self._bid("LOWEST_COST_WITHOUT_CAP", "5"), check_assets=False)
+        assert "bid.amount_not_allowed" in codes(report, Severity.ERROR)
+
+    def test_a_bid_finer_than_the_currency_is_not_representable(self) -> None:
+        report = validate_plan(self._bid("COST_CAP", "5.005"), check_assets=False)
+        assert "bid.not_representable" in codes(report, Severity.ERROR)
+
+    def test_a_sound_capped_bid_passes(self, account) -> None:  # type: ignore[no-untyped-def]
+        report = validate_plan(self._bid("COST_CAP", "5.50"), account=account, check_assets=False)
+        assert not {c for c in codes(report) if c.startswith("bid.")}
+
+
+class TestMinimumBudget:
+    def test_a_daily_budget_below_the_account_minimum_blocks(self, plan, account) -> None:  # type: ignore[no-untyped-def]
+        account.min_daily_budget = 10000  # 100.00 PLN; the plan has 70
+        report = validate_plan(plan, account=account, check_assets=False)
+        assert "budget.below_minimum" in codes(report, Severity.ERROR)
+        (finding,) = [f for f in report.findings if f.code == "budget.below_minimum"]
+        assert "100.00" in finding.message
+
+    def test_at_or_above_the_minimum_is_fine(self, plan, account) -> None:  # type: ignore[no-untyped-def]
+        account.min_daily_budget = 7000
+        report = validate_plan(plan, account=account, check_assets=False)
+        assert "budget.below_minimum" not in codes(report)
+
+    def test_no_minimum_read_means_no_check(self, plan, account) -> None:  # type: ignore[no-untyped-def]
+        assert account.min_daily_budget is None
+        assert "budget.below_minimum" not in codes(
+            validate_plan(plan, account=account, check_assets=False)
+        )
+
 
 class TestRoutingReport:
     def test_single_image_routes_to_the_mcp(self, plan) -> None:  # type: ignore[no-untyped-def]
