@@ -301,6 +301,19 @@ class TestDocumentationLinks:
         assert broken == [], "broken relative links:\n  " + "\n  ".join(broken)
 
 
+class TestWorkflowPins:
+    """A tag can be moved to a different commit; a SHA cannot."""
+
+    def test_every_action_is_pinned_to_a_commit(self) -> None:
+        unpinned = [
+            f"{path.name}: {match}"
+            for path in sorted((REPO / ".github" / "workflows").glob("*.yml"))
+            for match in re.findall(r"uses:\s*(\S+)", path.read_text(encoding="utf-8"))
+            if not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", match)
+        ]
+        assert unpinned == [], "actions not pinned to a commit SHA:\n  " + "\n  ".join(unpinned)
+
+
 class TestCliReference:
     """docs/reference/cli.md promises "every command". Hold it to that."""
 

@@ -16,8 +16,8 @@ jobs:
     name: Compare tracked upstreams against their reviewed versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install
         run: uv sync --extra dev
@@ -41,6 +41,9 @@ jobs:
             gh issue comment "$existing" --body-file /tmp/report.md
             echo "commented on issue #$existing"
           else
+            # Created on first use; --force makes this a no-op when it exists.
+            gh label create upstream-drift --force --color d93f0b \
+              --description "A tracked upstream or the capability map needs review"
             gh issue create --title "$title" \
               --label upstream-drift \
               --body-file /tmp/report.md
@@ -49,3 +52,11 @@ jobs:
       - name: No drift
         if: steps.check.outputs.drift != 'true'
         run: echo "All tracked upstreams match their reviewed versions."
+
+      - name: Every lookup succeeded
+        # A lookup that failed is a check that did not happen. Reporting the
+        # run as green would say "nothing moved" about something nobody saw.
+        if: steps.check.outputs.lookup_failed == 'true'
+        run: |
+          echo "::error::one or more upstream lookups failed - see the 'Lookup failed' section of the report"
+          exit 1

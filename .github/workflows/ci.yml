@@ -29,10 +29,10 @@ jobs:
       matrix:
         python: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
 
@@ -43,10 +43,10 @@ jobs:
         run: uv sync --extra dev
 
       - name: Format check
-        run: uv run ruff format --check src tests
+        run: uv run ruff format --check src tests scripts
 
       - name: Lint
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests scripts
 
       - name: Type check
         run: uv run mypy
@@ -55,12 +55,58 @@ jobs:
         # Live tests are excluded by marker, not only by their env guard.
         run: uv run pytest -m "not live" --cov=meta_ads_agent --cov-report=term-missing
 
+  other-platforms:
+    # The offline suite on the two other operating systems a user may run it
+    # on. Windows matters beyond the Codex-from-WSL path: file locking takes a
+    # different code path there (msvcrt), and paths are case-insensitive.
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # Windows has never run this suite: it was written on Linux, and some
+    # tests assume POSIX paths and binaries. Until its first green run it
+    # reports without blocking, so its failures are visible rather than
+    # either hidden or holding up every change. Make it blocking once green.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --extra dev
+      - name: Unit tests
+        run: uv run pytest -m "not live"
+
+  versions:
+    # The release job checks that the package, both plugin manifests and the
+    # release manifest agree - which found a disagreement only at tag time.
+    # Checking on every change finds it in the change that caused it.
+    name: Versions agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Package, plugin manifests and release manifest share one version
+        run: |
+          set -euo pipefail
+          package=$(python3 -c "import re;print(re.search(r'^version = \"(.+)\"', open('pyproject.toml').read(), re.M).group(1))")
+          init=$(python3 -c "import re;print(re.search(r'__version__ = \"(.+)\"', open('src/meta_ads_agent/__init__.py').read()).group(1))")
+          claude=$(python3 -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          codex=$(python3 -c "import json;print(json.load(open('.codex-plugin/plugin.json'))['version'])")
+          release=$(python3 -c "import json;print(json.load(open('release-manifest.json'))['version'])")
+          echo "pyproject=$package __init__=$init claude=$claude codex=$codex release-manifest=$release"
+          for value in "$init" "$claude" "$codex" "$release"; do
+            [ "$value" = "$package" ] || { echo "::error::version mismatch: $value vs $package"; exit 1; }
+          done
+
   package:
     name: Build and install the wheel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Build
         run: uv build
@@ -159,7 +205,7 @@ jobs:
           uvx --from . meta-ads-agent validate-plan \
             examples/campaign-plan.yaml --skip-assets
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist
           path: dist/
@@ -168,8 +214,8 @@ jobs:
     name: Validate plugin manifests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
 
@@ -211,8 +257,8 @@ jobs:
     name: Validate templates and examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install
         run: uv sync --extra dev

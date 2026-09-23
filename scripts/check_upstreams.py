@@ -12,7 +12,13 @@ inspect it. Its refresh is a documented manual procedure -
 docs/reference/capability-refresh.md. This script says so in its report, so the
 absence is visible rather than assumed covered.
 
-Writes a markdown report and sets the `drift` GitHub Actions output.
+It does watch the *age* of that manual refresh: capability entries not reviewed
+in CAPABILITY_REFRESH_DAYS count as drift, so an issue asks for the refresh
+before `doctor` starts warning users about it at 90 days.
+
+Writes a markdown report and sets two GitHub Actions outputs: `drift`, and
+`lookup_failed` - a lookup that failed is a check that did not happen, and the
+workflow fails on it rather than reporting a green run that looked at nothing.
 """
 
 from __future__ import annotations
@@ -32,6 +38,9 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 UPSTREAMS = REPO / "upstreams.yaml"
 TIMEOUT = 30
+
+# Ahead of doctor's 90-day warning, so the refresh is asked for before users see it.
+CAPABILITY_REFRESH_DAYS = 75
 
 
 def fetch_json(url: str) -> Any | None:
@@ -74,6 +83,16 @@ def github_latest_release(repo: str) -> str | None:
     return None
 
 
+def capability_entries_due(today: dt.date) -> list[str]:
+    """Capability entries whose manual review is older than the refresh window."""
+    sys.path.insert(0, str(REPO / "src"))
+    from meta_ads_agent.capabilities import load_registry
+
+    return load_registry(REPO / "config" / "capabilities.yaml").stale(
+        older_than_days=CAPABILITY_REFRESH_DAYS, today=today
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=None)
@@ -85,6 +104,7 @@ def main() -> int:
     drifted: list[str] = []
     unchanged: list[str] = []
     unchecked: list[str] = []
+    failed: list[str] = []
 
     for entry in entries:
         repo = entry.get("repo", "?")
@@ -98,7 +118,7 @@ def main() -> int:
             latest = pypi_latest(entry["package"])
             reviewed = str(entry.get("reviewed_version", ""))
             if latest is None:
-                unchecked.append(f"`{repo}` — PyPI lookup failed")
+                failed.append(f"`{repo}` — PyPI lookup failed")
             elif latest != reviewed:
                 drifted.append(
                     f"### `{repo}` ({entry['package']})\n\n"
@@ -115,7 +135,7 @@ def main() -> int:
             latest = github_latest_release(repo)
             reviewed = str(entry.get("reviewed_version", ""))
             if latest is None:
-                unchecked.append(f"`{repo}` — release lookup failed")
+                failed.append(f"`{repo}` — release lookup failed")
             elif reviewed and reviewed.lstrip("v") not in latest.lstrip("v"):
                 drifted.append(
                     f"### `{repo}`\n\n"
@@ -131,7 +151,7 @@ def main() -> int:
         sha, date = github_head(repo)
         reviewed = str(entry.get("reviewed_sha", ""))
         if sha is None:
-            unchecked.append(f"`{repo}` — commit lookup failed")
+            failed.append(f"`{repo}` — commit lookup failed")
         elif reviewed in ("", "unpinned"):
             unchecked.append(f"`{repo}` — reviewed SHA is unpinned (HEAD is `{sha}`)")
         elif not sha.startswith(reviewed[:7]):
@@ -144,6 +164,17 @@ def main() -> int:
             )
         else:
             unchanged.append(f"`{repo}` — `{sha}`")
+
+    stale = capability_entries_due(dt.date.today())
+    if stale:
+        drifted.append(
+            "### Meta Ads MCP capability map\n\n"
+            f"- {len(stale)} entr{'y' if len(stale) == 1 else 'ies'} in "
+            f"`config/capabilities.yaml` not reviewed in {CAPABILITY_REFRESH_DAYS} days: "
+            f"{', '.join(f'`{name}`' for name in stale)}\n"
+            "- refresh them against Meta's tool reference: "
+            "`docs/reference/capability-refresh.md`\n"
+        )
 
     today = dt.date.today().isoformat()
     lines = [
@@ -159,6 +190,8 @@ def main() -> int:
 
     if drifted:
         lines += ["## Drifted", "", *drifted]
+    if failed:
+        lines += ["## Lookup failed", "", *(f"- {i}" for i in failed), ""]
     if unchecked:
         lines += ["## Not checked", "", *(f"- {i}" for i in unchecked), ""]
     if unchanged:
@@ -185,6 +218,7 @@ def main() -> int:
     if output_file := os.environ.get("GITHUB_OUTPUT"):
         with open(output_file, "a", encoding="utf-8") as stream:
             stream.write(f"drift={'true' if drifted else 'false'}\n")
+            stream.write(f"lookup_failed={'true' if failed else 'false'}\n")
 
     return 0
 
