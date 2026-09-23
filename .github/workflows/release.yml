@@ -170,8 +170,12 @@ jobs:
     name: Publish to PyPI
     needs: build
     # Never automatic. Requires an explicit manual run AND an environment
-    # approval - see ADR-009.
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_to_pypi
+    # approval - see ADR-009. The run must also be started on a v* tag: the
+    # version and changelog checks in `verify` only run for tag refs, and a
+    # PyPI version, once uploaded, can never be replaced.
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.publish_to_pypi
+      && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

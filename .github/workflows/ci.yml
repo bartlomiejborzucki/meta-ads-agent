@@ -145,9 +145,11 @@ jobs:
           python3 -c "import json;d=json.load(open('/tmp/again.json'));assert d['action']=='up-to-date',d['action'];print('idempotent ok')"
 
       - name: Installed payload matches the release manifest
+        # doctor looks at ~/.agents/skills, which this job never installs to,
+        # so ask about the directory that was actually upgraded - and assert
+        # the answer rather than print it.
         run: |
-          /tmp/clean/bin/meta-ads-agent doctor --json > /tmp/doctor2.json
-          python3 -c "import json;d=json.load(open('/tmp/doctor2.json'));print('installation:',d['installation']['status'])"
+          /tmp/clean/bin/python -c "from meta_ads_agent.cli.install_cmd import installation_report as r;s=r(target_kind='path',path='/tmp/skills-old')['status'];print('installation:',s);assert s=='complete',s"
 
       - name: The documented no-install validation route works
         # The skills tell a user without the CLI to run the validator through
