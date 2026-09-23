@@ -33,20 +33,19 @@ Two items were looked at and deliberately not done:
 `AssetRef.placement` was not built either. It is refused by the validator
 until it is real, and stays on the list below.
 
-## 0.4 - arithmetic in code
+## 0.4 - arithmetic in code (done)
 
-What [ADR-008](architecture/adr/ADR-008-deterministic-vs-agent-layer.md)
-promised and the skills still do in prose.
+In 0.4.0: `meta-ads-agent report compare`, `fatigue` and `pacing` over
+insights rows, with the thresholds from `brand.yaml` printed next to every
+label; shorter shared skill blocks; and a trigger-eval suite in `evals/`.
 
-- **`report`:** equal-length window alignment, volume floors, noise bands.
-  `meta-ads-agent report compare` takes insights JSON as the MCP returns it
-  and prints the comparison.
-- **`fatigue`:** CTR against the entity's own baseline, frequency, spend since
-  decline, creative age. The skill gets numbers; the conclusion stays with it.
-- **Budget pacing** analysis.
-- **Leaner skills:** the preflight block is copied into all nine (about 400
-  tokens each); point to `meta-ads-core` instead. Add trigger evals, since
-  `meta-ads-core`'s description overlaps every other skill's.
+One item changed shape on the way. The roadmap said to replace each skill's
+preflight block with a pointer to `meta-ads-core`. That would break 0.2.0's
+rule that a skill works when it is the only one installed, so the blocks were
+shortened instead (by about a third) and stay in every skill.
+
+The trigger evals have not been run: each run is a paid model call, and the
+workflow waits for an `ANTHROPIC_API_KEY` secret and someone to start it.
 
 ## 0.5 - verification without a test account
 

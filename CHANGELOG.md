@@ -9,6 +9,46 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.4.0] - 2026-09-23
+
+**Arithmetic in code.** `MIGRATION: none required`. `brand.yaml` gains one
+optional threshold with a default.
+
+### Added
+
+- **`meta-ads-agent report compare`** - two equal, adjacent windows (or two
+  meeting at `--boundary`, the day of a known change), every rate recomputed
+  from sums, each metric labelled `signal`, `noise`, `insufficient`,
+  `observed` or `unavailable` against the user's noise band and volume
+  floors, and the metric chain's documented rules read off those labels.
+  Incomplete windows, entities live in one window only, and a current window
+  still inside attribution are flagged.
+- **`meta-ads-agent report fatigue`** - per ad, CTR against its own best
+  earlier window, the frequency condition (from a window-long row, since
+  daily reach does not add up; otherwise `unknown`), spend since the decline
+  began, days with delivery, and which siblings held up. Below the click
+  floor: insufficient evidence.
+- **`meta-ads-agent report pacing`** - daily utilisation and outlier days, or
+  a lifetime budget against a straight-line schedule with a projection.
+- `thresholds.noise_band_pct` in `brand.yaml` (default 10).
+- [docs/reference/report-input.md](docs/reference/report-input.md): the
+  accepted insights shape. It is the Marketing API's documented row; the
+  official MCP's response schema is unpublished, so mapping onto it is the
+  agent's job and is unverified against a live session.
+- **Trigger evals** in `evals/`: one `claude plugin eval` case per skill and
+  two negatives, graded on which skill loaded. Run on demand by the
+  `Trigger evals` workflow; not yet run.
+
+### Changed
+
+- The report and optimise skills use the `report` commands when the CLI is
+  present and keep the by-hand route when it is not. The report skill still
+  names no CLI command in its `SKILL.md`; the command lives in its metrics
+  reference.
+- The shared preflight block went from 285 words to 199 and the no-CLI build
+  block from 244 to 194, with every rule kept. Each skill still carries its own copy,
+  so a skill installed alone still works.
+
 ## [0.3.0] - 2026-09-23
 
 **Local state and the validator.** `MIGRATION: none required` - state written
@@ -422,7 +462,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.1.0...v0.2.0
