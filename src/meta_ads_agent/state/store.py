@@ -22,10 +22,34 @@ def plan_fingerprint(doc: CampaignPlanDocument) -> str:
     resume compares this against the fingerprint stored with the objects: if
     the plan changed after objects were created, continuing would apply a
     different plan to existing structure.
+
+    Fields left at their default are excluded too. Otherwise adding any field
+    with a default to the plan model - an ordinary minor release - changes the
+    fingerprint of every existing plan, and every in-flight campaign falsely
+    reports that its plan was edited. The prefix names the algorithm, so a
+    fingerprint recorded by an older release is still compared the way it was
+    computed (:func:`fingerprint_matches`).
     """
-    payload = doc.campaign.model_dump(mode="json", exclude_none=True)
+    payload = doc.campaign.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
+    return _FINGERPRINT_V2 + _digest(payload)
+
+
+# 0.1-0.2 hashed defaulted fields as well. Kept only to read their state.
+_FINGERPRINT_V1 = "sha256:"
+_FINGERPRINT_V2 = "v2:sha256:"
+
+
+def _digest(payload: object) -> str:
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def fingerprint_matches(recorded: str, doc: CampaignPlanDocument) -> bool:
+    """Whether *doc* is the plan that produced a recorded fingerprint."""
+    if recorded.startswith(_FINGERPRINT_V1):
+        legacy = doc.campaign.model_dump(mode="json", exclude_none=True)
+        return recorded == _FINGERPRINT_V1 + _digest(legacy)
+    return recorded == plan_fingerprint(doc)
 
 
 class StateStore:
@@ -82,9 +106,7 @@ class StateStore:
     def state_exists(self, slug: str) -> bool:
         return self.workspace.state_file(slug).is_file()
 
-    def load_or_create_state(
-        self, doc: CampaignPlanDocument, *, bind_fingerprint: bool = True
-    ) -> CampaignState:
+    def load_or_create_state(self, doc: CampaignPlanDocument) -> CampaignState:
         """Get existing state for a plan, or start fresh.
 
         Refuses to reuse state whose plan fingerprint no longer matches. That
@@ -92,7 +114,6 @@ class StateStore:
         resolving it is a human decision: either revert the plan, or start a new
         campaign slug.
         """
-        fingerprint = plan_fingerprint(doc)
         if self.state_exists(doc.slug):
             state = self.load_state(doc.slug)
             if state.ad_account_id != doc.ad_account_id:
@@ -101,7 +122,11 @@ class StateStore:
                     f"{state.ad_account_id} but the plan targets "
                     f"{doc.ad_account_id}. Use a different slug."
                 )
-            if state.plan_fingerprint and state.plan_fingerprint != fingerprint and state.objects:
+            if (
+                state.plan_fingerprint
+                and not fingerprint_matches(state.plan_fingerprint, doc)
+                and state.objects
+            ):
                 raise ReconciliationError(
                     f"the plan for {doc.slug!r} changed after "
                     f"{len(state.objects)} object(s) were created on Meta.\n"
@@ -114,7 +139,7 @@ class StateStore:
         state = CampaignState(
             slug=doc.slug,
             ad_account_id=doc.ad_account_id,
-            plan_fingerprint=fingerprint if bind_fingerprint else None,
+            plan_fingerprint=plan_fingerprint(doc),
         )
         self.save_state(state)
         return state

@@ -10,7 +10,7 @@ from __future__ import annotations
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
 from meta_ads_agent.errors import MetaAdsAgentError
 from meta_ads_agent.models.state import Stage, stage_order
-from meta_ads_agent.state.store import StateStore, plan_fingerprint
+from meta_ads_agent.state.store import StateStore, fingerprint_matches
 from meta_ads_agent.workspace import Workspace
 
 # What a resume should do at each stage boundary. Prose, because the actual
@@ -59,7 +59,7 @@ def run_state(
         try:
             plan = store.load_plan(slug)
             plan_drift = bool(
-                state.plan_fingerprint and state.plan_fingerprint != plan_fingerprint(plan)
+                state.plan_fingerprint and not fingerprint_matches(state.plan_fingerprint, plan)
             )
         except MetaAdsAgentError as exc:
             warn(f"plan could not be read: {exc}")

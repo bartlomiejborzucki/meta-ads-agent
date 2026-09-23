@@ -23,7 +23,7 @@ from meta_ads_agent.models.state import (
     next_stage,
     stage_order,
 )
-from meta_ads_agent.state.store import StateStore, plan_fingerprint
+from meta_ads_agent.state.store import StateStore, fingerprint_matches, plan_fingerprint
 from meta_ads_agent.workspace import Workspace
 
 
@@ -98,6 +98,40 @@ class TestFingerprint:
         other = plan.model_copy(deep=True)
         other.campaign.ad_sets[0].ads[0].creative.variants[0].headline = "Different"
         assert plan_fingerprint(plan) != plan_fingerprint(other)
+
+    def test_a_field_left_at_its_default_does_not_count(self) -> None:
+        # What a new release adding a defaulted field looks like to an old
+        # plan: the field appears with its default. That must not read as an
+        # edit, or every in-flight campaign would refuse to resume.
+        raw = plan_dict()
+        explicit = plan_dict()
+        explicit["campaign"]["ad_sets"][0]["targeting"]["genders"] = "all"
+        explicit["campaign"]["buying_type"] = "AUCTION"
+        assert plan_fingerprint(CampaignPlanDocument.model_validate(raw)) == plan_fingerprint(
+            CampaignPlanDocument.model_validate(explicit)
+        )
+
+    def test_the_algorithm_is_named_in_the_fingerprint(self, plan) -> None:  # type: ignore[no-untyped-def]
+        assert plan_fingerprint(plan).startswith("v2:sha256:")
+        assert fingerprint_matches(plan_fingerprint(plan), plan)
+
+    def test_a_fingerprint_recorded_by_0_2_still_matches_its_plan(self) -> None:
+        # The shipped example was written by 0.1; its state must still resume.
+        from pathlib import Path
+
+        import yaml
+
+        examples = Path(__file__).resolve().parents[1] / "examples"
+        doc = CampaignPlanDocument.model_validate(
+            yaml.safe_load((examples / "campaign-plan.yaml").read_text())
+        )
+        recorded = json.loads((examples / "state.json").read_text())["plan_fingerprint"]
+        assert recorded.startswith("sha256:")
+        assert fingerprint_matches(recorded, doc)
+
+        edited = doc.model_copy(deep=True)
+        edited.campaign.name = "Something else"
+        assert not fingerprint_matches(recorded, edited)
 
 
 class TestIdempotency:

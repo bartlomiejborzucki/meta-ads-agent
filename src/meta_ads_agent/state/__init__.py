@@ -8,7 +8,7 @@ from meta_ads_agent.state.assets import (
     fingerprint_file,
     probe_asset,
 )
-from meta_ads_agent.state.store import StateStore, plan_fingerprint
+from meta_ads_agent.state.store import StateStore, fingerprint_matches, plan_fingerprint
 
 __all__ = [
     "ActionLog",
@@ -18,6 +18,7 @@ __all__ = [
     "AssetStore",
     "StateStore",
     "fingerprint_file",
+    "fingerprint_matches",
     "plan_fingerprint",
     "probe_asset",
 ]
