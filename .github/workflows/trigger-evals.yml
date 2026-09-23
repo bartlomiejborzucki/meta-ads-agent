@@ -41,13 +41,19 @@ jobs:
         # the descriptions say. See evals/README.md.
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Through the environment, never interpolated into the script: an
+          # input spliced into `run:` is shell code, whatever it was meant to be.
+          MAX_COST_USD: ${{ inputs.max_cost_usd }}
         run: |
+          case "$MAX_COST_USD" in
+            ''|*[!0-9.]*) echo "::error::max_cost_usd must be a number"; exit 1 ;;
+          esac
           claude plugin eval . \
             --ablation none \
             --trust-plugin \
             --no-publish \
             --json results.json \
-            --max-cost-usd "${{ inputs.max_cost_usd }}"
+            --max-cost-usd "$MAX_COST_USD"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

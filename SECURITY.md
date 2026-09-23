@@ -208,6 +208,25 @@ regression tests that fail against the 0.2.0 code:
 Also fixed: with no ad account configured, a real `api` call targeted
 `act_<no account configured>` instead of being refused.
 
+### 0.5.0 review
+
+**Reviewed 2026-09-23**, over what 0.3.0 to 0.5.0 added: file locking,
+`render-plan`, the `report` arithmetic, `capabilities --compare`, the live
+tests, and three workflows.
+
+| Area | Result |
+| --- | --- |
+| Workflow inputs in shell | **one finding, fixed**: the trigger-evals workflow spliced `inputs.max_cost_usd` into its `run:` script, so whoever could dispatch it could run shell code with the Anthropic key in the environment. It now arrives through `env` and is checked to be a number. No other `${{ }}` expression reaches a script. |
+| Actions | every `uses:` is pinned to a commit SHA, enforced by a test |
+| Secrets in workflows | the Anthropic key only in the on-demand eval workflow; no Meta token anywhere, and still no workflow runs the live tests (tests/live/README.md) |
+| Lock files | `.<name>.lock` beside the file, opened with `O_CREAT` and never truncated or written; a planted symlink could at most make the lock file exist elsewhere. They sit in the user's own workspace or install target. |
+| Concurrent state | a merge never drops an id; a conflict keeps both, then raises |
+| `report` input | parsed by pydantic, no code execution; non-finite numbers are refused on the way in |
+| `capabilities --compare` input | regex over pasted text, linear in its length; nothing is executed or written |
+| `render-plan --write` | writes only the plan path it was given, atomically; like every atomic write here, it replaces a symlink with a file |
+| Live tests | skip without an explicit opt-in, a designated account and a token; create only inert, prefixed objects; never delete or activate |
+| Action log | failure details pass through the same redaction as every record |
+
 ## Supported versions
 
 0.2.x are early development releases and are **not production-ready**. Fixes
