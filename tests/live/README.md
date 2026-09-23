@@ -80,12 +80,19 @@ Everything else - dedup, ordering, retry-safety, dry-run, error mapping, the
 approval model - is our logic, and belongs in the offline suite where it runs on
 every push.
 
-## Nothing here yet
+## What is here
 
-No live tests ship yet. The offline suite covers every code path; what is
-missing is confirmation that Meta accepts the request **shapes**, and writing
-those tests responsibly requires a designated test account that the author of
-this release did not have.
+`test_fallback_live.py` has the five checks above, written and never run -
+there has been no test account to run them against. With the variables set
+they upload a generated image and a five-second clip made with `ffmpeg`, and
+create three inert creatives. Two more variables unlock the tests that need an
+identity:
 
-This is a known gap, recorded rather than glossed over. If you have a test
-account and add some, please follow the rules above.
+| | |
+| --- | --- |
+| `META_ADS_LIVE_TEST_PAGE` | a Page id on the test account, for the video and multi-variant creatives |
+| `META_ADS_LIVE_TEST_POST` | an existing post on that Page, `<page>_<post>`, for the existing-post creative |
+
+Without them those tests skip; without the four requirements above, all of
+them do. The first person to run them against a real test account will find
+out whether the request shapes hold - please report the result either way.
