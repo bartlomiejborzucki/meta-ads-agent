@@ -9,40 +9,29 @@ One constraint shapes the order: **there is no Meta test ad account yet.**
 Everything that needs one is collected in a single blocked group at the end,
 and nothing before it depends on it.
 
-## 0.3 - local state and the validator
+## 0.3 - local state and the validator (done)
 
-Make what already exists hard to break.
+In 0.3.0; the detail is in the [changelog](../CHANGELOG.md). In
+short: file locking and a merge-under-lock for campaign state; a plan
+fingerprint that survives new model fields; validator checks for campaign
+lifetime budgets, bids, account minimum budgets and a video in an image ad;
+Meta's own currency offsets where they differ from ISO; failures and dry
+runs in the action log; `render-plan` for the brand naming and UTM templates;
+the validator split by concern; macOS and Windows CI, pinned actions, and an
+upstream check that fails when it could not look.
 
-- **File locking** for campaign state, the asset manifest, `actions.jsonl`
-  and the installer, using `fcntl` / `msvcrt` with no new dependency. Today
-  two sessions read, modify and write the same file and lose each other's
-  entries, which for the asset manifest means duplicate uploads. `fsync` the
-  parent directory after `os.replace`.
-- **A stable plan fingerprint.** It currently hashes defaulted fields too, so
-  adding any field with a default to the plan model changes every existing
-  fingerprint and falsely blocks resume. Hash with `exclude_defaults` and an
-  explicit schema version.
-- **Validator gaps:** a lifetime budget at campaign level with no end date;
-  `bid_amount` representability; Meta's minimum budgets; a local `.mp4`
-  accepted by a `single_image` ad.
-- **`Money` edges:** refuse non-finite and negative amounts and fractional
-  minor units rather than truncating. Re-check Meta's own currency offsets
-  (HUF, TWD, IDR, COP, CRC) against the ISO table.
-- **The action log records failures and dry runs**, which `ActionRecord`
-  already supports and nothing writes.
-- **Declared but not wired:** `naming` / `utm` template substitution,
-  `TrackingPlan.utm` assembled into the destination URL, `AssetRef.placement`.
-- **Safety policy wording:** `budget_increase` says "any budget change" in its
-  body. Decide whether a decrease needs approval and make the name agree.
-- **Structure:** split `plan_validator.py` by concern (account, budget,
-  targeting, creative); per-command `register(subparsers)` in the CLI; one
-  `Provider` enum and one list of video extensions instead of two and three.
-- **CI:** `windows-latest` and `macos-latest` jobs (the Windows path is
-  advertised and tested only against a fake); ruff over `scripts/`; version
-  agreement checked on every PR, not only at release; an issue opened when
-  the capability map is 75 days old (the `doctor` warning fires at 90, around
-  2026-12-15); `upstream-check` failing when its API calls fail and creating
-  its own label; actions pinned by SHA.
+Two items were looked at and deliberately not done:
+
+- **One `Provider` enum.** The two differ on purpose: the capability map
+  needs `none` (nobody provides this), and a created object must never have
+  been created by nobody. Merging them would allow exactly that in state.
+- **Per-command `register(subparsers)` in the CLI.** The command modules are
+  imported lazily so `--help` and `doctor` stay fast and a missing optional
+  dependency cannot break an unrelated command. Registering from each module
+  would import all of them at startup.
+
+`AssetRef.placement` was not built either. It is refused by the validator
+until it is real, and stays on the list below.
 
 ## 0.4 - arithmetic in code
 
@@ -79,8 +68,9 @@ Reduce the risk that the request shapes are wrong, using what is available.
 
 ## 0.6 and later - new capability
 
-In the README's order: carousel creatives; Instagram existing-post campaigns
-through `ads_boost_ig_post`; lookalike audience workflows; A/B tests through
+In the README's order: carousel creatives; placement-specific assets
+(`AssetRef.placement`, refused by the validator until then); Instagram
+existing-post campaigns through `ads_boost_ig_post`; lookalike audience workflows; A/B tests through
 `ads_experiment_*`, with the approval treatment a delivery split needs;
 catalog and dynamic ads; more than one ad account per workspace. An opt-in
 MCP proxy that enforces the approval model is the change to revisit if the

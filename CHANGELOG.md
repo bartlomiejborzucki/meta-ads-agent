@@ -9,6 +9,86 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.0] - 2026-09-23
+
+**Local state and the validator.** `MIGRATION: none required` - state written
+by 0.2 is read as it is, including its plan fingerprints.
+
+### Fixed - money
+
+- **Meta's currency offsets win over ISO 4217 where they differ.** Meta counts
+  COP, CRC, HUF, IDR and TWD in whole units (ISO says hundredths) and BHD and
+  JOD in hundredths (ISO says thousandths). For an account in one of them
+  whose `currency_offset` had not been read, a budget went to Meta 100x (or
+  10x) too large. From Meta's currency reference, read 2026-09-23.
+- `Money.from_display("Infinity")` crashed with `OverflowError`;
+  `from_minor(70.9)` silently became 70; `offset=0` silently became the
+  table default. All three are errors now.
+
+### Fixed - concurrency
+
+- **Two sessions on one workspace no longer lose each other's writes.** The
+  asset manifest, campaign state, the action log and the installer are
+  updated under an advisory lock (`flock` / `msvcrt`, no dependency). Two
+  uploads of the same file wait for each other instead of uploading it twice.
+- **Campaign state is merged, not overwritten.** Before saving, objects
+  another session recorded are folded in. Two different ids for one plan
+  element are both kept on disk, then reported: one is a duplicate on Meta.
+- Action-log appends are fsynced.
+
+### Fixed - resume
+
+- **A new release no longer blocks every in-flight resume.** The plan
+  fingerprint hashed defaulted fields too, so adding any field to the plan
+  model changed every existing fingerprint. Defaults are excluded now, and
+  the fingerprint names its algorithm (`v2:sha256:`); 0.2 fingerprints are
+  still compared the way they were computed.
+
+### Added - validation
+
+- A campaign-level lifetime budget needs an end on the campaign or on every
+  ad set (`schedule.lifetime_needs_end`); only ad-set budgets were checked.
+- Bids: a capped strategy without `bid_amount`, the uncapped one with it, and
+  an amount the currency cannot represent (`bid.*`).
+- The account's own minimum daily budget, when `account.yaml` carries Meta's
+  `min_daily_budget` (`budget.below_minimum`).
+- A local video in a `single_image` ad is refused by the model, as a
+  `video_id` already was.
+- Unexpanded `{token}`s in a name or URL (`naming.unrendered`), and
+  `tracking.utm` parameters missing from the URL (`tracking.utm_not_applied`).
+- `AssetRef.placement` is refused (`asset.placement_unsupported`) instead of
+  validating and then serving the asset in every placement.
+- Findings print errors, then warnings, then notes. `objective.invalid` is
+  reported once, not once per ad set.
+
+### Added - `render-plan`
+
+- **`meta-ads-agent render-plan`** applies the `naming` and `utm` templates
+  in `brand.yaml`, and a plan's `tracking.utm`, which were documented as
+  substituted and substituted by nothing. Strict about unknown or empty
+  tokens, never overwrites a UTM already in a URL, and idempotent. Prints
+  every change; writes with `--write`.
+
+### Added - audit
+
+- Failed and dry-run `api` commands are recorded in `actions.jsonl`; a
+  deletion record names the ad account. `read(limit=0)` returns nothing
+  rather than everything.
+
+### Changed
+
+- The validator is a package of modules by concern (`report`,
+  `checks_account`, `checks_budget`, `checks_adset`, `checks_creative`).
+  Imports from `meta_ads_agent.validation` are unchanged.
+- The safety policy says what its class name did not: any budget change, a
+  cut included, needs explicit approval. Summaries that said "raise a
+  budget" now say so too.
+- CI runs the suite on macOS and on Windows (non-blocking until its first
+  green run), checks versions on every change, lints `scripts/`, and pins
+  every action to a commit SHA. The upstream check fails when a lookup
+  fails, creates its own label, and opens an issue when the capability map
+  is 75 days old.
+
 ## [0.2.1] - 2026-09-23
 
 **Security and correctness fixes from a review of 0.2.0.** `MIGRATION: none
@@ -342,7 +422,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/releases/tag/v0.1.0

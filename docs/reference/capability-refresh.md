@@ -6,7 +6,8 @@ to try. The refresh is a documented manual procedure, run by someone with an
 authenticated session.
 
 **Do this when:** a new tool appears, a tool changes shape, an entry in
-`config/capabilities.yaml` is more than 90 days old (`doctor` flags this), or
+`config/capabilities.yaml` is more than 75 days old (the weekly upstream check
+opens an issue; `doctor` warns users from 90 days), or
 something that worked stops working.
 
 ## 1. Introspect the connected server
