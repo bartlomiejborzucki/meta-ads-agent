@@ -24,6 +24,8 @@ import json
 import shutil
 import struct
 import subprocess
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -31,6 +33,7 @@ from pathlib import Path
 from pydantic import ValidationError as PydanticValidationError
 
 from meta_ads_agent.errors import StateError, ValidationError
+from meta_ads_agent.locking import file_lock
 from meta_ads_agent.models._common import VIDEO_EXTENSIONS
 from meta_ads_agent.models.state import AssetManifest, AssetRecord, ObjectType
 from meta_ads_agent.workspace import Workspace
@@ -378,6 +381,11 @@ def _ffprobe(path: Path) -> tuple[int | None, int | None, float | None] | None:
     )
 
 
+# A video upload can take minutes; a second process wanting the same file waits
+# this long for the first to finish before giving up with a clear message.
+_CLAIM_TIMEOUT_SECONDS = 600.0
+
+
 class AssetStore:
     """The asset manifest, loaded from and saved to the workspace."""
 
@@ -417,19 +425,36 @@ class AssetStore:
         Flushed immediately for the same reason campaign state is: an upload
         that succeeded on Meta but is not on disk gets repeated.
         """
-        manifest = self.load()
-        record = AssetRecord(
-            fingerprint=probe.fingerprint,
-            ad_account_id=ad_account_id,
-            local_path=str(probe.path),
-            size_bytes=probe.size_bytes,
-            kind=probe.object_type,
-            image_hash=image_hash,
-            video_id=video_id,
-            width=probe.width,
-            height=probe.height,
-            duration_seconds=probe.duration_seconds,
-        )
-        stored = manifest.put(record)
-        self.save(manifest)
-        return stored
+        manifest_path = self.workspace.asset_manifest_file
+        # Load, add, save as one step: two processes each adding an entry to
+        # the version they read would otherwise lose one of them.
+        with file_lock(manifest_path, what="the asset manifest"):
+            manifest = self.load()
+            record = AssetRecord(
+                fingerprint=probe.fingerprint,
+                ad_account_id=ad_account_id,
+                local_path=str(probe.path),
+                size_bytes=probe.size_bytes,
+                kind=probe.object_type,
+                image_hash=image_hash,
+                video_id=video_id,
+                width=probe.width,
+                height=probe.height,
+                duration_seconds=probe.duration_seconds,
+            )
+            stored = manifest.put(record)
+            self.save(manifest)
+            return stored
+
+    @contextmanager
+    def claim(self, probe: AssetProbe, ad_account_id: str) -> Iterator[None]:
+        """Hold this content for this account while it is looked up and uploaded.
+
+        Without it, two processes uploading the same file both find no record,
+        both upload, and Meta holds two copies - the duplicate the manifest
+        exists to prevent. Other files upload in parallel as before.
+        """
+        digest = probe.fingerprint.split(":", 1)[-1][:32]
+        target = self.workspace.assets_dir / "locks" / f"{ad_account_id}-{digest}"
+        with file_lock(target, timeout=_CLAIM_TIMEOUT_SECONDS, what=f"{probe.path.name}"):
+            yield

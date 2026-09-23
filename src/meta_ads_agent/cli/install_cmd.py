@@ -16,7 +16,7 @@ from meta_ads_agent import __version__
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
 from meta_ads_agent.errors import ConfigError, MetaAdsAgentError, StateError
 from meta_ads_agent.install import packaged
-from meta_ads_agent.install.engine import apply_install, plan_install, rollback
+from meta_ads_agent.install.engine import apply_install, install_lock, plan_install, rollback
 from meta_ads_agent.install.migrations import (
     MigrationLedger,
     MigrationRun,
@@ -56,19 +56,19 @@ def _install_payload(
     target = resolve_target(target_kind, path=path, windows_home=windows_home)
     manifest = packaged.release_manifest()
     source = packaged.payload_source()
-    plan = plan_install(manifest, source, target, force=force)
-
     if dry_run:
-        return plan.as_dict()
-    if plan.action == "up-to-date" and not plan.resuming:
-        return {**plan.as_dict(), "verification": {"complete": True}}
+        return plan_install(manifest, source, target, force=force).as_dict()
 
-    result = apply_install(
-        plan,
-        source,
-        method="sync-windows" if target.is_windows else "sync",
-        backup=not no_backup,
-    )
+    with install_lock(target.root):
+        plan = plan_install(manifest, source, target, force=force)
+        if plan.action == "up-to-date" and not plan.resuming:
+            return {**plan.as_dict(), "verification": {"complete": True}}
+        result = apply_install(
+            plan,
+            source,
+            method="sync-windows" if target.is_windows else "sync",
+            backup=not no_backup,
+        )
     return result.as_dict()
 
 
@@ -98,24 +98,23 @@ def run_install(
     target = resolve_target(target_kind, path=path, windows_home=windows_home)
     manifest = packaged.release_manifest()
     source = packaged.payload_source()
-    plan = plan_install(manifest, source, target, force=force)
-
     if dry_run:
-        _render_plan(plan)
+        _render_plan(plan_install(manifest, source, target, force=force))
         echo("")
         echo("  dry run - nothing was written.")
         return 0
 
-    if plan.action == "up-to-date" and not plan.resuming:
-        _render_plan(plan)
-        return 0
-
-    result = apply_install(
-        plan,
-        source,
-        method="sync-windows" if target.is_windows else "sync",
-        backup=not no_backup,
-    )
+    with install_lock(target.root):
+        plan = plan_install(manifest, source, target, force=force)
+        if plan.action == "up-to-date" and not plan.resuming:
+            _render_plan(plan)
+            return 0
+        result = apply_install(
+            plan,
+            source,
+            method="sync-windows" if target.is_windows else "sync",
+            backup=not no_backup,
+        )
     _render_plan(plan)
     heading("Result")
     echo(f"  version    {manifest.version}")
@@ -179,7 +178,8 @@ def run_upgrade(
     target = resolve_target(target_kind, path=path, windows_home=windows_home)
 
     if do_rollback:
-        restored = rollback(target)
+        with install_lock(target.root):
+            restored = rollback(target)
         state = InstallState.load(target.root)
         if as_json:
             emit_json({"rolled_back_to": str(restored), "version": state.version})

@@ -24,6 +24,7 @@ from typing import Any
 from pydantic import Field
 
 from meta_ads_agent.capabilities import Provider, RiskLevel
+from meta_ads_agent.locking import file_lock
 from meta_ads_agent.models._common import StrictModel
 from meta_ads_agent.redaction import redact_mapping
 from meta_ads_agent.workspace import Workspace
@@ -73,8 +74,15 @@ class ActionLog:
         payload = redact_mapping(record.model_dump(mode="json", exclude_none=True))
         line = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8", newline="\n") as stream:
+        # One writer at a time, so two processes' lines cannot interleave, and
+        # fsync so a record of something done to the account survives a crash.
+        with (
+            file_lock(self.path, what="the action log"),
+            self.path.open("a", encoding="utf-8", newline="\n") as stream,
+        ):
             stream.write(line + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
         return record
 
     def read(self, *, limit: int | None = None) -> list[ActionRecord]:

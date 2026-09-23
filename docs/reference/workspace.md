@@ -23,6 +23,7 @@ So the workspace lives in your project and the plugin never writes to itself —
   offers/<slug>.yaml      reusable offer briefs
   assets/
     manifest.json         local fingerprint -> remote image hash / video id
+    locks/                one empty lock file per asset being uploaded
     <your files>          if you keep creative here
   campaigns/<slug>/
     plan.yaml             intent
@@ -33,7 +34,23 @@ So the workspace lives in your project and the plugin never writes to itself —
   reports/                account-level reports
   actions.jsonl           append-only audit log
   state/                  scratch for resumable operations
+  .*.lock                 empty lock files; see below
 ```
+
+### More than one session at once
+
+Two agent sessions, or an agent and a terminal, can work on one workspace at
+the same time. The files that more than one of them updates - the asset
+manifest, each campaign's `state.json`, and `actions.jsonl` - are updated
+under a lock, so neither erases what the other wrote. Two sessions that both
+start uploading the same file wait for each other rather than uploading it
+twice. If two sessions record *different* objects for the same plan element,
+both ids are kept and the second session is told: one of them is a duplicate
+on Meta.
+
+The locks are empty `.<name>.lock` files. The operating system releases them
+when a process exits, so a crash never leaves the workspace locked, and they
+are safe to delete when nothing is running.
 
 ## Structured facts, free-form voice
 

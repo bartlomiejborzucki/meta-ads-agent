@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from meta_ads_agent.errors import StateError
+from meta_ads_agent.locking import lock_path_for
 from meta_ads_agent.workspace import atomic_write
 
 SCHEMA_VERSION = 1
@@ -30,7 +31,9 @@ STAGE_DIRNAME = ".meta-ads-agent-stage"
 
 # Anything we create in the target, so the installer can tell its own
 # bookkeeping apart from somebody else's skills and never touch the latter.
-RESERVED_NAMES = frozenset({STATE_FILENAME, BACKUP_DIRNAME, STAGE_DIRNAME})
+# Held while an install, upgrade or rollback runs (meta_ads_agent.locking).
+LOCK_FILENAME = lock_path_for(Path(STATE_FILENAME)).name
+RESERVED_NAMES = frozenset({STATE_FILENAME, BACKUP_DIRNAME, STAGE_DIRNAME, LOCK_FILENAME})
 
 
 def _now() -> str:

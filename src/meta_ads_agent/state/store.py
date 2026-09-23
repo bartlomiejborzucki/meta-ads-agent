@@ -8,8 +8,15 @@ import json
 from pydantic import ValidationError as PydanticValidationError
 
 from meta_ads_agent.errors import ReconciliationError, StateError
+from meta_ads_agent.locking import file_lock
 from meta_ads_agent.models.plan import CampaignPlanDocument
-from meta_ads_agent.models.state import CampaignState, CreatedObject, Failure, Stage
+from meta_ads_agent.models.state import (
+    CampaignState,
+    CreatedObject,
+    Failure,
+    Stage,
+    stage_order,
+)
 from meta_ads_agent.redaction import redact_mapping
 from meta_ads_agent.workspace import Workspace
 
@@ -152,16 +159,40 @@ class StateStore:
         is an orphan waiting to be duplicated.
         """
         recorded = state.record(obj)
-        self.save_state(state)
+        self._flush(state)
         return recorded
 
     def advance(self, state: CampaignState, stage: Stage) -> None:
         state.advance(stage)
-        self.save_state(state)
+        self._flush(state)
 
     def record_failure(self, state: CampaignState, failure: Failure) -> None:
         state.record_failure(failure)
-        self.save_state(state)
+        self._flush(state)
+
+    def _flush(self, state: CampaignState) -> None:
+        """Save *state* without discarding what another process saved meanwhile.
+
+        Two sessions working on one campaign each hold the state they loaded.
+        Saving that copy as-is would erase the other session's objects - ids
+        that exist on Meta, and so a duplicate on the next resume. Under the
+        lock, anything on disk that this copy lacks is merged in first. The
+        merge always completes before an error is raised, so no id is lost
+        even when the two sessions disagree.
+        """
+        path = self.workspace.state_file(state.slug)
+        with file_lock(path, what=f"campaign state for {state.slug!r}"):
+            conflicts = (
+                _merge_from_disk(state, self.load_state(state.slug)) if path.is_file() else []
+            )
+            self.save_state(state)
+        if conflicts:
+            raise ReconciliationError(
+                "another session recorded different objects for the same plan "
+                f"element(s): {'; '.join(conflicts)}. Both ids are kept in state. "
+                "One of each pair is probably a duplicate on Meta - check before "
+                "continuing."
+            )
 
     # -- reconciliation ----------------------------------------------------
     def reconcile(self, state: CampaignState, remote: dict[str, dict[str, object]]) -> list[str]:
@@ -208,3 +239,26 @@ class StateStore:
                     f"but {obj.name!r} here"
                 )
         return differences
+
+
+def _merge_from_disk(state: CampaignState, disk: CampaignState) -> list[str]:
+    """Fold into *state* what *disk* has and it lacks. Returns plan-ref conflicts."""
+    conflicts: list[str] = []
+    known = {(o.type, o.id) for o in state.objects}
+    for obj in disk.objects:
+        if (obj.type, obj.id) in known:
+            continue
+        mine = state.by_plan_ref(obj.plan_ref) if obj.plan_ref else None
+        if mine is not None and mine.id != obj.id:
+            conflicts.append(f"{obj.plan_ref}: {mine.id} and {obj.id}")
+        # Appended directly: record() would refuse the conflicting one, and
+        # dropping it is exactly the loss this merge exists to prevent.
+        state.objects.append(obj)
+    for failure in disk.failures:
+        if failure not in state.failures:
+            state.failures.append(failure)
+    if stage_order(disk.stage) > stage_order(state.stage):
+        state.stage = disk.stage
+    if disk.activated and not state.activated:
+        state.activated, state.activated_at = True, disk.activated_at
+    return conflicts

@@ -59,44 +59,45 @@ def upload_image(
     """
     probe = probe_asset(path, kind=AssetKind.IMAGE)
 
-    existing = store.lookup(probe, ad_account_id)
-    if existing is not None and existing.image_hash:
-        return UploadResult(
-            record=existing,
-            reused=True,
-            detail=(
-                f"already uploaded to {ad_account_id} as image_hash "
-                f"{existing.image_hash} on {existing.uploaded_at:%Y-%m-%d}; "
-                "skipped re-upload"
-            ),
-        )
+    with store.claim(probe, ad_account_id):
+        existing = store.lookup(probe, ad_account_id)
+        if existing is not None and existing.image_hash:
+            return UploadResult(
+                record=existing,
+                reused=True,
+                detail=(
+                    f"already uploaded to {ad_account_id} as image_hash "
+                    f"{existing.image_hash} on {existing.uploaded_at:%Y-%m-%d}; "
+                    "skipped re-upload"
+                ),
+            )
 
-    if dry_run:
-        raise _dry_run(probe.path, "image", ad_account_id)
-    if client is None:
-        raise ApiFallbackUnavailable("an API client is required for a real upload")
+        if dry_run:
+            raise _dry_run(probe.path, "image", ad_account_id)
+        if client is None:
+            raise ApiFallbackUnavailable("an API client is required for a real upload")
 
-    from facebook_business.adobjects.adimage import AdImage
+        from facebook_business.adobjects.adimage import AdImage
 
-    account = client.account(ad_account_id)
-    try:
-        image = AdImage(parent_id=account.get_id_assured(), api=client.connect())
-        image[AdImage.Field.filename] = str(probe.path)
-        image.remote_create()
-        image_hash = image[AdImage.Field.hash]
-    except Exception as exc:
-        raise wrap_sdk_error(exc, stage="assets_uploaded", operation="upload_image") from exc
+        account = client.account(ad_account_id)
+        try:
+            image = AdImage(parent_id=account.get_id_assured(), api=client.connect())
+            image[AdImage.Field.filename] = str(probe.path)
+            image.remote_create()
+            image_hash = image[AdImage.Field.hash]
+        except Exception as exc:
+            raise wrap_sdk_error(exc, stage="assets_uploaded", operation="upload_image") from exc
 
-    if not image_hash:
-        raise ApiCallFailed(
-            "Meta accepted the image upload but returned no hash, so the result "
-            "cannot be used in a creative. Check ads_get_ad_images before retrying "
-            "- the image may already exist.",
-            stage="assets_uploaded",
-            retry_safe=False,
-        )
+        if not image_hash:
+            raise ApiCallFailed(
+                "Meta accepted the image upload but returned no hash, so the result "
+                "cannot be used in a creative. Check ads_get_ad_images before retrying "
+                "- the image may already exist.",
+                stage="assets_uploaded",
+                retry_safe=False,
+            )
 
-    record = store.remember(probe, ad_account_id, image_hash=str(image_hash))
+        record = store.remember(probe, ad_account_id, image_hash=str(image_hash))
     return UploadResult(
         record=record,
         reused=False,
@@ -123,46 +124,47 @@ def upload_video(
     """
     probe = probe_asset(path, kind=AssetKind.VIDEO)
 
-    existing = store.lookup(probe, ad_account_id)
-    if existing is not None and existing.video_id:
-        return UploadResult(
-            record=existing,
-            reused=True,
-            detail=(
-                f"already uploaded to {ad_account_id} as video_id "
-                f"{existing.video_id} on {existing.uploaded_at:%Y-%m-%d}; "
-                "skipped re-upload"
-            ),
-        )
+    with store.claim(probe, ad_account_id):
+        existing = store.lookup(probe, ad_account_id)
+        if existing is not None and existing.video_id:
+            return UploadResult(
+                record=existing,
+                reused=True,
+                detail=(
+                    f"already uploaded to {ad_account_id} as video_id "
+                    f"{existing.video_id} on {existing.uploaded_at:%Y-%m-%d}; "
+                    "skipped re-upload"
+                ),
+            )
 
-    if dry_run:
-        raise _dry_run(probe.path, "video", ad_account_id)
-    if client is None:
-        raise ApiFallbackUnavailable("an API client is required for a real upload")
+        if dry_run:
+            raise _dry_run(probe.path, "video", ad_account_id)
+        if client is None:
+            raise ApiFallbackUnavailable("an API client is required for a real upload")
 
-    from facebook_business.adobjects.advideo import AdVideo
+        from facebook_business.adobjects.advideo import AdVideo
 
-    account = client.account(ad_account_id)
-    try:
-        video = AdVideo(parent_id=account.get_id_assured(), api=client.connect())
-        video[AdVideo.Field.filepath] = str(probe.path)
-        video.remote_create()
-        video_id = video.get_id()
-    except Exception as exc:
-        raise wrap_sdk_error(exc, stage="assets_uploaded", operation="upload_video") from exc
+        account = client.account(ad_account_id)
+        try:
+            video = AdVideo(parent_id=account.get_id_assured(), api=client.connect())
+            video[AdVideo.Field.filepath] = str(probe.path)
+            video.remote_create()
+            video_id = video.get_id()
+        except Exception as exc:
+            raise wrap_sdk_error(exc, stage="assets_uploaded", operation="upload_video") from exc
 
-    if not video_id:
-        raise ApiCallFailed(
-            "Meta accepted the video upload but returned no id. Check "
-            "ads_get_ad_videos before retrying - a partial upload may have "
-            "created a video object already.",
-            stage="assets_uploaded",
-            retry_safe=False,
-        )
+        if not video_id:
+            raise ApiCallFailed(
+                "Meta accepted the video upload but returned no id. Check "
+                "ads_get_ad_videos before retrying - a partial upload may have "
+                "created a video object already.",
+                stage="assets_uploaded",
+                retry_safe=False,
+            )
 
-    # Persist the id before waiting. If processing times out or the process is
-    # killed, the upload must not be repeated - the bytes are already on Meta.
-    record = store.remember(probe, ad_account_id, video_id=str(video_id))
+        # Persist the id before waiting. If processing times out or the process is
+        # killed, the upload must not be repeated - the bytes are already on Meta.
+        record = store.remember(probe, ad_account_id, video_id=str(video_id))
 
     status = "not checked"
     if wait:

@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import datetime as _dt
 import shutil
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,7 @@ from meta_ads_agent.install.manifest import (
 )
 from meta_ads_agent.install.state import RESERVED_NAMES, STATE_FILENAME, InstallState
 from meta_ads_agent.install.targets import InstallTarget
+from meta_ads_agent.locking import file_lock
 
 # Enough history to undo a bad upgrade and the one before it, without turning
 # the skills directory into an archive.
@@ -183,6 +186,24 @@ def _looks_like_our_skill(path: Path) -> bool:
     except OSError:  # pragma: no cover - unreadable file, leave it alone
         return False
     return f"name: {path.name}" in head
+
+
+@contextmanager
+def install_lock(root: Path) -> Iterator[None]:
+    """One installer per target at a time.
+
+    Two concurrent upgrades of one directory would stage, swap and record
+    over each other, and the survivor's install state would describe files
+    the other one wrote. Held for plan and apply together, so a plan cannot
+    go stale between being made and being carried out.
+    """
+    root.mkdir(parents=True, exist_ok=True)
+    with file_lock(root / STATE_FILENAME, timeout=_INSTALL_LOCK_TIMEOUT, what=f"{root}"):
+        yield
+
+
+# Copying into a Windows profile across the WSL boundary is slow.
+_INSTALL_LOCK_TIMEOUT = 300.0
 
 
 def apply_install(
