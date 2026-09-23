@@ -40,7 +40,10 @@ jobs:
         run: uv python install ${{ matrix.python }}
 
       - name: Install
-        run: uv sync --extra dev
+        # The api extra puts the real facebook-business SDK here, so the
+        # contract tests can hold every fallback request up to Meta's own
+        # object descriptions. The package job checks the CLI without it.
+        run: uv sync --extra dev --extra api
 
       - name: Format check
         run: uv run ruff format --check src tests scripts
