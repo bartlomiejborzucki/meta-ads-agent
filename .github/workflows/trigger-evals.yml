@@ -1,0 +1,57 @@
+name: Trigger evals
+
+# On demand only. Every run is a real model call billed to the key below, so
+# this never runs on push. It checks that each skill's description selects
+# it for the requests it exists for, and that none fires on unrelated ones.
+on:
+  workflow_dispatch:
+    inputs:
+      max_cost_usd:
+        description: Hard cost ceiling for the run, in USD
+        default: "5"
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    name: claude plugin eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: A key is configured
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::error::set the ANTHROPIC_API_KEY repository secret to run trigger evals"
+            exit 1
+          fi
+
+      - name: Run the suite
+        # --ablation none: under the default two-arm run a `tool_used: Skill`
+        # grader is an unscored indicator, and the suite would pass whatever
+        # the descriptions say. See evals/README.md.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude plugin eval . \
+            --ablation none \
+            --trust-plugin \
+            --no-publish \
+            --json results.json \
+            --max-cost-usd "${{ inputs.max_cost_usd }}"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: trigger-eval-results
+          path: results.json
+          if-no-files-found: ignore

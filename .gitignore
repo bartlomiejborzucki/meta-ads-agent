@@ -50,3 +50,6 @@ Thumbs.db
 # Local agent state that should not be shared
 # ---------------------------------------------------------------------------
 .claude/settings.local.json
+
+# claude plugin eval output: prompts, transcripts and scores from local runs.
+evals/results/

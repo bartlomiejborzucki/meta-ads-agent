@@ -314,6 +314,26 @@ class TestWorkflowPins:
         assert unpinned == [], "actions not pinned to a commit SHA:\n  " + "\n  ".join(unpinned)
 
 
+class TestTriggerEvals:
+    """The suite needs a model to run; its completeness does not."""
+
+    def test_every_skill_has_a_trigger_case_that_does_not_name_it(self) -> None:
+        skills = sorted(p.name for p in (REPO / "skills").iterdir() if (p / "SKILL.md").is_file())
+        graders = {
+            path.parent.parent.name: path.read_text(encoding="utf-8")
+            for path in (REPO / "evals").glob("triggers-*/graders/skill-triggered.md")
+        }
+        covered = {skill for skill in skills for text in graders.values() if skill + '"' in text}
+        assert covered == set(skills), f"no trigger case for {sorted(set(skills) - covered)}"
+        for case in graders:
+            prompt = (REPO / "evals" / case / "prompt.md").read_text(encoding="utf-8")
+            body = prompt.split("---", 2)[2]
+            assert "meta-ads-" not in body, f"{case}: the prompt names a skill"
+
+    def test_there_are_negative_cases(self) -> None:
+        assert list((REPO / "evals").glob("not-*/graders/*.md"))
+
+
 class TestCliReference:
     """docs/reference/cli.md promises "every command". Hold it to that."""
 
