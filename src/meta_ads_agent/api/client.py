@@ -27,7 +27,11 @@ from meta_ads_agent.redaction import fingerprint, redact
 # Meta error codes that indicate a transient condition. A read may be retried
 # with backoff. A WRITE may not be retried blindly even for these - a timeout
 # does not tell you whether Meta created the object. See ADR-005.
-TRANSIENT_CODES = frozenset({1, 2, 4, 17, 341, 368, 613})
+# Codes after which a *read* may be retried, with backoff: the core skill's
+# error reference. 368 is not one of them although it is "temporary" - it is a
+# block for policy violations, and the reference says stop and investigate.
+# Retrying it is how a temporary block becomes a longer one.
+TRANSIENT_CODES = frozenset({1, 2, 4, 17, 341, 613})
 
 TOKEN_ENV = "META_ACCESS_TOKEN"  # noqa: S105 - a variable name, not a value
 APP_ID_ENV = "META_APP_ID"

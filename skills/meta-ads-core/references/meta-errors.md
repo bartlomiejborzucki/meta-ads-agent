@@ -29,11 +29,19 @@ marks a recorded failure `retry_safe: false` for exactly this reason.
 | 4 | Application-level rate limit | Stop, wait, reduce request volume |
 | 17 | User-level rate limit | Same, and batch more aggressively |
 | 341 | Application limit reached | Wait; do not loop |
-| 368 | Temporarily blocked for policy violations | Stop. Do not retry. Investigate. |
 | 613 | Custom-level throttling | Slow down; reduce concurrency |
 
 Rate limiting means your query pattern is wrong. One aggregated query with
 breakdowns beats a loop over entities.
+
+### Blocked - do not retry
+
+| Code | Meaning | Do |
+| --- | --- | --- |
+| 368 | Temporarily blocked for policy violations | Stop. Do not retry, not even a read. Investigate, and tell the user. |
+
+"Temporarily" is about the block, not an invitation: retrying is how a
+temporary block becomes a longer one.
 
 ### Authentication
 
