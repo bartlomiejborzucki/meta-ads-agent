@@ -67,6 +67,28 @@ This is the project's **recorded** mapping, not live introspection of a
 connected MCP session. The output says so. To see what a session actually
 exposes, ask your agent to list its tools.
 
+## render-plan
+
+```bash
+meta-ads-agent render-plan PLAN [--brand-file FILE] [--write] [--json]
+```
+
+Applies the `naming` and `utm` templates in `brand.yaml` to a plan. Any
+campaign, ad set or ad name containing `{brand}`, `{objective}`, `{offer}`,
+`{date}`, `{audience}` or `{variant}` is expanded, and each destination URL
+gets the brand's UTM parameters plus the ad set's own `tracking.utm`, **only
+where the URL does not already carry them** - a parameter already in the URL
+is never overwritten. With no `brand.yaml`, only `tracking.utm` applies.
+
+`{date}` is the plan's `created_at`, so rendering twice gives the same answer.
+An unknown token, or one with no value (no `offer` in the plan, say), is an
+error naming it rather than an empty string in a name.
+
+Prints every change. `--write` saves the rendered plan over `plan.yaml`
+(comments in the file are not kept); without it nothing is written.
+`validate-plan` refuses a plan that still has unexpanded tokens in a name or
+URL, so render first.
+
 ## validate-plan
 
 ```bash

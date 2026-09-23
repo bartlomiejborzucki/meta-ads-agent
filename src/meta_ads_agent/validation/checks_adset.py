@@ -2,11 +2,58 @@
 
 from __future__ import annotations
 
+from urllib.parse import parse_qsl, urlsplit
+
 from meta_ads_agent.models.plan import AdSetPlan, CampaignPlanDocument
+from meta_ads_agent.naming import has_placeholders
 from meta_ads_agent.validation.account import AccountContext
 from meta_ads_agent.validation.checks_budget import check_bid, check_budgets, check_schedule
 from meta_ads_agent.validation.checks_creative import check_creative
 from meta_ads_agent.validation.report import Severity, ValidationReport
+
+
+def check_names_rendered(doc: CampaignPlanDocument, report: ValidationReport) -> None:
+    """A name still holding ``{token}`` would reach Meta literally."""
+    names = [("campaign.name", doc.campaign.name)]
+    for index, ad_set in enumerate(doc.campaign.ad_sets):
+        names.append((f"campaign.ad_sets[{index}].name", ad_set.name))
+        names.extend(
+            (f"campaign.ad_sets[{index}].ads[{ad_index}].name", ad.name)
+            for ad_index, ad in enumerate(ad_set.ads)
+        )
+    for path, name in names:
+        if has_placeholders(name):
+            report.add(
+                Severity.ERROR,
+                "naming.unrendered",
+                f"{name!r} still contains template tokens. Run "
+                "`meta-ads-agent render-plan --write` to expand them from brand.yaml.",
+                path,
+            )
+
+
+def check_utm_applied(ad_set: AdSetPlan, prefix: str, report: ValidationReport) -> None:
+    """``tracking.utm`` says what the URLs should carry. Check that they do."""
+    if not ad_set.tracking.utm:
+        return
+    wanted = {
+        k if k.startswith("utm_") else f"utm_{k}" for k, v in ad_set.tracking.utm.items() if v
+    }
+    for ad_index, ad in enumerate(ad_set.ads):
+        url = ad.creative.destination_url
+        if not url:
+            continue
+        present = {key for key, _ in parse_qsl(urlsplit(url).query, keep_blank_values=True)}
+        missing = sorted(wanted - present)
+        if missing:
+            report.add(
+                Severity.WARNING,
+                "tracking.utm_not_applied",
+                f"tracking.utm names {missing} but the destination URL does not carry "
+                "them, so analytics will not see them. Run `meta-ads-agent render-plan "
+                "--write`, or add them to the URL.",
+                f"{prefix}.ads[{ad_index}].creative.destination_url",
+            )
 
 
 def check_names_unique(doc: CampaignPlanDocument, report: ValidationReport) -> None:
@@ -64,6 +111,7 @@ def check_ad_set(
     check_schedule(ad_set, prefix, report)
     check_bid(ad_set, prefix, doc.campaign.currency, account, report)
     check_audiences(ad_set, prefix, account, report)
+    check_utm_applied(ad_set, prefix, report)
 
     for ad_index, ad in enumerate(ad_set.ads):
         check_creative(ad.creative, f"{prefix}.ads[{ad_index}].creative", account, report)

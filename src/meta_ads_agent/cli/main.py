@@ -28,6 +28,7 @@ and the few capabilities the official MCP does not expose.
   meta-ads-agent migrate             workspace migrations only
   meta-ads-agent init                create the brand workspace
   meta-ads-agent capabilities        what routes where
+  meta-ads-agent render-plan FILE    apply brand naming and UTM templates
   meta-ads-agent validate-plan FILE  check a plan before anything is created
   meta-ads-agent state [SLUG]        what exists, and how to resume
   meta-ads-agent api ...             the Marketing API fallback
@@ -114,6 +115,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-assets", action="store_true", help="do not read local asset files"
     )
     validate.add_argument("--strict", action="store_true", help="treat warnings as failure")
+
+    # -- render-plan -------------------------------------------------------
+    render = subparsers.add_parser(
+        "render-plan",
+        help="apply brand naming and UTM templates to a plan",
+        description=(
+            "Expands {brand}, {objective}, {offer}, {date}, {audience} and "
+            "{variant} in names, and appends brand UTMs to destination URLs that "
+            "lack them. Prints every change; writes only with --write."
+        ),
+    )
+    render.add_argument("plan", help="path to plan.yaml")
+    render.add_argument("--brand-file", help="brand config (default: workspace)")
+    render.add_argument("--write", action="store_true", help="save the rendered plan")
+    render.add_argument("--json", action="store_true")
 
     # -- state -------------------------------------------------------------
     state = subparsers.add_parser(
@@ -413,6 +429,13 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
             as_json=args.json,
             skip_assets=args.skip_assets,
             strict=args.strict,
+        )
+
+    if args.command == "render-plan":
+        from meta_ads_agent.cli.render_cmd import run_render_plan
+
+        return run_render_plan(
+            args.plan, brand_path=args.brand_file, write=args.write, as_json=args.json
         )
 
     if args.command == "state":

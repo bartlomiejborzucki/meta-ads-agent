@@ -9,6 +9,7 @@ from meta_ads_agent.capabilities import Registry
 from meta_ads_agent.errors import CapabilityError
 from meta_ads_agent.models._common import looks_like_video
 from meta_ads_agent.models.plan import CampaignPlanDocument, CreativeMode, CreativePlan
+from meta_ads_agent.naming import has_placeholders
 from meta_ads_agent.state.assets import AssetKind, probe_asset
 from meta_ads_agent.validation.account import AccountContext
 from meta_ads_agent.validation.report import Severity, ValidationReport
@@ -135,11 +136,12 @@ def check_destination(url: str, path: str, report: ValidationReport) -> None:
             f"{url} has no public hostname",
             path,
         )
-    if any(token in url for token in ("{{", "}}", "<", ">")):
+    if any(token in url for token in ("{{", "}}", "<", ">")) or has_placeholders(url):
         report.add(
             Severity.ERROR,
             "destination.unresolved_template",
-            f"{url} still contains template placeholders",
+            f"{url} still contains template placeholders. Run "
+            "`meta-ads-agent render-plan --write` to expand brand templates.",
             path,
         )
 
@@ -236,3 +238,27 @@ def check_local_assets(
                 )
                 for warning in probe.warnings:
                     report.add(Severity.WARNING, "asset.warning", warning, path)
+
+
+def check_asset_placements(doc: CampaignPlanDocument, report: ValidationReport) -> None:
+    """``placement`` on an asset is declared in the schema and built by nothing.
+
+    Pinning an asset to one placement needs per-placement asset customisation
+    on the creative, which neither the MCP path nor the fallback builds yet. A
+    plan carrying it would validate, build, and serve the asset everywhere -
+    looking configured when it is not. Refused until it is real.
+    """
+    for index, ad_set in enumerate(doc.campaign.ad_sets):
+        for ad_index, ad in enumerate(ad_set.ads):
+            for asset_index, asset in enumerate(ad.creative.assets):
+                if asset.placement:
+                    report.add(
+                        Severity.ERROR,
+                        "asset.placement_unsupported",
+                        f"placement {asset.placement!r} on an asset is not supported yet: "
+                        "the asset would be served in every placement. Remove it, and "
+                        "use a separate ad set with manual placements if this asset "
+                        "must only run there.",
+                        f"campaign.ad_sets[{index}].ads[{ad_index}].creative"
+                        f".assets[{asset_index}].placement",
+                    )

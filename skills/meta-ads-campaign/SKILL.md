@@ -122,6 +122,21 @@ Background, with the uncertainty marked:
 Budgets are **display amounts** with a currency - `70` and `PLN`, never `7000`.
 Statuses are PAUSED; there is no field for anything else.
 
+Names follow the brand's conventions: copy the `naming` templates from
+`brand.yaml` into the plan's names as written - `{brand} | {objective} |
+{date}`, `{audience}`, `{variant}` - and let the CLI expand them, together with
+the brand's UTM parameters, rather than expanding them yourself:
+
+```bash
+meta-ads-agent render-plan .meta-ads/campaigns/<slug>/plan.yaml          # show
+meta-ads-agent render-plan .meta-ads/campaigns/<slug>/plan.yaml --write  # save
+```
+
+It never overwrites a UTM parameter already in a URL, and `{date}` is the
+plan's own creation date, so two builds agree on it. The validator refuses a
+name that still contains a token. With no CLI, write the names and URLs out in
+full instead, and say that you did.
+
 Show the plan to the user before creating anything. A plan is cheap to change
 and a campaign is not.
 

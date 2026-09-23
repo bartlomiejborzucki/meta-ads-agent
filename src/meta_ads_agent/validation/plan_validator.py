@@ -26,9 +26,17 @@ from meta_ads_agent.validation.checks_account import (
     check_objective,
     check_special_categories,
 )
-from meta_ads_agent.validation.checks_adset import check_ad_set, check_names_unique
+from meta_ads_agent.validation.checks_adset import (
+    check_ad_set,
+    check_names_rendered,
+    check_names_unique,
+)
 from meta_ads_agent.validation.checks_budget import check_budgets, check_campaign_schedule
-from meta_ads_agent.validation.checks_creative import check_creative_routing, check_local_assets
+from meta_ads_agent.validation.checks_creative import (
+    check_asset_placements,
+    check_creative_routing,
+    check_local_assets,
+)
 from meta_ads_agent.validation.report import Finding, Severity, ValidationReport
 
 __all__ = ["EU_EEA_COUNTRIES", "Finding", "Severity", "ValidationReport", "validate_plan"]
@@ -61,6 +69,8 @@ def validate_plan(
     check_special_categories(doc, brand, report)
     check_dsa(doc, brand, report)
     check_names_unique(doc, report)
+    check_names_rendered(doc, report)
+    check_asset_placements(doc, report)
 
     for index, ad_set in enumerate(plan.ad_sets):
         prefix = f"campaign.ad_sets[{index}]"

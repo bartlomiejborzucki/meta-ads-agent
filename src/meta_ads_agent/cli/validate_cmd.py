@@ -34,28 +34,12 @@ def run_validate_plan(
     strict: bool = False,
 ) -> int:
     target = Path(plan_path).expanduser()
-    try:
-        raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
-    except FileNotFoundError:
-        fail(f"{target} not found")
-        return 2
-    except yaml.YAMLError as exc:
-        fail(f"{target} is not valid YAML: {exc}")
-        return 2
-
-    try:
-        doc = CampaignPlanDocument.model_validate(raw)
-    except PydanticValidationError as exc:
-        fail(f"{target} is not a valid campaign plan:")
-        for error in exc.errors():
-            location = ".".join(str(p) for p in error["loc"]) or "(root)"
-            echo(f"  {location}: {error['msg']}")
-        echo("")
-        echo("The plan schema is documented in skills/meta-ads-campaign/assets/campaign-plan.yaml")
+    doc = read_plan(target)
+    if doc is None:
         return 2
 
     workspace = Workspace.locate(required=False)
-    brand = _load_brand(brand_path, workspace)
+    brand = load_brand(brand_path, workspace)
     account = _load_account(account_path, workspace)
 
     try:
@@ -123,7 +107,30 @@ def run_validate_plan(
     return 0
 
 
-def _load_brand(explicit: str | None, workspace: Workspace) -> BrandConfig | None:
+def read_plan(target: Path) -> CampaignPlanDocument | None:
+    """Parse a plan file, printing why when it cannot be. None means exit 2."""
+    try:
+        raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+    except FileNotFoundError:
+        fail(f"{target} not found")
+        return None
+    except yaml.YAMLError as exc:
+        fail(f"{target} is not valid YAML: {exc}")
+        return None
+
+    try:
+        return CampaignPlanDocument.model_validate(raw)
+    except PydanticValidationError as exc:
+        fail(f"{target} is not a valid campaign plan:")
+        for error in exc.errors():
+            location = ".".join(str(p) for p in error["loc"]) or "(root)"
+            echo(f"  {location}: {error['msg']}")
+        echo("")
+        echo("The plan schema is documented in skills/meta-ads-campaign/assets/campaign-plan.yaml")
+        return None
+
+
+def load_brand(explicit: str | None, workspace: Workspace) -> BrandConfig | None:
     path = Path(explicit).expanduser() if explicit else workspace.brand_file
     if not path.is_file():
         return None

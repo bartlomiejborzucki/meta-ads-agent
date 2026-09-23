@@ -457,20 +457,16 @@ This is the largest gap and the one to read first.
 If you have a test account or a Codex install, this is where help is worth the
 most.
 
-### Declared but not wired
+### Declared but not built
 
-Fields that exist in the schema and are read by nothing. They validate, they
-appear in a plan, and then nothing happens — which is worse than their absence,
-because a plan can look configured when it is not.
+One field exists in the schema with nothing behind it.
+`AssetRef.placement` would pin an asset to one placement, which needs
+per-placement asset customisation on the creative that neither path builds
+yet. Rather than let a plan look configured when it is not, `validate-plan`
+refuses it (`asset.placement_unsupported`) until it is real.
 
-| Field | State |
-| --- | --- |
-| `AssetRef.placement` | Lets a plan pin an asset to one placement. Nothing consumes it, so placement-specific assets do not actually work. |
-| `brand.yaml` `naming` / `utm` templates | Documented as "substituted at plan time" with `{brand}`, `{objective}`, `{variant}` tokens. **No substitution code exists** — the agent has to expand them in prose, so consistency is not enforced. |
-| `TrackingPlan.utm` | Carried into the plan and validated, but never assembled into a destination URL. |
-
-Each is a small, self-contained piece of work with an obvious home in
-`src/meta_ads_agent/`.
+(The `naming` and `utm` templates in `brand.yaml`, and `tracking.utm` in a
+plan, used to be on this list. `meta-ads-agent render-plan` applies them now.)
 
 ### Promised as code, still prose
 
