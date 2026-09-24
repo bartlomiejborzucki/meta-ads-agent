@@ -88,7 +88,14 @@ What was planned:
   the cells, the metric, the duration, and the minimum detectable effect it
   can resolve at the current volume - computed, not guessed.
 
-## 0.8 - catalogs and more than one account
+## 0.8 - catalogs and more than one account (done)
+
+In 0.8.0: the `meta-ads-catalog` skill, catalog capabilities split by what
+they do to delivery, and per-account cached facts
+(`accounts/<act_id>.yaml`) picked by each plan's account. Catalog ads
+themselves are recorded as not supported: their template creative is not
+something the MCP is documented to build, and catalogs stay MCP-only. What
+was planned:
 
 - **Catalog and dynamic ads:** a skill workflow over the 34 `ads_catalog_*`
   tools - catalog health first, then product sets, then a catalog campaign.

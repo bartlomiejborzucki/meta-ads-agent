@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "payload_root": "skills",
-  "digest": "04edbf94e019f8d8d76cd5c7fa5375fab431cc6b7cc072e5042768dbaaef916e",
+  "digest": "dc17d5b48d3c882b5d604dfb6f9d90c4c00cadc419946ee62e9d16718cbf9a18",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -27,7 +27,7 @@
   "files": [
     {
       "path": "meta-ads-audiences/SKILL.md",
-      "sha256": "de37ef9184eac810e1a92424a8be96cd9510e6f87caaa69163076aefe896f4c2",
+      "sha256": "a99c6b892b89d667c5ffc9b4ea6afb1c4d92dc70a99e485c8d2c4d23e00d9f7a",
       "size": 7843
     },
     {
@@ -37,7 +37,7 @@
     },
     {
       "path": "meta-ads-audit/SKILL.md",
-      "sha256": "227f969726fc6ce6f677e51519d822ad553729addc18e5e7808ec91b153245aa",
+      "sha256": "f598f4903ec9c8e2db3ed1f0949491f70920d3c8c16b38c0122cdee704b85dca",
       "size": 7671
     },
     {
@@ -47,7 +47,7 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "84a31f22fc8772f50c3164ecd9c3814f624fb9abd104505070b78e20334c20b3",
+      "sha256": "ea0ff44d6075141a8d9da564d91354f2084b1c3ff2f15239ff6a4c032f7ee8d5",
       "size": 12719
     },
     {
@@ -72,7 +72,7 @@
     },
     {
       "path": "meta-ads-catalog/SKILL.md",
-      "sha256": "b44e25a23d68fac6f929dfa42ca725012a81c3dfa9ddccb004039b6a63b77a86",
+      "sha256": "a76a4f4c870ba6de2c14722b904de20d865261dd2fd662c8c4072899a48b7ea5",
       "size": 6346
     },
     {
@@ -82,7 +82,7 @@
     },
     {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "f0611dfb18ec8608ec815e433ccb9af36efa01648072a305be1f171fdc985491",
+      "sha256": "d8a46441bc1984c1ecc80ec591b88703054e61214722cc6dc5745fd9ecf8fe85",
       "size": 11023
     },
     {
@@ -137,7 +137,7 @@
     },
     {
       "path": "meta-ads-creative/SKILL.md",
-      "sha256": "a853e1ce4f007db4903cc89ad2a8d104708fc2363da0e82d00bba59706d87bc1",
+      "sha256": "fec5cd9d65a2d29e08741a4d324fcc151ad0d8f22a9af1f456cfeb396d56fd15",
       "size": 7613
     },
     {
@@ -147,7 +147,7 @@
     },
     {
       "path": "meta-ads-experiments/SKILL.md",
-      "sha256": "dd1a5393b3922ac4fad177969113743105e0836522e871dca540c2c17842a1c7",
+      "sha256": "bf5744bb51d61cac0810637e1d7bac5a38fd22720c7e20e955ad95324b2559d5",
       "size": 7577
     },
     {
@@ -157,7 +157,7 @@
     },
     {
       "path": "meta-ads-optimize/SKILL.md",
-      "sha256": "d6b0e09a395e69fe55d90aa5a521088e505265a2015b0cf40904b83ac45ac5c4",
+      "sha256": "c7e4cd46f9bd42960c25ea224187989c73ef07298de7fde2ac0ea9f351f5c506",
       "size": 11114
     },
     {
@@ -172,7 +172,7 @@
     },
     {
       "path": "meta-ads-preview/SKILL.md",
-      "sha256": "f8169eed11fc24b153cf3db23e069d2c920487b999d742afca5bb5aff88276e3",
+      "sha256": "debaddd303f732920b0ea12f364018db5b3f7e9182aadc9ea4c888108c44467f",
       "size": 7413
     },
     {
@@ -182,7 +182,7 @@
     },
     {
       "path": "meta-ads-report/SKILL.md",
-      "sha256": "54fb121d4ef44bf75319aabc0fcd7679326cd971bc62bec8d9b4cf5a7328988c",
+      "sha256": "f3dea8a9c25836e2f83a9e8e0b03c7597722bc8d6582a3e1daceeea04fcac3e1",
       "size": 8865
     },
     {
@@ -192,12 +192,12 @@
     },
     {
       "path": "meta-ads-research/SKILL.md",
-      "sha256": "f898ae5f69b880d13a82227587a061d12f82d86ea5f0bb92688bff5b4e73b374",
+      "sha256": "abe5b679ab7391e2b74a44b873aafc25f1fe1539d021da5e69cab8ca7279e0eb",
       "size": 7028
     },
     {
       "path": "meta-ads-tracking/SKILL.md",
-      "sha256": "d3935b148a36e1dda9640dbabc69e750de846181ea49ad6423cd6f45080ad06c",
+      "sha256": "e2bcb1aab1836edb57ab4d56d5b403e9cb3bf07f3f23f1f05b9c6a685d60f1d0",
       "size": 9599
     },
     {

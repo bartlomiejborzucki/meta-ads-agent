@@ -1,6 +1,6 @@
 {
   "name": "meta-ads-agent",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Operate Meta (Facebook/Instagram) Ads through Meta's official Ads MCP: account audits, validated campaign plans, paused-by-default builds, placement previews, reporting, and diagnosis before any change. Independent project, not affiliated with Meta.",
   "author": {
     "name": "meta-ads-agent contributors",

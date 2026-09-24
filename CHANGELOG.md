@@ -9,6 +9,30 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.8.0] - 2026-09-24
+
+**Catalogs and more than one account.** `MIGRATION: none required`; an
+existing `account.yaml` is read as before.
+
+### Added
+
+- **`meta-ads-catalog`**: catalog, feed and event-source health in the order
+  that finds the blocking problem first; product sets read by content;
+  changes approved with the live ad sets they affect named.
+- **Several ad accounts per workspace**: cached facts at
+  `accounts/<act_id>.yaml`, and `validate-plan` reads the file for the
+  plan's own account. `state` shows and filters campaigns by account
+  (`--account`).
+- A trigger-eval case for the new skill.
+
+### Changed
+
+- The capability map splits catalogs into `read_catalogs`, `change_catalog`
+  (`update_active`) and `delete_catalog_objects`, and records
+  `create_dynamic_ad_creative` as not supported.
+- An `account.yaml` for a different account than the plan's is no longer
+  used for validation; a hint says where the right file belongs.
+
 ## [0.7.0] - 2026-09-24
 
 **Audiences and experiments.** `MIGRATION: none required`. Two new skills;
@@ -554,7 +578,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.4.0...v0.5.0
