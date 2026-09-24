@@ -74,10 +74,11 @@ customisation rules. The carousel grows the fallback, argued in
 also records why an Instagram post is not boosted: Meta does not document a
 paused boost.
 
-## 0.7 - audiences and experiments
+## 0.7 - audiences and experiments (done)
 
-Workflows over what the MCP already covers, with the approval treatment each
-needs.
+In 0.7.0: the `meta-ads-audiences` and `meta-ads-experiments` skills, and
+`meta-ads-agent report power` for sizing a test before it splits delivery.
+What was planned:
 
 - **Lookalike audiences:** source selection (size, recency, event quality),
   country and ratio choice, and what to say when a source is too small. The

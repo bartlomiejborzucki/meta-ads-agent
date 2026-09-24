@@ -9,6 +9,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.7.0] - 2026-09-24
+
+**Audiences and experiments.** `MIGRATION: none required`. Two new skills;
+an installed copy gains them on `meta-ads-agent upgrade`.
+
+### Added
+
+- **`meta-ads-audiences`**: custom and lookalike audiences - reuse before
+  building, lookalike source by value and recency, Meta's numbers read from
+  its help rather than recalled, creating and attaching as separate
+  approvals, and every `pii_upload` rule for customer lists.
+- **`meta-ads-experiments`**: A/B tests and lift studies - one question,
+  one variable, a metric named in advance, eligibility first, sized before
+  creation, read without choosing the metric afterwards.
+- **`meta-ads-agent report power`**: the smallest lift a test can detect in a
+  given time, or the time it needs for a given lift; alpha divided among
+  cells.
+- Trigger-eval cases for both skills.
+
+### Changed
+
+- The capability map's `experiments` entry is split into `read_experiments`
+  (read), `create_experiment` and `update_experiment` (both
+  `update_active`).
+- Eleven skills, wherever the docs give a count.
+
 ## [0.6.0] - 2026-09-24
 
 **Creative formats.** `MIGRATION: none required`; 0.2 fingerprints still
@@ -528,7 +554,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.3.0...v0.4.0
