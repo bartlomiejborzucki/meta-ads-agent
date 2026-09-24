@@ -51,10 +51,30 @@ def _digest(payload: object) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+# Plan fields added after 0.2 whose default dumps as something other than
+# None. A v1 fingerprint hashed every field it knew of, so recomputing one
+# must leave these out when they are at their default, or every 0.2 campaign
+# stops resuming the day a field is added - the v1 flaw, repeated. The
+# example-state test fails when a new field needs adding here.
+_ADDED_SINCE_V1: dict[str, object] = {"cards": []}
+
+
+def _as_v1(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: _as_v1(item)
+            for key, item in value.items()
+            if not (key in _ADDED_SINCE_V1 and item == _ADDED_SINCE_V1[key])
+        }
+    if isinstance(value, list):
+        return [_as_v1(item) for item in value]
+    return value
+
+
 def fingerprint_matches(recorded: str, doc: CampaignPlanDocument) -> bool:
     """Whether *doc* is the plan that produced a recorded fingerprint."""
     if recorded.startswith(_FINGERPRINT_V1):
-        legacy = doc.campaign.model_dump(mode="json", exclude_none=True)
+        legacy = _as_v1(doc.campaign.model_dump(mode="json", exclude_none=True))
         return recorded == _FINGERPRINT_V1 + _digest(legacy)
     return recorded == plan_fingerprint(doc)
 

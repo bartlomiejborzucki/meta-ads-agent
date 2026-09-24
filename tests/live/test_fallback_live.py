@@ -15,8 +15,10 @@ set, so a default ``pytest`` run, and every CI run, reaches nothing:
 * the real ``facebook-business`` SDK (the ``api`` extra)
 
 Tests that need an identity also skip without it:
-``META_ADS_LIVE_TEST_PAGE`` (a Page id) and ``META_ADS_LIVE_TEST_POST`` (an
-existing Page post id, ``<page>_<post>``).
+``META_ADS_LIVE_TEST_PAGE`` (a Page id), ``META_ADS_LIVE_TEST_POST`` (an
+existing Page post id, ``<page>_<post>``), ``META_ADS_LIVE_TEST_IG_ACCOUNT``
+and ``META_ADS_LIVE_TEST_IG_MEDIA`` (an Instagram account and one of its
+posts).
 """
 
 from __future__ import annotations
@@ -33,6 +35,8 @@ import pytest
 from conftest import write_png
 from meta_ads_agent.api.client import ApiClient, normalise_account_id
 from meta_ads_agent.api.creatives import (
+    CarouselCardSpec,
+    create_carousel_creative,
     create_existing_post_creative,
     create_multi_variant_creative,
     create_video_creative,
@@ -199,5 +203,65 @@ def test_asset_feed_spec_is_accepted_in_the_shape_we_send(
         destination_url=DESTINATION,
         variants=[VARIANT, VARIANT.model_copy(update={"angle": "live test b"})],
         image_hashes=[uploaded_image],
+    )
+    assert created.creative_id
+
+
+def test_a_carousel_is_accepted(
+    live_client: ApiClient, live_account: str, live_page: str, object_name: str, uploaded_image: str
+) -> None:
+    created = create_carousel_creative(
+        client=live_client,
+        ad_account_id=live_account,
+        name=object_name,
+        page_id=live_page,
+        destination_url=DESTINATION,
+        primary_text=VARIANT.primary_text,
+        cards=[
+            CarouselCardSpec(image_hash=uploaded_image, headline="one"),
+            CarouselCardSpec(image_hash=uploaded_image, headline="two"),
+        ],
+    )
+    assert created.creative_id
+
+
+def test_placement_customisation_rules_are_accepted(
+    live_client: ApiClient,
+    live_account: str,
+    live_page: str,
+    object_name: str,
+    uploaded_image: str,
+    tmp_path: Path,
+) -> None:
+    workspace = Workspace.at(tmp_path / ".meta-ads")
+    workspace.create()
+    vertical = upload_image(
+        write_png(tmp_path / "vertical.png", 1080, 1920),
+        live_account,
+        client=live_client,
+        store=AssetStore(workspace),
+    ).remote_id
+    created = create_multi_variant_creative(
+        client=live_client,
+        ad_account_id=live_account,
+        name=object_name,
+        page_id=live_page,
+        destination_url=DESTINATION,
+        variants=[VARIANT],
+        image_hashes=[uploaded_image, vertical],
+        placements={vertical: "instagram_stories"},
+    )
+    assert created.creative_id
+
+
+def test_an_instagram_post_becomes_a_creative(
+    live_client: ApiClient, live_account: str, object_name: str
+) -> None:
+    created = create_existing_post_creative(
+        client=live_client,
+        ad_account_id=live_account,
+        name=object_name,
+        instagram_media_id=_require("META_ADS_LIVE_TEST_IG_MEDIA"),
+        instagram_account_id=_require("META_ADS_LIVE_TEST_IG_ACCOUNT"),
     )
     assert created.creative_id

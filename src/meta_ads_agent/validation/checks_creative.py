@@ -22,6 +22,7 @@ _MODE_CAPABILITY: dict[CreativeMode, str] = {
     CreativeMode.SINGLE_VIDEO: "create_video_creative",
     CreativeMode.EXISTING_POST: "create_existing_post_creative",
     CreativeMode.MULTI_VARIANT: "create_multi_variant_creative",
+    CreativeMode.CAROUSEL: "create_carousel_creative",
 }
 
 
@@ -63,6 +64,9 @@ def check_creative(
 
     if creative.destination_url:
         check_destination(creative.destination_url, f"{path}.destination_url", report)
+    for card_index, card in enumerate(creative.cards):
+        if card.link:
+            check_destination(card.link, f"{path}.cards[{card_index}].link", report)
 
     if (
         account
@@ -183,7 +187,7 @@ def check_creative_routing(
         asset.local_path
         for ad_set in doc.campaign.ad_sets
         for ad in ad_set.ads
-        for asset in ad.creative.assets
+        for _, asset in ad.creative.asset_refs()
         if asset.local_path
     ]
     if local_paths:
@@ -214,8 +218,8 @@ def check_local_assets(
     for index, ad_set in enumerate(doc.campaign.ad_sets):
         for ad_index, ad in enumerate(ad_set.ads):
             creative = ad.creative
-            for asset_index, asset in enumerate(creative.assets):
-                path = f"campaign.ad_sets[{index}].ads[{ad_index}].creative.assets[{asset_index}]"
+            for where, asset in creative.asset_refs():
+                path = f"campaign.ad_sets[{index}].ads[{ad_index}].creative.{where}"
                 if not asset.local_path:
                     continue
                 expected = AssetKind.VIDEO if creative.mode is CreativeMode.SINGLE_VIDEO else None
@@ -238,27 +242,3 @@ def check_local_assets(
                 )
                 for warning in probe.warnings:
                     report.add(Severity.WARNING, "asset.warning", warning, path)
-
-
-def check_asset_placements(doc: CampaignPlanDocument, report: ValidationReport) -> None:
-    """``placement`` on an asset is declared in the schema and built by nothing.
-
-    Pinning an asset to one placement needs per-placement asset customisation
-    on the creative, which neither the MCP path nor the fallback builds yet. A
-    plan carrying it would validate, build, and serve the asset everywhere -
-    looking configured when it is not. Refused until it is real.
-    """
-    for index, ad_set in enumerate(doc.campaign.ad_sets):
-        for ad_index, ad in enumerate(ad_set.ads):
-            for asset_index, asset in enumerate(ad.creative.assets):
-                if asset.placement:
-                    report.add(
-                        Severity.ERROR,
-                        "asset.placement_unsupported",
-                        f"placement {asset.placement!r} on an asset is not supported yet: "
-                        "the asset would be served in every placement. Remove it, and "
-                        "use a separate ad set with manual placements if this asset "
-                        "must only run there.",
-                        f"campaign.ad_sets[{index}].ads[{ad_index}].creative"
-                        f".assets[{asset_index}].placement",
-                    )

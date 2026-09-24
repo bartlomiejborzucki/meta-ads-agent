@@ -61,15 +61,32 @@ class BudgetType(StrEnum):
 class CreativeMode(StrEnum):
     """Creative shapes supported in this release.
 
-    ``carousel`` is intentionally absent: see the capability registry. Adding a
-    value here without a validator and an execution path would let a plan
-    validate and then fail at write time.
+    Adding a value here without a validator and an execution path would let a
+    plan validate and then fail at write time, so each one has both.
     """
 
     SINGLE_IMAGE = "single_image"
     SINGLE_VIDEO = "single_video"
     EXISTING_POST = "existing_post"
     MULTI_VARIANT = "multi_variant"
+    CAROUSEL = "carousel"
+
+
+# Meta's carousel format takes 2 to 10 cards.
+CAROUSEL_MIN_CARDS = 2
+CAROUSEL_MAX_CARDS = 10
+
+# Placements an asset can be pinned to, and the publisher platform and position
+# each means in Meta's targeting vocabulary. Used for asset customisation
+# rules; a name not listed here is refused rather than guessed at.
+ASSET_PLACEMENTS: dict[str, tuple[str, str]] = {
+    "facebook_feed": ("facebook", "feed"),
+    "facebook_stories": ("facebook", "story"),
+    "facebook_reels": ("facebook", "facebook_reels"),
+    "instagram_feed": ("instagram", "stream"),
+    "instagram_stories": ("instagram", "story"),
+    "instagram_reels": ("instagram", "reels"),
+}
 
 
 class Budget(StrictModel):
@@ -241,8 +258,22 @@ class AssetRef(StrictModel):
     image_hash: str | None = None
     video_id: MetaId | None = None
     placement: str | None = Field(
-        default=None, description="Restrict this asset to one placement, e.g. instagram_stories"
+        default=None,
+        description=(
+            "Serve this asset only in one placement, e.g. instagram_stories. "
+            "mode=multi_variant only, where it becomes an asset customisation rule."
+        ),
     )
+
+    @field_validator("placement")
+    @classmethod
+    def _known_placement(cls, value: str | None) -> str | None:
+        if value is not None and value not in ASSET_PLACEMENTS:
+            raise ValueError(
+                f"placement {value!r} is not one this project maps to Meta's positions: "
+                f"{sorted(ASSET_PLACEMENTS)}"
+            )
+        return value
 
     @model_validator(mode="after")
     def _exactly_one_source(self) -> AssetRef:
@@ -263,6 +294,23 @@ class AssetRef(StrictModel):
         return self
 
 
+class CarouselCard(StrictModel):
+    """One card of a carousel: its own asset, headline and, optionally, link."""
+
+    asset: AssetRef
+    headline: str | None = Field(default=None, description="The card's title")
+    description: str | None = None
+    link: HttpUrl | None = Field(
+        default=None, description="Where this card leads. Defaults to the creative's URL."
+    )
+
+    @model_validator(mode="after")
+    def _no_placement(self) -> CarouselCard:
+        if self.asset.placement:
+            raise ValueError("a carousel card cannot be pinned to a placement")
+        return self
+
+
 class CreativePlan(StrictModel):
     mode: CreativeMode
     destination_url: HttpUrl | None = None
@@ -271,22 +319,75 @@ class CreativePlan(StrictModel):
         default=None, description="Facebook Page identity. Required for every ad."
     )
     instagram_account_id: MetaId | None = None
-    post_id: PostId | None = Field(default=None, description="Only with mode=existing_post")
+    post_id: PostId | None = Field(
+        default=None, description="A Facebook Page post. Only with mode=existing_post"
+    )
+    instagram_media_id: MetaId | None = Field(
+        default=None,
+        description=(
+            "An existing Instagram post (its media id). Only with mode=existing_post, "
+            "instead of post_id, and with instagram_account_id."
+        ),
+    )
     assets: list[AssetRef] = Field(default_factory=list)
+    cards: list[CarouselCard] = Field(
+        default_factory=list, description="Only with mode=carousel, 2 to 10"
+    )
     variants: list[CopyVariant] = Field(default_factory=list)
     advantage: AdvantagePlan = Field(default_factory=AdvantagePlan)
 
+    def asset_refs(self) -> list[tuple[str, AssetRef]]:
+        """Every asset with its path in the plan: the creative's own, then each card's."""
+        refs = [(f"assets[{i}]", a) for i, a in enumerate(self.assets)]
+        refs += [(f"cards[{i}].asset", c.asset) for i, c in enumerate(self.cards)]
+        return refs
+
     @model_validator(mode="after")
     def _mode_requirements(self) -> CreativePlan:
+        if self.cards and self.mode is not CreativeMode.CAROUSEL:
+            raise ValueError(f"cards are only valid with mode=carousel, not {self.mode.value}")
+        if self.instagram_media_id and self.mode is not CreativeMode.EXISTING_POST:
+            raise ValueError(
+                f"instagram_media_id is only valid with mode=existing_post, not {self.mode.value}"
+            )
+        if self.mode is not CreativeMode.MULTI_VARIANT and any(a.placement for a in self.assets):
+            raise ValueError(
+                f"placement on an asset needs mode=multi_variant, where it becomes an "
+                f"asset customisation rule; mode={self.mode.value} would ignore it"
+            )
+
         if self.mode is CreativeMode.EXISTING_POST:
-            if not self.post_id:
-                raise ValueError("mode=existing_post requires post_id")
+            if bool(self.post_id) == bool(self.instagram_media_id):
+                raise ValueError(
+                    "mode=existing_post needs exactly one of post_id (a Facebook Page "
+                    "post) or instagram_media_id (an Instagram post)"
+                )
+            if self.instagram_media_id and not self.instagram_account_id:
+                raise ValueError("an Instagram post needs the instagram_account_id it belongs to")
             if self.assets or self.variants:
                 raise ValueError(
                     "mode=existing_post promotes the post as published; remove "
                     "assets and variants. Supplying them would create a new "
                     "dark post and lose the original post's engagement."
                 )
+            return self
+
+        if self.mode is CreativeMode.CAROUSEL:
+            if not CAROUSEL_MIN_CARDS <= len(self.cards) <= CAROUSEL_MAX_CARDS:
+                raise ValueError(
+                    f"mode=carousel takes {CAROUSEL_MIN_CARDS} to {CAROUSEL_MAX_CARDS} cards, "
+                    f"got {len(self.cards)}"
+                )
+            if self.assets:
+                raise ValueError("mode=carousel takes its assets from its cards; remove assets")
+            if self.post_id:
+                raise ValueError("post_id is only valid with mode=existing_post, not carousel")
+            if len(self.variants) != 1:
+                raise ValueError(
+                    "mode=carousel takes one copy variant - the primary text shared by every card"
+                )
+            if not self.destination_url:
+                raise ValueError("mode=carousel requires a destination_url")
             return self
 
         if not self.post_id and not self.assets:

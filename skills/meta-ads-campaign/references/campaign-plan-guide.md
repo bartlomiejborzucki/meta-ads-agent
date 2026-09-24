@@ -61,6 +61,48 @@ Exactly one. Two is ambiguous and none is useless.
 Relative paths resolve against the **plan's directory**, not the current
 working directory, so a workspace is portable between machines.
 
+### Carousels, existing posts, and placement assets
+
+A carousel takes **2 to 10 cards** instead of `assets`, and exactly one copy
+variant - its primary text is shared by every card:
+
+```yaml
+mode: carousel
+destination_url: https://example.com/webinar
+cards:
+  - asset: {local_path: ./cards/1.jpg}
+    headline: Save the Friday
+    link: https://example.com/webinar#agenda   # optional; defaults to destination_url
+  - asset: {image_hash: abc123def456}
+    headline: No more copy-paste
+variants:
+  - angle: three reasons
+    primary_text: Three reasons the report should write itself.
+```
+
+Cards keep the order written: Meta's automatic reordering is turned off,
+because a carousel that tells a story stops telling it when shuffled.
+
+An existing post is either a Facebook Page post (`post_id: "<page>_<post>"`)
+or an Instagram post (`instagram_media_id`, with `instagram_account_id`) -
+exactly one. No assets and no variants: the post runs as published, and keeps
+its engagement.
+
+To serve an asset in one placement only, use `mode: multi_variant` and give
+it `placement` - one of `facebook_feed`, `facebook_stories`, `facebook_reels`,
+`instagram_feed`, `instagram_stories`, `instagram_reels`. At least one asset
+must stay unpinned, to serve everywhere else:
+
+```yaml
+mode: multi_variant
+assets:
+  - local_path: ./square.jpg                   # everywhere else
+  - local_path: ./vertical.jpg
+    placement: instagram_stories               # only here
+```
+
+In any other mode `placement` is refused, because nothing would honour it.
+
 ### `angle` is the concept, not the wording
 
 ```yaml

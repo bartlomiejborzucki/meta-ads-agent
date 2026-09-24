@@ -112,13 +112,19 @@ campaign:
       ads:
         - name: "angle-a-time-saved"
           creative:
-            # single_image | single_video | existing_post | multi_variant
+            # single_image | single_video | existing_post | multi_variant | carousel
             mode: single_image
             destination_url: https://example.com/webinar
             display_link: null
             page_id: "1111111111"          # mandatory ad identity
             instagram_account_id: null
-            post_id: null                  # only with mode: existing_post
+            post_id: null                  # only with mode: existing_post (Facebook)
+            instagram_media_id: null       # or this, for an Instagram post
+            # mode: carousel takes 2 to 10 cards instead of assets, each
+            #   - asset: {local_path: ./card-1.jpg}
+            #     headline: ...
+            #     link: null               # defaults to destination_url
+            # cards: []
 
             # Exactly one source per asset: local_path, image_hash, or video_id.
             # A local file is fingerprinted, uploaded once, and reused on every

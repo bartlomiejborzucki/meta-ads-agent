@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "0.5.0",
   "payload_root": "skills",
-  "digest": "99c12165d7500012a885af806419150c45019d65114f56803ef52560b0dfbb56",
+  "digest": "662a3c23117111018c3cfed2af9197eb81f8cb4518d91fe37401ccb81f3422cc",
   "skills": [
     "meta-ads-audit",
     "meta-ads-campaign",
@@ -34,18 +34,18 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "aeacbbf1614a96ed204916d13af4b826e186a445db5c82ec00ec1684ff09f304",
-      "size": 12124
+      "sha256": "16db74039e8f392f086cdb74993c4104a4f50d0ef6fcb0805e7996ff53a55a83",
+      "size": 12708
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
-      "sha256": "5fa38b03758b8a8b41f62a8b54f22d739e6bbdb12ed082533f1490ad794d2ee8",
-      "size": 5649
+      "sha256": "945dad0c7003fb5d13058c934592cdfb885da9f027f1e5c8886e0edd13059686",
+      "size": 6001
     },
     {
       "path": "meta-ads-campaign/references/campaign-plan-guide.md",
-      "sha256": "84c7b23ec6ecf11a2e103d3bc5a58d328653dfe0058843c089bca8baafd9d059",
-      "size": 5527
+      "sha256": "a4c254a409c22dad3806c5e6ab07f66faed2788512ec8d239b0a4659da9d32d5",
+      "size": 7058
     },
     {
       "path": "meta-ads-campaign/references/objectives-and-optimization.md",
@@ -59,8 +59,8 @@
     },
     {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "9a930576fe1f8f3eea92edb7e30d9ae095c90f78830cf00096cb5b4da46a9a99",
-      "size": 10687
+      "sha256": "9b95c27d9dfed29529e3bd93a710f9378706cfa0378cf2b98733ffa98bff1655",
+      "size": 10788
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
@@ -89,8 +89,8 @@
     },
     {
       "path": "meta-ads-core/references/execution-routing.md",
-      "sha256": "24c0b27c34ed6bd8c9df4c5748cda89da909eb5540300adffef7cd96da7fd1c3",
-      "size": 4964
+      "sha256": "3a2a68c5a77289989a9ddfe46f7bf7e1d795568ee57663e4b626e40546d9d3cb",
+      "size": 5224
     },
     {
       "path": "meta-ads-core/references/mcp-tool-map.md",

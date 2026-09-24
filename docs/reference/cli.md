@@ -262,14 +262,28 @@ as soon as the id exists, which is only useful if you will poll separately - a
 creative built against an unprocessed video is rejected.
 
 ```bash
-meta-ads-agent api create-creative (--video | --post | --variants)
+meta-ads-agent api create-creative (--video | --post | --variants | --carousel)
   --name NAME [--page-id ID] [--video-id ID] [--post-id ID]
-  [--image-hash HASH ...] [--url URL] [--primary-text TEXT]
-  [--headline TEXT] [--cta TYPE] [--instagram-account-id ID]
+  [--instagram-media-id ID] [--image-hash HASH ...] [--url URL]
+  [--primary-text TEXT] [--headline TEXT] [--cta TYPE]
+  [--instagram-account-id ID] [--cards FILE] [--variants-file FILE]
+  [--placement ASSET=PLACEMENT ...]
 ```
 
-`--post` promotes an existing Facebook Page post via `object_story_id`, which
-preserves its engagement. Recreating the content as a new dark post would not.
+`--post` promotes an existing post, preserving its engagement: a Facebook Page
+post with `--post-id` (`object_story_id`), or an Instagram post with
+`--instagram-media-id` and `--instagram-account-id` (`source_instagram_media_id`).
+The Instagram post is built as an inert creative rather than through
+`ads_boost_ig_post`, whose ability to create a paused boost Meta does not
+document ([ADR-010](../architecture/adr/ADR-010-carousel-and-instagram-posts.md)).
+
+`--carousel` reads 2 to 10 cards from `--cards`, a JSON list of
+`{"image_hash" | "video_id", "headline", "description", "link"}`, in order.
+
+`--variants` takes one variant from `--primary-text` / `--headline`, or several
+from `--variants-file` (a JSON list shaped like a plan's `variants`).
+`--placement HASH=instagram_stories` pins one of its assets to a placement;
+at least one must stay unpinned.
 
 ```bash
 meta-ads-agent api delete OBJECT_ID --type (campaign|ad_set|ad)

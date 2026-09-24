@@ -23,15 +23,16 @@ meta-ads-agent capabilities local_video_upload # one capability, with the reason
 
 ## What the fallback covers
 
-Six capabilities, as of 2026-09-16. This list should shrink.
+Seven capabilities, as of 2026-09-24. This list should shrink.
 
 | Capability | Command | Why it exists |
 | --- | --- | --- |
 | `local_image_upload` | `meta-ads-agent api upload-image` | `ads_get_ad_images` lists images already on the account. No MCP tool ingests a local file. A community source reports an `ads_creative_upload_image` tool that takes URLs only - which still leaves local files unsolved. |
 | `local_video_upload` | `meta-ads-agent api upload-video` | Same gap for video, plus Meta transcodes asynchronously so the upload has to wait for processing before the video is usable. |
 | `create_video_creative` | `meta-ads-agent api create-creative --video` | `ads_create_creative` is documented as single-image link creatives only. |
-| `create_existing_post_creative` | `meta-ads-agent api create-creative --post` | `ads_boost_ig_post` handles Instagram. A Facebook Page post has no MCP equivalent. |
-| `create_multi_variant_creative` | `meta-ads-agent api create-creative --variants` | Several copy variants or placement-specific assets need `asset_feed_spec`, which the MCP does not expose. |
+| `create_existing_post_creative` | `meta-ads-agent api create-creative --post` | A Facebook Page post has no MCP equivalent. An Instagram post has `ads_boost_ig_post`, but Meta does not document a paused boost, so the post is built as an inert creative instead. |
+| `create_multi_variant_creative` | `meta-ads-agent api create-creative --variants` | Several copy variants, or assets pinned to placements (`--placement`), need `asset_feed_spec`, which the MCP does not expose. |
+| `create_carousel_creative` | `meta-ads-agent api create-creative --carousel` | `ads_create_creative` makes single-image link creatives; a carousel's 2 to 10 cards need `child_attachments`. |
 | `delete_entity` | `meta-ads-agent api delete` | The MCP has no delete tool for campaigns, ad sets, or ads. Prefer pausing anyway. |
 
 Everything else - campaigns, ad sets, ads, single-image creatives, previews,
@@ -42,7 +43,6 @@ logs, Ad Library - belongs to the MCP.
 
 | Capability | Note |
 | --- | --- |
-| Carousel creatives | Not supported yet. Planned. |
 | Lead form creation or reading | No MCP tool. A campaign can still use a form id the user supplies. |
 | Automated rules | No MCP tool, and out of scope: an autonomous spend optimiser contradicts the approval model. |
 | Partnership / branded-content ads | Out of scope. |

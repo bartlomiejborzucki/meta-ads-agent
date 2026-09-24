@@ -386,16 +386,19 @@ def _add_api_parser(
     creative = api_sub.add_parser(
         "create-creative",
         parents=[common_parent],
-        help="create a video, existing-post, or multi-variant creative",
+        help="create a video, existing-post, multi-variant, or carousel creative",
     )
     mode_group = creative.add_mutually_exclusive_group(required=True)
     mode_group.add_argument("--video", action="store_true", help="single-video creative")
     mode_group.add_argument(
-        "--post", action="store_true", help="promote an existing Facebook Page post"
+        "--post",
+        action="store_true",
+        help="promote an existing post: a Facebook Page post or an Instagram post",
     )
     mode_group.add_argument(
         "--variants", action="store_true", help="multi-variant creative (asset_feed_spec)"
     )
+    mode_group.add_argument("--carousel", action="store_true", help="2 to 10 cards, from --cards")
     creative.add_argument("--name", required=True, help="creative name")
     creative.add_argument("--page-id", help="Facebook Page id")
     creative.add_argument("--video-id", help="uploaded video id")
@@ -412,6 +415,17 @@ def _add_api_parser(
     creative.add_argument("--headline", help="headline")
     creative.add_argument("--cta", help="call-to-action type, e.g. SIGN_UP")
     creative.add_argument("--instagram-account-id", help="Instagram identity")
+    creative.add_argument("--instagram-media-id", help="existing Instagram post (with --post)")
+    creative.add_argument("--cards", dest="cards_file", help="carousel cards, a JSON list")
+    creative.add_argument("--variants-file", help="copy variants, a JSON list (with --variants)")
+    creative.add_argument(
+        "--placement",
+        action="append",
+        default=[],
+        dest="placements",
+        metavar="ASSET=PLACEMENT",
+        help="pin an image hash or video id to a placement (with --variants, repeatable)",
+    )
 
     delete = api_sub.add_parser(
         "delete",
@@ -619,7 +633,15 @@ def _dispatch_api(args: argparse.Namespace, parser: argparse.ArgumentParser) -> 
         )
 
     if args.api_command == "create-creative":
-        mode = "video" if args.video else "post" if args.post else "variants"
+        mode = (
+            "video"
+            if args.video
+            else "post"
+            if args.post
+            else "carousel"
+            if args.carousel
+            else "variants"
+        )
         return api_cmd.run_create_creative(
             mode=mode,
             name=args.name,
@@ -635,6 +657,10 @@ def _dispatch_api(args: argparse.Namespace, parser: argparse.ArgumentParser) -> 
             instagram_account_id=args.instagram_account_id,
             dry_run=args.dry_run,
             as_json=args.json,
+            instagram_media_id=args.instagram_media_id,
+            cards_file=args.cards_file,
+            variants_file=args.variants_file,
+            placements=args.placements,
         )
 
     if args.api_command == "delete":

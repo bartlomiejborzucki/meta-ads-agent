@@ -65,14 +65,15 @@ creatives, deletion, and the `report` arithmetic (which has a by-hand route).
 ```
 Does Meta's official MCP have a tool for this?
   yes -> use it
-  no  -> is it one of the six gaps below?
+  no  -> is it one of the seven gaps below?
            yes -> the CLI covers it, if the user has the CLI. Name the gap.
            no  -> say it is not supported; do not improvise
 ```
 
-The fallback covers exactly six things today: local image upload, local video
-upload, video creatives, Facebook Page existing-post creatives, multi-variant
-creatives, and deletion. Everything else is the MCP's job, and the list is in
+The fallback covers exactly seven things today: local image upload, local video
+upload, video creatives, existing-post creatives (a Facebook Page post, or an
+Instagram post built inert rather than boosted), multi-variant and
+placement-specific creatives, carousels, and deletion. Everything else is the MCP's job, and the list is in
 [references/execution-routing.md](references/execution-routing.md) so you do
 not have to run anything to read it. Never reach for the fallback because it
 feels easier. Where the CLI is installed, `meta-ads-agent capabilities <name>`

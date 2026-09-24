@@ -27,6 +27,8 @@ import pytest
 from conftest import Recorder
 from meta_ads_agent.api.client import ApiClient
 from meta_ads_agent.api.creatives import (
+    CarouselCardSpec,
+    create_carousel_creative,
     create_existing_post_creative,
     create_multi_variant_creative,
     create_video_creative,
@@ -177,6 +179,65 @@ class TestCreativeRequests:
             video_ids=["700000000000001"] if media == "videos" else None,
         )
         assert check(sdk.creatives[-1], "AdCreative") == []
+
+
+class TestNewCreativeShapes:
+    """0.6: carousels, Instagram posts, and placement customisation rules."""
+
+    def test_a_carousel_of_images_and_a_video(self, sdk: Recorder) -> None:
+        cards = [
+            CarouselCardSpec(image_hash="abc123", headline="One", description="First"),
+            CarouselCardSpec(
+                image_hash="def456", headline="Two", link="https://acme.example.com/2"
+            ),
+            CarouselCardSpec(video_id="700000000000001", headline="Three"),
+        ]
+        create_carousel_creative(
+            client=_client(sdk),
+            ad_account_id="act_1234567890",
+            name="carousel",
+            page_id="1111111111",
+            destination_url="https://acme.example.com/webinar",
+            primary_text="Three reasons.",
+            cards=cards,
+            cta_type="LEARN_MORE",
+            instagram_account_id="2222222222",
+        )
+        assert check(sdk.creatives[-1], "AdCreative") == []
+        attachments = sdk.creatives[-1]["object_story_spec"]["link_data"]["child_attachments"]
+        assert [a.get("name") for a in attachments] == ["One", "Two", "Three"]
+
+    def test_an_instagram_post(self, sdk: Recorder) -> None:
+        create_existing_post_creative(
+            client=_client(sdk),
+            ad_account_id="act_1234567890",
+            name="promote the reel",
+            instagram_media_id="17900000000000001",
+            instagram_account_id="2222222222",
+        )
+        params = sdk.creatives[-1]
+        assert check(params, "AdCreative") == []
+        assert "object_story_id" not in params
+
+    def test_placement_customisation_rules(self, sdk: Recorder) -> None:
+        create_multi_variant_creative(
+            client=_client(sdk),
+            ad_account_id="act_1234567890",
+            name="placements",
+            page_id="1111111111",
+            destination_url="https://acme.example.com/webinar",
+            variants=[VARIANT],
+            image_hashes=["square", "vertical"],
+            placements={"vertical": "instagram_stories"},
+        )
+        spec = sdk.creatives[-1]["asset_feed_spec"]
+        assert check(sdk.creatives[-1], "AdCreative") == []
+        rules = spec["asset_customization_rules"]
+        assert rules[0]["customization_spec"] == {
+            "publisher_platforms": ["instagram"],
+            "instagram_positions": ["story"],
+        }
+        assert rules[-1]["is_default"] is True
 
 
 class TestFieldNamesUsedInCode:

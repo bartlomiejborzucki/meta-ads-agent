@@ -540,6 +540,29 @@ class TestRoutingReport:
         assert "local_video_upload" in report.providers_used
 
 
+class TestCarouselValidation:
+    def test_a_carousel_routes_to_the_fallback_and_probes_card_files(self, tmp_path: Path) -> None:
+        write_png(tmp_path / "a.png", 1080, 1080)
+        write_png(tmp_path / "b.png", 1080, 1080)
+
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+            creative["mode"] = "carousel"
+            creative["assets"] = []
+            creative["cards"] = [
+                {"asset": {"local_path": "a.png"}, "link": "http://localhost/x"},
+                {"asset": {"local_path": "b.png"}},
+            ]
+
+        report = validate_plan(build(mutate), asset_base=tmp_path)
+        assert report.providers_used["create_carousel_creative"] == "api_fallback"
+        assert "local_image_upload" in report.providers_used
+        paths = {f.path for f in report.findings if f.code == "asset.ok"}
+        assert any("cards[1].asset" in p for p in paths)
+        # A card's own link is checked like the creative's destination.
+        assert "destination.not_public" in codes(report, Severity.ERROR)
+
+
 class TestAssetChecks:
     def test_a_valid_image_is_reported_with_its_fingerprint(self, tmp_path: Path) -> None:
         image = write_png(tmp_path / "ok.png", 1200, 628)

@@ -14,7 +14,7 @@ and reports four things:
 * **unverified** - the community-reported names, and whether this session
   confirms or refutes each.
 * **gap candidates** - new or confirmed tools whose names suggest one of
-  the six fallback gaps. A name is a hint to read the tool's description,
+  the fallback gaps. A name is a hint to read the tool's description,
   not evidence that the gap is closed.
 
 It changes nothing. Updating the map is the refresh procedure in
@@ -45,6 +45,7 @@ _GAP_HINTS: dict[str, tuple[tuple[str, ...], ...]] = {
     "create_video_creative": (("video", "creative"),),
     "create_existing_post_creative": (("post", "creative"), ("boost", "post")),
     "create_multi_variant_creative": (("asset_feed",), ("variant",), ("dynamic_creative",)),
+    "create_carousel_creative": (("carousel",), ("child_attachment",), ("multi_share",)),
     "delete_entity": (
         ("delete", "campaign"),
         ("delete", "ad_set"),

@@ -57,15 +57,16 @@ honest answer is "upload it in Ads Manager first".
 
 So there is a small optional CLI, built on Meta's official
 [`facebook-business`](https://github.com/facebook/facebook-python-business-sdk)
-SDK, covering exactly six gaps:
+SDK, covering exactly seven gaps:
 
 | Capability | Why it is not the MCP's job |
 | --- | --- |
 | Local image upload | no MCP tool ingests a file |
 | Local video upload | same, plus asynchronous transcoding to wait for |
 | Video creative | `ads_create_creative` is documented as single-image only |
-| Facebook Page existing-post creative | `ads_boost_ig_post` covers Instagram only |
-| Multi-variant creative | `asset_feed_spec` is not exposed |
+| Existing-post creative | a Facebook Page post has no MCP tool; `ads_boost_ig_post` is not documented to create a paused boost ([ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md)) |
+| Multi-variant and placement-specific creative | `asset_feed_spec` is not exposed |
+| Carousel creative | `ads_create_creative` is single-image; carousels need `child_attachments` |
 | Delete a campaign / ad set / ad | no MCP delete tool (prefer pausing) |
 
 ```bash
@@ -462,17 +463,6 @@ This is the largest gap and the one to read first.
 If you have a test account, a connected session, or a Codex install, this is
 where help is worth the most - each of those is one command.
 
-### Declared but not built
-
-One field exists in the schema with nothing behind it.
-`AssetRef.placement` would pin an asset to one placement, which needs
-per-placement asset customisation on the creative that neither path builds
-yet. Rather than let a plan look configured when it is not, `validate-plan`
-refuses it (`asset.placement_unsupported`) until it is real.
-
-(The `naming` and `utm` templates in `brand.yaml`, and `tracking.utm` in a
-plan, used to be on this list. `meta-ads-agent render-plan` applies them now.)
-
 ### Arithmetic that needs the CLI
 
 [ADR-008](docs/architecture/adr/ADR-008-deterministic-vs-agent-layer.md) says
@@ -491,8 +481,6 @@ Roughly in the order they would be useful.
 
 | | Why it is not here |
 | --- | --- |
-| **Carousel creatives** | Needs `asset_feed_spec` work beyond the multi-variant path. Second milestone. |
-| **Instagram existing-post campaigns** | `ads_boost_ig_post` is in the capability map and named in the campaign skill, but the plan format has no IG-post mode — only the Facebook Page path is modelled. |
 | **Lead forms** | No MCP tool exists to create or read them. A campaign can use a form id you supply; we cannot build or inspect one. |
 | **Catalog / dynamic ads** | Meta's MCP has 34 catalog tools and there is no skill workflow over them. Read-level entries only in the registry. |
 | **A/B tests and lift studies** | `ads_experiment_*` is in the capability map with no workflow. Creating a test splits live delivery, so it needs the approval treatment doing properly. |
@@ -515,15 +503,16 @@ Not gaps. Decisions, with reasoning, that will not change without an ADR:
   ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md)). If the advisory model
   proves insufficient in practice, this is the change to revisit — as an
   opt-in, not a default.
-- **Growing the API fallback.** The six capabilities are the ones Meta's MCP
-  cannot do. Adding a seventh needs a stated reason
-  ([ADR-002](docs/architecture/adr/ADR-002-api-fallback.md)).
+- **Growing the API fallback.** The seven capabilities are the ones Meta's MCP
+  cannot do. Adding another needs a stated reason
+  ([ADR-002](docs/architecture/adr/ADR-002-api-fallback.md); the seventh's is
+  [ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md)).
 
 ### The one that fixes itself
 
 Every capability Meta adds to its official MCP is one we delete. The fallback
 shrinking is the project working as intended, so a report that a tool now
-covers one of our six gaps is among the most useful things you can send:
+covers one of our seven gaps is among the most useful things you can send:
 [capability change issue](.github/ISSUE_TEMPLATE/capability_change.yml).
 
 ## Documentation
@@ -531,7 +520,7 @@ covers one of our six gaps is among the most useful things you can send:
 | | |
 | --- | --- |
 | [Architecture overview](docs/architecture/overview.md) | how the layers fit |
-| [ADRs](docs/architecture/adr/) | nine decisions, including the rejected options |
+| [ADRs](docs/architecture/adr/) | ten decisions, including the rejected options |
 | [Ecosystem audit](docs/research/ecosystem-audit.md) | eleven projects, what each got right and wrong |
 | [Meta capabilities](docs/research/current-meta-capabilities.md) | tool-by-tool, with what it does not assert |
 | [Provenance](docs/research/provenance.md) | per-source license review |

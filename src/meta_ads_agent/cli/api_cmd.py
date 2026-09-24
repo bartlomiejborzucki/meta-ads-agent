@@ -14,10 +14,14 @@ an ad.
 from __future__ import annotations
 
 import contextlib
+import json
+from pathlib import Path
 from typing import Any
 
 from meta_ads_agent.api.client import ACCOUNT_ENV, ApiClient, normalise_account_id
 from meta_ads_agent.api.creatives import (
+    CarouselCardSpec,
+    create_carousel_creative,
     create_existing_post_creative,
     create_multi_variant_creative,
     create_video_creative,
@@ -83,6 +87,47 @@ def _log_attempt(
 def _account_field(target: str) -> dict[str, str]:
     # The dry-run placeholder is not an account and must not be logged as one.
     return {"ad_account_id": target} if target.startswith("act_") else {}
+
+
+def _read_json_list(path: str, what: str) -> list[Any]:
+    try:
+        data = json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ConfigError(f"{what} file {path} not found") from exc
+    except json.JSONDecodeError as exc:
+        raise ConfigError(f"{what} file {path} is not valid JSON: {exc}") from exc
+    if not isinstance(data, list):
+        raise ConfigError(f"{what} file {path} must hold a JSON list")
+    return data
+
+
+def _read_cards(path: str) -> list[CarouselCardSpec]:
+    """``[{"image_hash": "...", "headline": "...", "description": "...", "link": "..."}]``."""
+    cards = []
+    for index, raw in enumerate(_read_json_list(path, "cards")):
+        if not isinstance(raw, dict):
+            raise ConfigError(f"card {index} in {path} must be an object")
+        unknown = sorted(set(raw) - {"image_hash", "video_id", "headline", "description", "link"})
+        if unknown:
+            raise ConfigError(f"card {index} in {path} has unknown field(s) {unknown}")
+        cards.append(CarouselCardSpec(**raw))
+    return cards
+
+
+def _read_variants(path: str) -> list[CopyVariant]:
+    """A JSON list of copy variants, each shaped like a plan's ``variants`` entry."""
+    return [CopyVariant.model_validate(raw) for raw in _read_json_list(path, "variants")]
+
+
+def _parse_placements(pairs: list[str]) -> dict[str, str]:
+    """``ASSET=PLACEMENT`` pairs, e.g. ``abc123=instagram_stories``."""
+    out: dict[str, str] = {}
+    for pair in pairs:
+        asset, sep, placement = pair.partition("=")
+        if not sep or not asset or not placement:
+            raise ConfigError(f"--placement takes ASSET=PLACEMENT, got {pair!r}")
+        out[asset] = placement
+    return out
 
 
 def _context(capability: str) -> tuple[Workspace, AssetStore, ActionLog, str]:
@@ -252,11 +297,16 @@ def run_create_creative(
     instagram_account_id: str | None,
     dry_run: bool,
     as_json: bool,
+    instagram_media_id: str | None = None,
+    cards_file: str | None = None,
+    variants_file: str | None = None,
+    placements: list[str] | None = None,
 ) -> int:
     capability = {
         "video": "create_video_creative",
         "post": "create_existing_post_creative",
         "variants": "create_multi_variant_creative",
+        "carousel": "create_carousel_creative",
     }[mode]
 
     log: ActionLog | None = None
@@ -273,40 +323,47 @@ def run_create_creative(
         attempt.update(_account_field(target))
 
         if mode == "post":
-            if not post_id:
-                fail("--post-id is required for an existing-post creative")
+            if bool(post_id) == bool(instagram_media_id):
+                fail("give exactly one of --post-id or --instagram-media-id")
                 return 2
             result = create_existing_post_creative(
                 client=client,
                 ad_account_id=target,
                 name=name,
                 post_id=post_id,
+                instagram_media_id=instagram_media_id,
                 instagram_account_id=instagram_account_id,
                 dry_run=dry_run,
             )
         else:
+            needs_text = not variants_file
             missing = [
                 flag
                 for flag, value in (
                     ("--page-id", page_id),
                     ("--url", destination_url),
-                    ("--primary-text", primary_text),
+                    ("--primary-text", primary_text if needs_text else "given"),
                 )
                 if not value
             ]
             if missing:
                 fail(f"missing required option(s): {', '.join(missing)}")
                 return 2
-            variant = CopyVariant(
-                angle=headline or "unspecified",
-                primary_text=primary_text or "",
-                headline=headline,
-                cta_type=cta,
+            variant = (
+                CopyVariant(
+                    angle=headline or "unspecified",
+                    primary_text=primary_text or "",
+                    headline=headline,
+                    cta_type=cta,
+                )
+                if primary_text
+                else None
             )
             if mode == "video":
                 if not video_id:
                     fail("--video-id is required for a video creative")
                     return 2
+                assert variant is not None
                 result = create_video_creative(
                     client=client,
                     ad_account_id=target,
@@ -318,16 +375,34 @@ def run_create_creative(
                     instagram_account_id=instagram_account_id,
                     dry_run=dry_run,
                 )
+            elif mode == "carousel":
+                if not cards_file:
+                    fail("--cards FILE is required for a carousel")
+                    return 2
+                result = create_carousel_creative(
+                    client=client,
+                    ad_account_id=target,
+                    name=name,
+                    page_id=page_id or "",
+                    destination_url=destination_url or "",
+                    primary_text=primary_text or "",
+                    cards=_read_cards(cards_file),
+                    cta_type=cta,
+                    instagram_account_id=instagram_account_id,
+                    dry_run=dry_run,
+                )
             else:
+                variants = _read_variants(variants_file) if variants_file else [variant]
                 result = create_multi_variant_creative(
                     client=client,
                     ad_account_id=target,
                     name=name,
                     page_id=page_id or "",
                     destination_url=destination_url or "",
-                    variants=[variant],
+                    variants=[v for v in variants if v is not None],
                     image_hashes=image_hashes or None,
                     video_ids=[video_id] if video_id else None,
+                    placements=_parse_placements(placements or []),
                     instagram_account_id=instagram_account_id,
                     dry_run=dry_run,
                 )

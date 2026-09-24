@@ -33,7 +33,6 @@ from meta_ads_agent.validation.checks_adset import (
 )
 from meta_ads_agent.validation.checks_budget import check_budgets, check_campaign_schedule
 from meta_ads_agent.validation.checks_creative import (
-    check_asset_placements,
     check_creative_routing,
     check_local_assets,
 )
@@ -70,7 +69,6 @@ def validate_plan(
     check_dsa(doc, brand, report)
     check_names_unique(doc, report)
     check_names_rendered(doc, report)
-    check_asset_placements(doc, report)
 
     for index, ad_set in enumerate(plan.ad_sets):
         prefix = f"campaign.ad_sets[{index}]"

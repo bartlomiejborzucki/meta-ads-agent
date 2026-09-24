@@ -262,9 +262,12 @@ capabilities:
     requires_confirmation: false
     last_reviewed: 2026-09-16
     notes: >
-      PARTIAL GAP. ads_boost_ig_post covers Instagram; use it for IG posts.
-      A Facebook Page post has no MCP equivalent. Promoting the existing post
-      preserves its engagement; creating a lookalike dark post does not.
+      GAP. A Facebook Page post has no MCP equivalent (object_story_id). An
+      Instagram post has ads_boost_ig_post, but Meta does not document whether
+      a boost can be created PAUSED, and the safety model requires it; until a
+      live session shows it can, an Instagram post is built as an inert
+      creative from source_instagram_media_id (ADR-010). Either way the
+      existing post's engagement is preserved.
 
   - name: create_multi_variant_creative
     area: creatives
@@ -277,17 +280,22 @@ capabilities:
     last_reviewed: 2026-09-16
     notes: >
       GAP. Multiple copy variants and placement-specific assets need
-      asset_feed_spec, which the MCP does not expose.
+      asset_feed_spec (with asset_customization_rules for placements), which
+      the MCP does not expose.
 
   - name: create_carousel_creative
     area: creatives
-    preferred_provider: none
+    preferred_provider: api_fallback
     fallback_provider: none
     mcp_tools: []
+    cli: meta-ads-agent api create-creative --carousel
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
-    notes: NOT IMPLEMENTED. Second milestone. See CHANGELOG roadmap.
+    last_reviewed: 2026-09-24
+    notes: >
+      GAP, added in 0.6 (ADR-010). ads_create_creative is documented as
+      single-image link creatives; a carousel needs link_data.child_attachments,
+      which no MCP tool exposes. Built inert, like every fallback creative.
 
   - name: list_creatives
     area: creatives

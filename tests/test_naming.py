@@ -146,13 +146,16 @@ class TestValidatorRefusesWhatWasNotRendered:
             f.code for f in report.findings if f.severity is Severity.WARNING
         }
 
-    def test_an_asset_pinned_to_a_placement_is_refused_until_it_works(self) -> None:
+    def test_an_asset_pinned_to_a_placement_outside_multi_variant_is_refused(self) -> None:
+        # Only asset customisation rules - mode=multi_variant - can honour it.
+        from pydantic import ValidationError as PydanticValidationError
+
         raw = plan_dict()
         raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]["assets"][0]["placement"] = (
             "instagram_stories"
         )
-        report = validate_plan(CampaignPlanDocument.model_validate(raw), check_assets=False)
-        assert "asset.placement_unsupported" in {f.code for f in report.errors}
+        with pytest.raises(PydanticValidationError, match="needs mode=multi_variant"):
+            CampaignPlanDocument.model_validate(raw)
 
 
 class TestRenderPlanCommand:

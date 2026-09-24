@@ -403,6 +403,113 @@ class TestDelete:
         assert ActionLog(Workspace.locate(project)).read()[-1].ad_account_id == "act_1234567890"
 
 
+class TestNewCreativeModes:
+    """0.6: carousels, Instagram posts, placements, and several variants."""
+
+    BASE = ["--page-id", "1111111111", "--url", "https://acme.example.com/webinar"]
+
+    def test_a_carousel_from_a_cards_file(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        cards = project / "cards.json"
+        cards.write_text(
+            json.dumps(
+                [
+                    {"image_hash": "abc123", "headline": "One"},
+                    {"image_hash": "def456", "headline": "Two"},
+                ]
+            )
+        )
+        argv = ["api", "create-creative", "--carousel", "--name", "c", *self.BASE]
+        code, _, err = run([*argv, "--primary-text", "Two reasons.", "--cards", str(cards)], capsys)
+        assert code == 0, err
+        spec = sdk.creatives[-1]["object_story_spec"]["link_data"]
+        assert [a["image_hash"] for a in spec["child_attachments"]] == ["abc123", "def456"]
+        assert spec["multi_share_optimized"] is False
+
+    def test_a_one_card_carousel_is_refused_before_any_call(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        cards = project / "cards.json"
+        cards.write_text(json.dumps([{"image_hash": "abc123"}]))
+        argv = ["api", "create-creative", "--carousel", "--name", "c", *self.BASE]
+        code, _, err = run([*argv, "--primary-text", "x", "--cards", str(cards)], capsys)
+        assert code == 1
+        assert "2 to 10 cards" in err
+        assert sdk.creatives == []
+
+    def test_an_instagram_post(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["api", "create-creative", "--post", "--name", "ig"]
+        code, _, err = run(
+            [*argv, "--instagram-media-id", "17900000000000001", "--instagram-account-id", "2222"],
+            capsys,
+        )
+        assert code == 0, err
+        assert sdk.creatives[-1]["source_instagram_media_id"] == "17900000000000001"
+
+    def test_an_instagram_post_needs_its_account(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["api", "create-creative", "--post", "--name", "ig"]
+        code, _, err = run([*argv, "--instagram-media-id", "17900000000000001"], capsys)
+        assert code == 1
+        assert "Instagram account" in err
+        assert sdk.creatives == []
+
+    def test_several_variants_and_a_placement(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        variants = project / "variants.json"
+        variants.write_text(
+            json.dumps(
+                [
+                    {"angle": "time", "primary_text": "Friday back."},
+                    {"angle": "risk", "primary_text": "No more errors."},
+                ]
+            )
+        )
+        argv = ["api", "create-creative", "--variants", "--name", "v", *self.BASE]
+        code, _, err = run(
+            [
+                *argv,
+                "--variants-file",
+                str(variants),
+                "--image-hash",
+                "square",
+                "--image-hash",
+                "vertical",
+                "--placement",
+                "vertical=instagram_stories",
+            ],
+            capsys,
+        )
+        assert code == 0, err
+        spec = sdk.creatives[-1]["asset_feed_spec"]
+        assert [b["text"] for b in spec["bodies"]] == ["Friday back.", "No more errors."]
+        assert len(spec["asset_customization_rules"]) == 2
+
+    def test_pinning_every_asset_is_refused(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["api", "create-creative", "--variants", "--name", "v", *self.BASE]
+        code, _, err = run(
+            [
+                *argv,
+                "--primary-text",
+                "x",
+                "--image-hash",
+                "only",
+                "--placement",
+                "only=instagram_reels",
+            ],
+            capsys,
+        )
+        assert code == 1
+        assert "at least one asset unpinned" in err
+
+
 class TestFailuresAndDryRunsAreLogged:
     """The log's job is to answer "what happened" - most of all after an error."""
 

@@ -324,7 +324,7 @@ class TestCreativeModes:
             creative["assets"] = []
             creative["variants"] = []
 
-        with pytest.raises(ValidationError, match="requires post_id"):
+        with pytest.raises(ValidationError, match="exactly one of post_id"):
             build(mutate)
 
     def test_existing_post_refuses_assets_so_engagement_is_not_lost(self) -> None:
@@ -386,6 +386,56 @@ class TestCreativeModes:
             raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]["variants"] = []
 
         with pytest.raises(ValidationError, match="copy variant"):
+            build(mutate)
+
+
+class TestCarouselAndInstagram:
+    @staticmethod
+    def _carousel(cards: int):  # type: ignore[no-untyped-def]
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+            creative["mode"] = "carousel"
+            creative["assets"] = []
+            creative["cards"] = [
+                {"asset": {"image_hash": f"hash{i}"}, "headline": f"card {i}"} for i in range(cards)
+            ]
+
+        return mutate
+
+    @pytest.mark.parametrize("cards", [2, 10])
+    def test_two_to_ten_cards_are_accepted(self, cards: int) -> None:
+        assert len(build(self._carousel(cards)).campaign.ad_sets[0].ads[0].creative.cards) == cards
+
+    @pytest.mark.parametrize("cards", [0, 1, 11])
+    def test_other_card_counts_are_refused(self, cards: int) -> None:
+        with pytest.raises(ValidationError, match="2 to 10 cards"):
+            build(self._carousel(cards))
+
+    def test_cards_outside_a_carousel_are_refused(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]["cards"] = [
+                {"asset": {"image_hash": "x"}}
+            ]
+
+        with pytest.raises(ValidationError, match="only valid with mode=carousel"):
+            build(mutate)
+
+    def test_an_instagram_post_needs_its_account(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+            creative.update(mode="existing_post", assets=[], variants=[])
+            creative["instagram_media_id"] = "17900000000000001"
+
+        with pytest.raises(ValidationError, match="instagram_account_id"):
+            build(mutate)
+
+    def test_an_unknown_placement_is_refused(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]["assets"][0]["placement"] = (
+                "tiktok_feed"
+            )
+
+        with pytest.raises(ValidationError, match="not one this project maps"):
             build(mutate)
 
 

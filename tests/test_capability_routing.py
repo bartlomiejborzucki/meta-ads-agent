@@ -84,7 +84,7 @@ class TestRouting:
 
     def test_unsupported_capability_raises_with_its_note(self, registry) -> None:  # type: ignore[no-untyped-def]
         with pytest.raises(CapabilityError, match="not supported"):
-            registry.route("create_carousel_creative")
+            registry.route("lead_forms")
 
     def test_unknown_capability_lists_the_known_ones(self, registry) -> None:  # type: ignore[no-untyped-def]
         with pytest.raises(CapabilityError, match="Unknown capability"):
@@ -99,6 +99,7 @@ class TestRouting:
             "create_video_creative",
             "create_existing_post_creative",
             "create_multi_variant_creative",
+            "create_carousel_creative",  # ADR-010: ads_create_creative is single-image
             "delete_entity",
         }
 

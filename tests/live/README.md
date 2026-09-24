@@ -75,6 +75,9 @@ Only things a mock genuinely cannot verify:
 - that a video creative built from that id is accepted
 - that an existing-post creative preserves `object_story_id`
 - that `asset_feed_spec` is accepted in the shape we send
+- that a carousel's `child_attachments` are accepted (0.6)
+- that placement asset customisation rules are accepted (0.6)
+- that an Instagram post becomes a creative through `source_instagram_media_id` (0.6)
 
 Everything else - dedup, ordering, retry-safety, dry-run, error mapping, the
 approval model - is our logic, and belongs in the offline suite where it runs on
@@ -82,16 +85,17 @@ every push.
 
 ## What is here
 
-`test_fallback_live.py` has the five checks above, written and never run -
+`test_fallback_live.py` has the checks above, written and never run -
 there has been no test account to run them against. With the variables set
 they upload a generated image and a five-second clip made with `ffmpeg`, and
-create three inert creatives. Two more variables unlock the tests that need an
+create inert creatives. Two more variables unlock the tests that need an
 identity:
 
 | | |
 | --- | --- |
 | `META_ADS_LIVE_TEST_PAGE` | a Page id on the test account, for the video and multi-variant creatives |
 | `META_ADS_LIVE_TEST_POST` | an existing post on that Page, `<page>_<post>`, for the existing-post creative |
+| `META_ADS_LIVE_TEST_IG_ACCOUNT`, `META_ADS_LIVE_TEST_IG_MEDIA` | an Instagram account linked to the test account, and one of its posts |
 
 Without them those tests skip; without the four requirements above, all of
 them do. The first person to run them against a real test account will find

@@ -231,10 +231,18 @@ upload entirely.
 | --- | --- |
 | single image | MCP - `ads_create_creative` |
 | single video | fallback - `api create-creative --video` |
-| existing Instagram post | MCP - `ads_boost_ig_post` |
+| existing Instagram post | fallback - `api create-creative --post --instagram-media-id` (see below) |
 | existing Facebook Page post | fallback - `api create-creative --post` |
 | several copy variants | fallback - `api create-creative --variants` |
-| carousel | not supported yet - say so |
+| an asset for one placement only | fallback - `api create-creative --variants --placement` |
+| carousel, 2 to 10 cards | fallback - `api create-creative --carousel` |
+
+**An Instagram post is not boosted.** `ads_boost_ig_post` exists, but Meta does
+not document whether it can create a paused boost, and everything here is
+created paused. So the post becomes an inert creative that a paused ad uses;
+it keeps the post's engagement and spends nothing until activation. If the
+user explicitly wants a boost, that is an activation - the same approval,
+after previews, as any other.
 
 Say which one you used and why. Copy and angles come from `meta-ads-creative`.
 
