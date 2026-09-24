@@ -7,6 +7,9 @@ to the agent through the MCP.
 
 from __future__ import annotations
 
+import contextlib
+
+from meta_ads_agent.api.client import normalise_account_id
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
 from meta_ads_agent.errors import MetaAdsAgentError
 from meta_ads_agent.models.state import Stage, stage_order
@@ -35,6 +38,7 @@ def run_state(
     *,
     as_json: bool = False,
     list_all: bool = False,
+    account: str | None = None,
 ) -> int:
     try:
         workspace = Workspace.locate()
@@ -45,7 +49,7 @@ def run_state(
     store = StateStore(workspace)
 
     if list_all or not slug:
-        return _list(workspace, store, as_json=as_json)
+        return _list(workspace, store, as_json=as_json, account=account)
 
     try:
         state = store.load_state(slug)
@@ -154,11 +158,17 @@ def run_state(
     return 0
 
 
-def _list(workspace: Workspace, store: StateStore, *, as_json: bool) -> int:
+def _list(workspace: Workspace, store: StateStore, *, as_json: bool, account: str | None) -> int:
+    wanted = normalise_account_id(account) if account else None
     slugs = workspace.list_campaigns()
     rows = []
     for slug in slugs:
         entry: dict[str, object] = {"slug": slug}
+        if store.plan_exists(slug):
+            # An unreadable plan is reported by `state <slug>`; here it only
+            # means the account column is unknown.
+            with contextlib.suppress(MetaAdsAgentError):
+                entry["account"] = store.load_plan(slug).ad_account_id
         if store.state_exists(slug):
             try:
                 state = store.load_state(slug)
@@ -172,19 +182,23 @@ def _list(workspace: Workspace, store: StateStore, *, as_json: bool) -> int:
                 entry["error"] = str(exc)
         else:
             entry["stage"] = "no state (plan only)" if store.plan_exists(slug) else "empty"
-        rows.append(entry)
+        if wanted is None or entry.get("account") == wanted:
+            rows.append(entry)
 
     if as_json:
-        emit_json({"workspace": str(workspace.root), "campaigns": rows})
+        emit_json({"workspace": str(workspace.root), "account": wanted, "campaigns": rows})
         return 0
 
     heading(f"Campaigns in {workspace.root}")
     if not rows:
         echo("  none yet")
         return 0
+    accounts = {row.get("account") for row in rows}
     for row in rows:
+        where = f" {row.get('account', '?')!s:<20}" if len(accounts) > 1 else ""
         echo(
-            f"  {row['slug']!s:<32} {row.get('stage', '?')!s:<22} {row.get('objects', 0)} object(s)"
+            f"  {row['slug']!s:<32}{where} {row.get('stage', '?')!s:<22} "
+            f"{row.get('objects', 0)} object(s)"
         )
     echo("")
     echo("  Detail:  meta-ads-agent state <slug>")

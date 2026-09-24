@@ -147,6 +147,46 @@ class Workspace:
         return self.root / "account.yaml"
 
     @property
+    def accounts_dir(self) -> Path:
+        """One cached ``<act_id>.yaml`` per ad account, for a multi-account workspace."""
+        return self.root / "accounts"
+
+    def account_file_for(self, ad_account_id: str) -> Path:
+        return self.accounts_dir / f"{ad_account_id}.yaml"
+
+    def find_account_file(self, ad_account_id: str) -> Path | None:
+        """The cached facts for *ad_account_id*, wherever they are kept.
+
+        ``accounts/<id>.yaml`` first; then the single ``account.yaml``, but
+        only if it is for this account - validating a plan against another
+        account's facts would be worse than validating it against none.
+        """
+        per_account = self.account_file_for(ad_account_id)
+        if per_account.is_file():
+            return per_account
+        if self.account_file.is_file():
+            try:
+                raw = yaml.safe_load(self.account_file.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError:
+                return None
+            if isinstance(raw, dict) and raw.get("id") in (None, ad_account_id):
+                return self.account_file
+        return None
+
+    def cached_accounts(self) -> list[str]:
+        """Ad account ids with cached facts in this workspace."""
+        ids = sorted(p.stem for p in self.accounts_dir.glob("act_*.yaml"))
+        if self.account_file.is_file():
+            try:
+                raw = yaml.safe_load(self.account_file.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError:
+                raw = {}
+            single = raw.get("id") if isinstance(raw, dict) else None
+            if single and single not in ids:
+                ids.append(str(single))
+        return sorted(ids)
+
+    @property
     def offers_dir(self) -> Path:
         return self.root / "offers"
 

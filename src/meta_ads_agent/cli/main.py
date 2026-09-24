@@ -239,6 +239,7 @@ def build_parser() -> argparse.ArgumentParser:
     state.add_argument("slug", nargs="?", help="campaign slug (omit to list all)")
     state.add_argument("--json", action="store_true")
     state.add_argument("--list", action="store_true", help="list all campaigns")
+    state.add_argument("--account", help="list only this ad account's campaigns")
 
     _add_install_parsers(subparsers)
 
@@ -575,7 +576,7 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     if args.command == "state":
         from meta_ads_agent.cli.state_cmd import run_state
 
-        return run_state(args.slug, as_json=args.json, list_all=args.list)
+        return run_state(args.slug, as_json=args.json, list_all=args.list, account=args.account)
 
     if args.command in ("install", "upgrade", "migrate", "mcp-config", "open-url"):
         return _dispatch_install(args)

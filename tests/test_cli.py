@@ -297,6 +297,72 @@ class TestValidatePlan:
         assert "NOT LOADED" in out
 
 
+class TestSeveralAccounts:
+    """One workspace, several ad accounts: facts are looked up by the plan's account."""
+
+    def _workspace(self, root: Path, *accounts: str) -> Path:
+        ws = root / ".meta-ads"
+        (ws / "accounts").mkdir(parents=True)
+        for account in accounts:
+            (ws / "accounts" / f"{account}.yaml").write_text(
+                yaml.safe_dump({"id": account, "currency": "PLN", "account_status": 1})
+            )
+        return ws
+
+    def _plan(self, ws: Path, slug: str, account: str) -> Path:
+        directory = ws / "campaigns" / slug
+        directory.mkdir(parents=True)
+        path = directory / "plan.yaml"
+        path.write_text(yaml.safe_dump(plan_dict(slug=slug, ad_account_id=account)))
+        return path
+
+    def test_a_plan_is_validated_against_its_own_accounts_facts(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        ws = self._workspace(tmp_path, "act_1234567890", "act_9999999999")
+        path = self._plan(ws, "second", "act_9999999999")
+        _, out, _ = run(["validate-plan", str(path), "--skip-assets", "--json"], capsys)
+        payload = json.loads(out)
+        assert payload["account_context"] is True
+        assert "account.mismatch" not in {f["code"] for f in payload["findings"]}
+
+    def test_a_single_account_yaml_for_another_account_is_not_used(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        ws = tmp_path / ".meta-ads"
+        ws.mkdir()
+        (ws / "account.yaml").write_text(yaml.safe_dump({"id": "act_1234567890"}))
+        path = self._plan(ws, "other", "act_9999999999")
+        _, out, err = run(["validate-plan", str(path), "--skip-assets", "--json"], capsys)
+        payload = json.loads(out)  # the hint went to stderr, so stdout is still JSON
+        assert payload["account_context"] is False
+        assert "accounts/act_9999999999.yaml" in err
+
+    def test_the_single_account_yaml_still_works_for_its_account(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        ws = tmp_path / ".meta-ads"
+        ws.mkdir()
+        (ws / "account.yaml").write_text(yaml.safe_dump({"id": "act_1234567890"}))
+        path = self._plan(ws, "same", "act_1234567890")
+        _, out, _ = run(["validate-plan", str(path), "--skip-assets", "--json"], capsys)
+        assert json.loads(out)["account_context"] is True
+
+    def test_state_lists_and_filters_by_account(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        ws = self._workspace(tmp_path)
+        self._plan(ws, "first", "act_1234567890")
+        self._plan(ws, "second", "act_9999999999")
+        _, out, _ = run(["state", "--json"], capsys)
+        assert {c["account"] for c in json.loads(out)["campaigns"]} == {
+            "act_1234567890",
+            "act_9999999999",
+        }
+        _, out, _ = run(["state", "--json", "--account", "9999999999"], capsys)
+        assert [c["slug"] for c in json.loads(out)["campaigns"]] == ["second"]
+
+
 class TestState:
     def test_listing_an_empty_workspace(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]

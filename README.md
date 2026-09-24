@@ -334,6 +334,7 @@ default**, because it writes its own `.gitignore`.
   brand.yaml            naming, UTMs, EU DSA entities, your own thresholds
   voice.md              how your brand sounds
   account.yaml          cached account facts (Meta stays authoritative)
+  accounts/<act_id>.yaml  the same, per account, for more than one
   offers/<slug>.yaml    reusable offer briefs
   campaigns/<slug>/
     plan.yaml           intent — reviewed before anything is created
@@ -483,7 +484,6 @@ Roughly in the order they would be useful.
 | --- | --- |
 | **Lead forms** | No MCP tool exists to create or read them. A campaign can use a form id you supply; we cannot build or inspect one. |
 | **Catalog / dynamic ads** | Meta's MCP has 34 catalog tools and there is no skill workflow over them. Read-level entries only in the registry. |
-| **Multi-account operation** | Everything assumes one ad account per workspace. |
 | **Scheduled reporting and monitoring** | Deliberately absent so far — see below. |
 
 ### Deliberately out of scope

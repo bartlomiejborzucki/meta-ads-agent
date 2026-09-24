@@ -20,6 +20,7 @@ So the workspace lives in your project and the plugin never writes to itself —
   brand.yaml              defaults, naming, UTMs, DSA entities, your thresholds
   voice.md                brand voice, free-form prose
   account.yaml            cached account facts. A cache, not the truth.
+  accounts/<act_id>.yaml  the same, one per ad account, for several accounts
   offers/<slug>.yaml      reusable offer briefs
   assets/
     manifest.json         local fingerprint -> remote image hash / video id
@@ -36,6 +37,15 @@ So the workspace lives in your project and the plugin never writes to itself —
   state/                  scratch for resumable operations
   .*.lock                 empty lock files; see below
 ```
+
+### More than one ad account
+
+A workspace belongs to a brand, and a brand can have several ad accounts - a
+market each, or an agency's clients under one brand config. Plans, state and
+the asset manifest were always keyed by account; the cached account facts are
+too, as `accounts/<act_id>.yaml`. `validate-plan` reads the file for the plan's
+own account, and `meta-ads-agent state --account <id>` lists one account's
+campaigns. A single `account.yaml` still works, for the account it describes.
 
 ### More than one session at once
 

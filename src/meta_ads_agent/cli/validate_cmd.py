@@ -16,7 +16,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError as PydanticValidationError
 
-from meta_ads_agent.cli.output import echo, emit_json, fail, heading
+from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
 from meta_ads_agent.errors import MetaAdsAgentError
 from meta_ads_agent.models.brand import BrandConfig
 from meta_ads_agent.models.plan import CampaignPlanDocument
@@ -40,7 +40,7 @@ def run_validate_plan(
 
     workspace = Workspace.locate(required=False)
     brand = load_brand(brand_path, workspace)
-    account = _load_account(account_path, workspace)
+    account = _load_account(account_path, workspace, doc.ad_account_id)
 
     try:
         report = validate_plan(
@@ -141,13 +141,31 @@ def load_brand(explicit: str | None, workspace: Workspace) -> BrandConfig | None
         return None
 
 
-def _load_account(explicit: str | None, workspace: Workspace) -> AccountContext | None:
-    """Load cached account facts.
+def _load_account(
+    explicit: str | None, workspace: Workspace, ad_account_id: str
+) -> AccountContext | None:
+    """Load cached account facts for the plan's own account.
 
     Absence is normal and produces a warning in the report rather than an
     error: a plan should be reviewable before the agent has read the account.
+    In a workspace with several accounts, the facts are looked up by the
+    plan's ``ad_account_id`` (``accounts/<id>.yaml``), so a plan is never
+    validated against a different account's cache.
     """
-    path = Path(explicit).expanduser() if explicit else workspace.account_file
+    if explicit:
+        path = Path(explicit).expanduser()
+    else:
+        found = workspace.find_account_file(ad_account_id)
+        if found is None:
+            others = [a for a in workspace.cached_accounts() if a != ad_account_id]
+            if others:
+                # stderr: --json output on stdout must stay parseable.
+                warn(
+                    f"no cached facts for {ad_account_id} (cached: {', '.join(others)}). "
+                    f"Read it from Meta and save it as accounts/{ad_account_id}.yaml."
+                )
+            return None
+        path = found
     if not path.is_file():
         return None
     try:

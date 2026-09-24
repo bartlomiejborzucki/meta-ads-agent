@@ -156,7 +156,12 @@ Without account facts, the currency, identity, dataset, and eligibility checks
 cannot run, and the report says `account.not_read`. A plan validated with no
 account context is **not** a plan cleared for execution.
 
-After reading the account from Meta, cache it in `.meta-ads/account.yaml`. The
+After reading the account from Meta, cache it in `.meta-ads/account.yaml` - or,
+in a workspace that works with more than one ad account, in
+`.meta-ads/accounts/<act_id>.yaml`, one per account. `validate-plan` picks the
+file for the plan's own `ad_account_id`, and never validates against another
+account's facts: an `account.yaml` for a different account is ignored, with a
+hint. The
 shape is the `account.yaml` template in the `meta-ads-core` skill's `assets/`
 directory: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/skills/meta-ads-core/assets/account.yaml>. Three fields matter especially:
 

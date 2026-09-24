@@ -124,7 +124,7 @@ resolve against the **plan's** directory, so a workspace is portable.
 ## state
 
 ```bash
-meta-ads-agent state [SLUG] [--json] [--list]
+meta-ads-agent state [SLUG] [--json] [--list] [--account ACT_ID]
 ```
 
 Read-only and offline. Without a slug, lists campaigns. With one, shows the

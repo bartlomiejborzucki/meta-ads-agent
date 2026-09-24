@@ -15,6 +15,7 @@ ships, so with no CLI you can write them out yourself and lose nothing.
   brand.yaml              defaults, naming, DSA, the user's own thresholds
   voice.md                brand voice, free-form prose
   account.yaml            cached account facts. A cache. Meta is authoritative.
+  accounts/<act_id>.yaml  the same, one per account, when the workspace has several
   offers/<slug>.yaml      reusable offer briefs
   assets/manifest.json    local fingerprint -> remote image hash / video id
   campaigns/<slug>/
