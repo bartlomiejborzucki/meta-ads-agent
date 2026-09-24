@@ -205,7 +205,8 @@ class TestNativeCodexSeesTheSkills:
         assert target.root == windows_home(windows) / ".agents" / "skills"
         for skill in manifest.skills:
             assert (target.root / skill / "SKILL.md").is_file(), f"{skill} not visible to Codex"
-        assert len(manifest.skills) == 9
+        shipped = {p.parent.name for p in (REPO / "skills").glob("*/SKILL.md")}
+        assert set(manifest.skills) == shipped
 
     def test_the_windows_spelling_is_reported_back(
         self, windows: FakeWindows, bridge: WslBridge

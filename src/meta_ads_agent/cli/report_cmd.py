@@ -416,3 +416,83 @@ def _print_lifetime(p: LifetimePacing, as_json: bool) -> int:
     for note in p.notes:
         echo(f"  ! {note}", "yellow")
     return 0
+
+
+# -- power -------------------------------------------------------------------
+def run_power(
+    *,
+    baseline_rate: float,
+    units_per_day: float,
+    cells: int,
+    days: float | None,
+    lift: float | None,
+    alpha: float,
+    power: float,
+    as_json: bool,
+) -> int:
+    from meta_ads_agent.analysis.power import (
+        PowerInputs,
+        days_needed,
+        minimum_detectable_lift,
+        sample_size_per_cell,
+    )
+
+    try:
+        inputs = PowerInputs(baseline_rate, units_per_day, cells, alpha, power)
+        if days is not None:
+            detectable = minimum_detectable_lift(inputs, days)
+            per_cell = sample_size_per_cell(inputs, detectable) if detectable else None
+            needed = None
+        else:
+            assert lift is not None
+            detectable = None
+            per_cell = sample_size_per_cell(inputs, lift)
+            needed = days_needed(inputs, lift)
+    except MetaAdsAgentError as exc:
+        fail(str(exc))
+        return 2
+
+    rules = {
+        "baseline_rate": baseline_rate,
+        "units_per_day_per_cell": units_per_day,
+        "cells": cells,
+        "alpha": alpha,
+        "alpha_per_comparison": inputs.adjusted_alpha,
+        "power": power,
+    }
+    if as_json:
+        emit_json(
+            {
+                "rules": rules,
+                "days": days,
+                "minimum_detectable_lift": detectable,
+                "lift": lift,
+                "days_needed": needed,
+                "units_per_cell": per_cell,
+                "answerable": days is None or detectable is not None,
+            }
+        )
+        return 0
+
+    heading("Test power")
+    echo(
+        f"  inputs    baseline {baseline_rate:.2%}, {units_per_day:g} units/day/cell, "
+        f"{cells} cells, alpha {alpha:g}"
+        + (f" ({inputs.adjusted_alpha:.4f} per comparison)" if cells > 2 else "")
+        + f", power {power:g}"
+    )
+    if days is not None:
+        if detectable is None:
+            echo(f"  {days:g} days cannot detect even a doubling of the rate.", "yellow")
+            echo("  A test this size would not answer anything worth acting on.")
+        else:
+            echo(f"  in {days:g} days it can detect a lift of {detectable:+.1%} or more")
+            echo(f"            ({per_cell} units per cell)")
+    else:
+        assert lift is not None and needed is not None
+        echo(f"  to detect {lift:+.1%} it needs {per_cell} units per cell: {needed:.1f} days")
+    echo(
+        "  Meta's own test reports its own confidence; this is for deciding whether to run one.",
+        "dim",
+    )
+    return 0

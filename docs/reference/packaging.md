@@ -19,7 +19,7 @@ and [`tests/test_packaging.py`](../../tests/test_packaging.py), on every push:
 | | Shape | What arrives |
 | --- | --- | --- |
 | 1 | Plugin install | the repository, with `skills/` inside it |
-| 2 | The whole `skills/` tree copied or symlinked into a skills directory | nine skill folders, no repository |
+| 2 | The whole `skills/` tree copied or symlinked into a skills directory | eleven skill folders, no repository |
 | 3 | One `skills/meta-ads-<name>/` folder, copied on its own | that folder only |
 
 Shape 3 is the strict case and the one the tests are written against: if a

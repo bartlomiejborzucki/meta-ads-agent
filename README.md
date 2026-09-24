@@ -2,7 +2,7 @@
 
 **Turn a coding agent into a careful Meta Ads operator.**
 
-Nine skills, a validated campaign plan, resumable state, and an approval gate on
+Eleven skills, a validated campaign plan, resumable state, and an approval gate on
 anything that spends — built on top of Meta's **official** Ads MCP server.
 
 > Meta provides the primitives. This project provides the workflow, memory,
@@ -483,8 +483,6 @@ Roughly in the order they would be useful.
 | --- | --- |
 | **Lead forms** | No MCP tool exists to create or read them. A campaign can use a form id you supply; we cannot build or inspect one. |
 | **Catalog / dynamic ads** | Meta's MCP has 34 catalog tools and there is no skill workflow over them. Read-level entries only in the registry. |
-| **A/B tests and lift studies** | `ads_experiment_*` is in the capability map with no workflow. Creating a test splits live delivery, so it needs the approval treatment doing properly. |
-| **Lookalike audience workflows** | Creation is covered by the MCP; there is no guided workflow for source selection and sizing. |
 | **Multi-account operation** | Everything assumes one ad account per workspace. |
 | **Scheduled reporting and monitoring** | Deliberately absent so far — see below. |
 

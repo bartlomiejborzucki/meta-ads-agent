@@ -43,8 +43,8 @@ The MCP alone covers audits, reporting, Ad Library research, previews,
 tracking, creative, optimisation and the changes that follow; `.meta-ads/`
 files can be written directly from the templates in `meta-ads-core`'s
 `assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant
-creatives, deletion, and the `report` arithmetic (which has a by-hand route).
+local image and video upload, video / existing-post / multi-variant /
+carousel creatives, deletion, and the `report` arithmetic (which has a by-hand route).
 <!-- shared:preflight end -->
 
 ## Before anything else
@@ -231,6 +231,8 @@ with every API version.
 | "How did last week go", period comparisons | `meta-ads-report` |
 | "Is my pixel working", conversion setup | `meta-ads-tracking` |
 | "What are competitors running" | `meta-ads-research` |
+| Lookalikes, custom audiences, exclusions | `meta-ads-audiences` |
+| "A/B test this", "did the test win", lift studies | `meta-ads-experiments` |
 
 Do not mutate an account during an audit or a reporting request. Analysis,
 planning, and mutation are separate activities, and a user asking "how did last

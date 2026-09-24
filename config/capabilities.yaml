@@ -416,7 +416,10 @@ capabilities:
     last_reviewed: 2026-09-16
     notes: >
       A lookalike or website audience contains no PII. A customer-file audience
-      does - see upload_customer_list.
+      does - see upload_customer_list. Creating an audience does not change
+      delivery by itself; attaching it to a live ad set does, and is its own
+      update_active step. The meta-ads-audiences skill covers source choice
+      and sizing for lookalikes.
 
   - name: upload_customer_list
     area: audiences
@@ -457,22 +460,46 @@ capabilities:
       create/update/delete and carry update_active or delete risk. MCP-only by
       design - we add no catalog fallback.
 
-  - name: experiments
+  - name: read_experiments
     area: experiments
     preferred_provider: official_mcp
     fallback_provider: none
     mcp_tools:
       - ads_experiment_list_tests
       - ads_experiment_check_eligibility
-      - ads_experiment_abtest_create_test
       - ads_experiment_abtest_get_test
-      - ads_experiment_abtest_update_test
-      - ads_experiment_lift_create_test
       - ads_experiment_lift_get_test
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-24
+    notes: >
+      Listing tests, checking eligibility and reading results change nothing.
+      Check eligibility before proposing a test, not after the user agrees.
+
+  - name: create_experiment
+    area: experiments
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_experiment_abtest_create_test, ads_experiment_lift_create_test]
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-16
-    notes: A test splits live delivery, so creating one affects spend.
+    last_reviewed: 2026-09-24
+    notes: >
+      A test splits live delivery, so creating one affects spend and what the
+      existing campaigns learn. Size it first (meta-ads-agent report power): a
+      test that cannot detect the effect it is for should not be created.
+
+  - name: update_experiment
+    area: experiments
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_experiment_abtest_update_test]
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-24
+    notes: >
+      Ending or changing a running test early invalidates what it measured.
+      Say so, with the power it had reached, before doing it.
 
   - name: ad_library_research
     area: ad_library

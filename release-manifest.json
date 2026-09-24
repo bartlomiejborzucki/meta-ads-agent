@@ -2,12 +2,14 @@
   "schema_version": 1,
   "version": "0.6.0",
   "payload_root": "skills",
-  "digest": "662a3c23117111018c3cfed2af9197eb81f8cb4518d91fe37401ccb81f3422cc",
+  "digest": "77e7c465618e0f152ed5a3188b20e7c92b41dd8023152d5d3b967e1430e2b804",
   "skills": [
+    "meta-ads-audiences",
     "meta-ads-audit",
     "meta-ads-campaign",
     "meta-ads-core",
     "meta-ads-creative",
+    "meta-ads-experiments",
     "meta-ads-optimize",
     "meta-ads-preview",
     "meta-ads-report",
@@ -23,9 +25,19 @@
   ],
   "files": [
     {
+      "path": "meta-ads-audiences/SKILL.md",
+      "sha256": "de37ef9184eac810e1a92424a8be96cd9510e6f87caaa69163076aefe896f4c2",
+      "size": 7843
+    },
+    {
+      "path": "meta-ads-audiences/references/lookalike-sources.md",
+      "sha256": "8451c40969a39f8ddbb8d6490800150d9466c578394f0ff5de779836d58a8848",
+      "size": 2015
+    },
+    {
       "path": "meta-ads-audit/SKILL.md",
-      "sha256": "ab77a08a41b078b6858e8815f9683a492efe66fe8385f74d033c9bdbbc7c432a",
-      "size": 7660
+      "sha256": "227f969726fc6ce6f677e51519d822ad553729addc18e5e7808ec91b153245aa",
+      "size": 7671
     },
     {
       "path": "meta-ads-audit/references/audit-checklist.md",
@@ -34,8 +46,8 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "16db74039e8f392f086cdb74993c4104a4f50d0ef6fcb0805e7996ff53a55a83",
-      "size": 12708
+      "sha256": "84a31f22fc8772f50c3164ecd9c3814f624fb9abd104505070b78e20334c20b3",
+      "size": 12719
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
@@ -59,8 +71,8 @@
     },
     {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "9b95c27d9dfed29529e3bd93a710f9378706cfa0378cf2b98733ffa98bff1655",
-      "size": 10788
+      "sha256": "d24e5521768915dc104e9bc49930cfb710d4040fdf63ba9c3b297a210c330d5a",
+      "size": 10946
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
@@ -114,8 +126,8 @@
     },
     {
       "path": "meta-ads-creative/SKILL.md",
-      "sha256": "e0b76b4ccec9f3206f18f92c6a255de14f6376d5d9c261ae7a434748594f7076",
-      "size": 7602
+      "sha256": "a853e1ce4f007db4903cc89ad2a8d104708fc2363da0e82d00bba59706d87bc1",
+      "size": 7613
     },
     {
       "path": "meta-ads-creative/references/angles-and-copy.md",
@@ -123,9 +135,19 @@
       "size": 5703
     },
     {
+      "path": "meta-ads-experiments/SKILL.md",
+      "sha256": "dd1a5393b3922ac4fad177969113743105e0836522e871dca540c2c17842a1c7",
+      "size": 7577
+    },
+    {
+      "path": "meta-ads-experiments/references/test-design.md",
+      "sha256": "a445e8c9aad388285d794b638468289647936f88fdb4ed0d15e2e43f9cb41afa",
+      "size": 2120
+    },
+    {
       "path": "meta-ads-optimize/SKILL.md",
-      "sha256": "aa0d602a94bf45ce196e7a49d98761a1e4d5462536bf442e32075217cd8ecf28",
-      "size": 11103
+      "sha256": "d6b0e09a395e69fe55d90aa5a521088e505265a2015b0cf40904b83ac45ac5c4",
+      "size": 11114
     },
     {
       "path": "meta-ads-optimize/references/diagnosis-playbook.md",
@@ -139,8 +161,8 @@
     },
     {
       "path": "meta-ads-preview/SKILL.md",
-      "sha256": "350f0aecf296af9df3abbd636f9c8f501e4c7954df30abd39ae2641399aa75b4",
-      "size": 7402
+      "sha256": "f8169eed11fc24b153cf3db23e069d2c920487b999d742afca5bb5aff88276e3",
+      "size": 7413
     },
     {
       "path": "meta-ads-preview/references/placement-qa.md",
@@ -149,8 +171,8 @@
     },
     {
       "path": "meta-ads-report/SKILL.md",
-      "sha256": "4fc3208598232850e592b4b75919e955aac7eaf30d71b4842bb15d277e656483",
-      "size": 8854
+      "sha256": "54fb121d4ef44bf75319aabc0fcd7679326cd971bc62bec8d9b4cf5a7328988c",
+      "size": 8865
     },
     {
       "path": "meta-ads-report/references/metrics-and-comparisons.md",
@@ -159,13 +181,13 @@
     },
     {
       "path": "meta-ads-research/SKILL.md",
-      "sha256": "3aba15b2f442a96ea02878bf9b481973235ef80b7058bc6655ffc0e32960db0d",
-      "size": 7017
+      "sha256": "f898ae5f69b880d13a82227587a061d12f82d86ea5f0bb92688bff5b4e73b374",
+      "size": 7028
     },
     {
       "path": "meta-ads-tracking/SKILL.md",
-      "sha256": "45692bfdf12bf59f8de6e2b790c2f9cfad042463801b9e9bacfb4ae050c81a94",
-      "size": 9588
+      "sha256": "d3935b148a36e1dda9640dbabc69e750de846181ea49ad6423cd6f45080ad06c",
+      "size": 9599
     },
     {
       "path": "meta-ads-tracking/references/signal-quality.md",

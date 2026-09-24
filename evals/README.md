@@ -16,7 +16,7 @@ claude plugin eval . --ablation none --trust-plugin --no-publish
 grader is reported as an indicator rather than scored, and the suite would
 pass whatever the descriptions say.
 
-**Cost.** Every run is a real model call on your credentials: 11 cases x 3
+**Cost.** Every run is a real model call on your credentials: 13 cases x 3
 runs x up to 3 turns. It is not part of CI on every push; the `Trigger evals`
 workflow runs it on demand, with a cost ceiling, when an `ANTHROPIC_API_KEY`
 secret is configured.

@@ -312,3 +312,63 @@ class TestReportCommand:
         bad = tmp_path / "bad.json"
         bad.write_text("{not json")
         assert main(["report", "compare", str(bad), "--days", "7"]) == 2
+
+
+class TestPower:
+    def test_a_textbook_sample_size(self) -> None:
+        from meta_ads_agent.analysis.power import PowerInputs, sample_size_per_cell
+
+        # 5% baseline, +20% relative, alpha 0.05 two-sided, power 0.8: the
+        # standard two-proportion formula gives 8,155 per group.
+        assert sample_size_per_cell(PowerInputs(0.05, 1000), 0.20) == 8155
+
+    def test_more_cells_divide_alpha_and_need_more_volume(self) -> None:
+        from meta_ads_agent.analysis.power import PowerInputs, sample_size_per_cell
+
+        two = sample_size_per_cell(PowerInputs(0.05, 1000, cells=2), 0.2)
+        three = sample_size_per_cell(PowerInputs(0.05, 1000, cells=3), 0.2)
+        assert PowerInputs(0.05, 1000, cells=3).adjusted_alpha == 0.025
+        assert three > two
+
+    def test_the_detectable_lift_is_the_one_the_volume_supports(self) -> None:
+        from meta_ads_agent.analysis.power import (
+            PowerInputs,
+            minimum_detectable_lift,
+            sample_size_per_cell,
+        )
+
+        inputs = PowerInputs(0.05, 1000)
+        lift = minimum_detectable_lift(inputs, 14)
+        assert lift is not None
+        assert sample_size_per_cell(inputs, lift) <= 14000
+        assert sample_size_per_cell(inputs, lift * 0.95) > 14000
+
+    def test_too_little_volume_cannot_detect_anything_worth_acting_on(self) -> None:
+        from meta_ads_agent.analysis.power import PowerInputs, minimum_detectable_lift
+
+        assert minimum_detectable_lift(PowerInputs(0.02, 10), 7) is None
+
+    @pytest.mark.parametrize(
+        ("rate", "units", "cells"), [(0, 100, 2), (1.2, 100, 2), (0.05, 0, 2), (0.05, 100, 1)]
+    )
+    def test_impossible_inputs_are_refused(self, rate: float, units: float, cells: int) -> None:
+        from meta_ads_agent.analysis.power import PowerInputs
+
+        with pytest.raises(ValidationError):
+            PowerInputs(rate, units, cells)
+
+    def test_the_command_says_when_a_test_cannot_answer(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["report", "power", "--baseline-rate", "0.02", "--units-per-day", "10"]
+        assert main([*argv, "--days", "7", "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["answerable"] is False
+        assert payload["minimum_detectable_lift"] is None
+
+    def test_the_command_gives_days_for_a_lift(self, capsys: pytest.CaptureFixture[str]) -> None:
+        argv = ["report", "power", "--baseline-rate", "0.05", "--units-per-day", "1000"]
+        assert main([*argv, "--lift", "0.2", "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["units_per_cell"] == 8155
+        assert payload["days_needed"] == pytest.approx(8.155)

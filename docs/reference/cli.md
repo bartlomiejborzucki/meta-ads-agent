@@ -169,8 +169,20 @@ Input format and thresholds: [report-input.md](report-input.md).
   projection at the current rate, and the daily spend needed to finish.
   Amounts are display amounts in the account currency.
 
+```bash
+meta-ads-agent report power --baseline-rate RATE --units-per-day N
+  (--days D | --lift L) [--cells 2] [--alpha 0.05] [--power 0.8] [--json]
+```
+
+- **power** - before an A/B test splits live delivery: the smallest relative
+  lift a test of `--days` can detect, or the days needed to detect `--lift`.
+  Two-sided, two proportions, each cell against the control, alpha divided
+  among the comparisons. The rate is the metric's own (conversions per click);
+  the units are its denominator per day per cell. Needs no insights file. When
+  even a doubling is out of reach it says the test cannot answer.
+
 None of them concludes anything. They print the numbers and the rule behind
-each label; the report and optimise skills interpret them.
+each label; the report, optimise and experiments skills interpret them.
 
 ## install
 

@@ -198,6 +198,34 @@ def build_parser() -> argparse.ArgumentParser:
         "--as-of", type=_date, help="lifetime: the day to pace to (default: last in data)"
     )
 
+    power = report_sub.add_parser(
+        "power",
+        help="the smallest lift a test can detect, or the days it needs",
+        description=(
+            "Before splitting live delivery into a test: two-sided, two-proportion "
+            "power arithmetic, each cell against the control, alpha divided among "
+            "the comparisons. Needs no insights file."
+        ),
+    )
+    power.add_argument(
+        "--baseline-rate", type=float, required=True, help="control's rate, e.g. 0.03 for 3%%"
+    )
+    power.add_argument(
+        "--units-per-day",
+        type=float,
+        required=True,
+        help="the rate's denominator per day per cell (clicks, or impressions)",
+    )
+    power.add_argument("--cells", type=int, default=2, help="cells including control (default 2)")
+    target = power.add_mutually_exclusive_group(required=True)
+    target.add_argument(
+        "--days", type=float, help="how long it would run: gives the lift it can see"
+    )
+    target.add_argument("--lift", type=float, help="the lift to detect, e.g. 0.1: gives the days")
+    power.add_argument("--alpha", type=float, default=0.05)
+    power.add_argument("--power", type=float, default=0.8)
+    power.add_argument("--json", action="store_true")
+
     # -- state -------------------------------------------------------------
     state = subparsers.add_parser(
         "state",
@@ -713,6 +741,17 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
             end=args.end,
             as_of=args.as_of,
             currency=args.currency,
+            as_json=args.json,
+        )
+    if args.report_command == "power":
+        return report_cmd.run_power(
+            baseline_rate=args.baseline_rate,
+            units_per_day=args.units_per_day,
+            cells=args.cells,
+            days=args.days,
+            lift=args.lift,
+            alpha=args.alpha,
+            power=args.power,
             as_json=args.json,
         )
     parser.parse_args(["report", "--help"])
