@@ -148,10 +148,10 @@ claude plugin install meta-ads-agent@meta-ads-agent
 `.claude-plugin/marketplace.json` lives at the repository root with
 `"source": "."`, so the repository is its own marketplace. No extra hosting.
 
-## If the name is taken
+## If the name ever has to change
 
-The project name is provisional and designed to be easy to change. Renaming
-touches:
+The name `meta-ads-agent` is final as of 1.0. Should it have to change - a
+trademark request, say - renaming touches:
 
 | | |
 | --- | --- |

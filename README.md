@@ -569,11 +569,18 @@ customer data is the highest-priority class of bug here.
 
 ## Status
 
-**0.2.x — early development releases. Not production-ready.**
+**1.0 — the formats are stable; Meta has not yet confirmed the requests.**
 
-It works, it is tested, and it is honest about what it has not proven. Use it on
-an account you are willing to watch. [What's missing](#whats-missing) is the
-full gap list, and it is long on purpose.
+1.0 is a promise about what this project controls: the workspace files, the
+CLI's `--json` output and exit codes, and the skill and risk-class names do not
+break within 1.x ([compatibility](docs/reference/compatibility.md)). It is
+**not** a claim about Meta's acceptance. No code here has yet created anything
+on a real ad account: the fallback's requests are checked against Meta's own
+SDK descriptions offline, and the live tests that would confirm them are
+written and have not run - see [Never run against Meta](#never-run-against-meta).
+
+Use it on an account you are willing to watch, start with paused builds, and
+read [What's missing](#whats-missing), which is long on purpose.
 
 ## License
 
@@ -589,4 +596,4 @@ endorsed by Meta Platforms, Inc., Facebook, Instagram, OpenAI, or Anthropic.**
 respective owners, used here descriptively only to identify the platforms this
 project interoperates with.
 
-The project name is provisional and easy to change.
+The project name, `meta-ads-agent`, is settled as of 1.0.

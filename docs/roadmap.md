@@ -5,9 +5,10 @@ Direction, not commitments. The gap list this is built from is the README's
 review of 0.2.0 on 2026-09-23, whose security findings were fixed in 0.2.1
 ([SECURITY.md](../SECURITY.md#021-review)).
 
-One constraint shapes the order: **there is no Meta test ad account yet.**
-Everything that needs one is collected in a single blocked group at the end,
-and nothing before it depends on it.
+One constraint shaped the order: **there is no Meta test ad account yet.**
+Everything that needs one is collected in a blocked group, and nothing else
+depended on it. 1.0 was released before that group was done - see its
+section.
 
 ## 0.3 - local state and the validator (done)
 
@@ -115,7 +116,7 @@ version check on read, and migrations tested from every earlier version.
 
 ## Blocked on a test account
 
-No version number until an account exists:
+Still open after 1.0:
 
 - running the live tests;
 - the first campaign created on a real account;
@@ -128,11 +129,15 @@ on Windows, and writing up what differs from the documented steps.
 
 Until then the README keeps these under "Never run against Meta".
 
-## 1.0 - distribution
+## 1.0 - stable formats (done, with one caveat)
 
-Everything that could be built without a test account, a connected session or
-a decision that belongs to the owner is in 0.9. What 1.0 still needs, each
-item with who can do it:
+In 1.0.0 the name `meta-ads-agent` is final and the compatibility policy
+takes effect. The owner decided to release 1.0 **before** any run against a
+real Meta account, and the README's Status section says so in plain words: 1.0
+promises the formats this project controls, not Meta's acceptance of its
+requests.
+
+What remains, as 1.x work, each with who can do it:
 
 | | Needs | Command, once available |
 | --- | --- | --- |
@@ -141,11 +146,10 @@ item with who can do it:
 | The Codex plugin installs, on Linux and on Windows | a Codex install | [install-codex.md](getting-started/install-codex.md) |
 | The Windows CI job is green, then made blocking | the job's log, to fix what fails there | - |
 | The trigger evals have run once | an Anthropic API key, and the decision to spend on it | the *Trigger evals* workflow |
-| A final name | the owner's decision - the name is still provisional | - |
-| PyPI, and the plugin marketplaces | the owner's decision and accounts ([ADR-009](architecture/adr/ADR-009-distribution.md)) | [publishing.md](reference/publishing.md) |
+| PyPI, and the plugin marketplaces | the owner's accounts ([ADR-009](architecture/adr/ADR-009-distribution.md)); the name was free on PyPI on 2026-09-24 | [publishing.md](reference/publishing.md) |
 
-Only the owner can tag 1.0. A 1.0 that has never run against Meta would claim
-something it has not shown; the first row is the one that matters most.
+The first row is the one that matters most. When it runs, its result - pass
+or fail - belongs in the changelog.
 
 ## Ongoing
 

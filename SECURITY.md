@@ -229,5 +229,6 @@ tests, and three workflows.
 
 ## Supported versions
 
-0.2.x are early development releases and are **not production-ready**. Fixes
-land on `master`. There is no backport policy yet.
+1.x is supported; fixes land on `master` and are released as 1.x patches.
+The live-account caveat in the README's Status section applies to security
+as much as to anything else. There is no backport policy yet.

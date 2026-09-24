@@ -61,7 +61,8 @@ in the repository at all.
 
 Publish to PyPI when all of these hold:
 
-1. The project name is settled (it is currently provisional).
+1. The project name is settled. **Met at 1.0:** `meta-ads-agent` is final
+   (2026-09-24); the name was unclaimed on PyPI that day.
 2. The CLI surface has been stable across at least one release.
 3. Enough people need the fallback that a git install is real friction.
 4. A maintainer has configured Trusted Publishing and will keep publishing.

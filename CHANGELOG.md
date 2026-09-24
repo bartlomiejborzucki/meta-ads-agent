@@ -9,6 +9,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [1.0.0] - 2026-09-24
+
+**Stable formats, and one caveat stated up front.** `MIGRATION: none
+required`.
+
+1.0 is a promise about what this project controls. From here, within 1.x,
+the workspace files keep being read and resumed, `--json` keys are only
+added, exit codes and command names stay, and skill and risk-class names do
+not change - [docs/reference/compatibility.md](docs/reference/compatibility.md),
+enforced by the compatibility and JSON-contract tests.
+
+It is **not** a claim that Meta accepts the requests. Nothing has yet run
+against a real ad account: the fallback's requests are checked offline
+against the SDK's own object descriptions, and the live tests that would
+confirm them are written and waiting for a test account. The owner chose to
+release 1.0 before that run; the README's Status section and the roadmap say
+so, and list what remains with who can do each part.
+
+### Changed
+
+- The name `meta-ads-agent` is final. ADR-009's first condition for PyPI is
+  met; publishing stays a manual, gated step.
+- The package classifier is Beta rather than Alpha - and deliberately not
+  Production/Stable, for the reason above.
+- SECURITY.md supports 1.x.
+
 ## [0.9.0] - 2026-09-24
 
 **Schemas worth promising.** `MIGRATION: none required` - and now tested
@@ -602,7 +628,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.6.0...v0.7.0
