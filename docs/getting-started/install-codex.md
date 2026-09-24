@@ -1,6 +1,6 @@
 # Installing on Codex
 
-The eleven skills are host-neutral Markdown, so Codex loads exactly the same
+The twelve skills are host-neutral Markdown, so Codex loads exactly the same
 `skills/` directory Claude Code does - no Codex-specific copy, no divergence
 ([ADR-003](../architecture/adr/ADR-003-dual-agent-packaging.md)).
 

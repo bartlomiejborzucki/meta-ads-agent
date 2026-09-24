@@ -54,7 +54,7 @@ with a narrow Marketing API fallback for the few things that server cannot do.
 The agent calls the MCP itself. The fallback CLI is a sibling, not a proxy — see
 [ADR-001](adr/ADR-001-mcp-first.md) and [ADR-002](adr/ADR-002-api-fallback.md).
 
-## The eleven skills
+## The twelve skills
 
 | Skill | Posture | Job |
 | --- | --- | --- |
@@ -68,6 +68,7 @@ The agent calls the MCP itself. The fallback CLI is a sibling, not a proxy — s
 | `meta-ads-tracking` | read-only | Dataset/pixel health. Configuration is not evidence of delivery. |
 | `meta-ads-research` | read-only | Ad Library research for themes, not for cloning. |
 | `meta-ads-audiences` | write, gated | Custom and lookalike audiences: source, size, exclusions. Creating and attaching are separate approvals. |
+| `meta-ads-catalog` | read, then gated | Catalog and feed health, product sets, event-source match. Catalog ads themselves are not built yet. |
 | `meta-ads-experiments` | write, gated | A/B tests and lift studies, sized before they are created, read without picking the metric afterwards. |
 
 One canonical `skills/` directory. Both host manifests point at it — see

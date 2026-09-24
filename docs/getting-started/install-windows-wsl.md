@@ -43,7 +43,7 @@ uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
 ```
 
 That is the whole install, and it is safe to run again. The first half puts
-the CLI in WSL; the second copies the eleven skills into
+the CLI in WSL; the second copies the twelve skills into
 `%USERPROFILE%\.agents\skills` and verifies every file against the release
 manifest before recording the version.
 

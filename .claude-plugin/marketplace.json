@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "meta-ads-agent",
-      "description": "Audit a Meta ad account, plan and build campaigns paused-by-default, preview every placement before launch, report on equal-length periods, and diagnose before changing anything. Eleven skills, a validated campaign plan, resumable state, and an approval gate on anything that spends.",
+      "description": "Audit a Meta ad account, plan and build campaigns paused-by-default, preview every placement before launch, report on equal-length periods, and diagnose before changing anything. Twelve skills, a validated campaign plan, resumable state, and an approval gate on anything that spends.",
       "author": {
         "name": "meta-ads-agent contributors"
       },

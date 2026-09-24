@@ -2,7 +2,7 @@
 
 **Turn a coding agent into a careful Meta Ads operator.**
 
-Eleven skills, a validated campaign plan, resumable state, and an approval gate on
+Twelve skills, a validated campaign plan, resumable state, and an approval gate on
 anything that spends — built on top of Meta's **official** Ads MCP server.
 
 > Meta provides the primitives. This project provides the workflow, memory,
@@ -483,7 +483,7 @@ Roughly in the order they would be useful.
 | | Why it is not here |
 | --- | --- |
 | **Lead forms** | No MCP tool exists to create or read them. A campaign can use a form id you supply; we cannot build or inspect one. |
-| **Catalog / dynamic ads** | Meta's MCP has 34 catalog tools and there is no skill workflow over them. Read-level entries only in the registry. |
+| **Catalog / dynamic ads** | `meta-ads-catalog` gets a catalog and its product sets ready, but the catalog ad's template creative is not something Meta's MCP is documented to build, and catalogs stay MCP-only (ADR-002). Build the ad itself in Ads Manager. |
 | **Scheduled reporting and monitoring** | Deliberately absent so far — see below. |
 
 ### Deliberately out of scope

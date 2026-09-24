@@ -446,19 +446,91 @@ capabilities:
     notes: Check ads_get_custom_audience_adsets first - live ad sets may target it.
 
   # -- Catalogs, experiments, research ------------------------------------
-  - name: catalog_management
+  - name: read_catalogs
     area: catalogs
     preferred_provider: official_mcp
     fallback_provider: none
-    mcp_tools: [ads_catalog_get_catalogs, ads_catalog_get_diagnostics, ads_catalog_get_dynamic_ads_health]
+    mcp_tools:
+      - ads_catalog_event_source_get
+      - ads_catalog_event_source_get_catalogs
+      - ads_catalog_event_source_get_health
+      - ads_catalog_event_source_get_recommendations
+      - ads_catalog_get_catalogs
+      - ads_catalog_get_data_sources
+      - ads_catalog_get_details
+      - ads_catalog_get_diagnostics
+      - ads_catalog_get_dynamic_ads_health
+      - ads_catalog_get_feed_rules
+      - ads_catalog_get_product_details
+      - ads_catalog_get_product_feed_details
+      - ads_catalog_get_product_feed_upload_sessions
+      - ads_catalog_get_product_product_sets
+      - ads_catalog_get_product_set_details
+      - ads_catalog_get_product_set_products
+      - ads_catalog_get_product_sets
+      - ads_catalog_search_product
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-09-24
     notes: >
-      34 ads_catalog_* tools cover catalogs, products, sets, feeds, rules, and
-      event sources. Read-level entries listed; writes are ads_catalog_*
-      create/update/delete and carry update_active or delete risk. MCP-only by
-      design - we add no catalog fallback.
+      Catalog, product, set, feed and event-source reads, including the
+      diagnostics and dynamic-ads health that should come before any change.
+      MCP-only by design - there is no catalog fallback (ADR-002).
+
+  - name: change_catalog
+    area: catalogs
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_catalog_create
+      - ads_catalog_create_feed_rule
+      - ads_catalog_create_product_feed
+      - ads_catalog_create_product_feed_upload_session
+      - ads_catalog_create_product_set
+      - ads_catalog_event_source_connect
+      - ads_catalog_event_source_disconnect
+      - ads_catalog_product_create
+      - ads_catalog_update_catalog
+      - ads_catalog_update_product
+      - ads_catalog_update_product_feed
+      - ads_catalog_update_product_set
+    risk_level: update_active
+    requires_confirmation: true
+    last_reviewed: 2026-09-24
+    notes: >
+      A product's price or availability, a product set's filter, a feed's
+      schedule, or an event-source connection is read by every live catalog
+      ad that uses it - the change reaches delivery without touching a
+      campaign. Show which live ad sets use the set before changing it.
+
+  - name: delete_catalog_objects
+    area: catalogs
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools:
+      - ads_catalog_delete_product
+      - ads_catalog_product_feed_delete
+      - ads_catalog_product_feed_delete_rule
+      - ads_catalog_product_set_delete
+    risk_level: delete
+    requires_confirmation: true
+    last_reviewed: 2026-09-24
+    notes: >
+      Deleting a product set or feed breaks every ad set that uses it.
+
+  - name: create_dynamic_ad_creative
+    area: catalogs
+    preferred_provider: none
+    fallback_provider: none
+    mcp_tools: []
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-09-24
+    notes: >
+      NOT SUPPORTED. A catalog ad's creative is a template (template_data),
+      which ads_create_creative is not documented to build, and ADR-002 keeps
+      catalogs MCP-only. The meta-ads-catalog skill prepares the catalog and
+      product sets; the catalog ad itself is built in Ads Manager for now.
 
   - name: read_experiments
     area: experiments

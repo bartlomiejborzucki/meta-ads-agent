@@ -2,11 +2,12 @@
   "schema_version": 1,
   "version": "0.7.0",
   "payload_root": "skills",
-  "digest": "5d04e6ecaaee9cd4c7dcff03f38443a1c26220f1c7288971cbdf47718f41ccb4",
+  "digest": "04edbf94e019f8d8d76cd5c7fa5375fab431cc6b7cc072e5042768dbaaef916e",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
     "meta-ads-campaign",
+    "meta-ads-catalog",
     "meta-ads-core",
     "meta-ads-creative",
     "meta-ads-experiments",
@@ -70,9 +71,19 @@
       "size": 4448
     },
     {
+      "path": "meta-ads-catalog/SKILL.md",
+      "sha256": "b44e25a23d68fac6f929dfa42ca725012a81c3dfa9ddccb004039b6a63b77a86",
+      "size": 6346
+    },
+    {
+      "path": "meta-ads-catalog/references/catalog-health.md",
+      "sha256": "3c81e3ddd0e49ed12bef0f35c63e601d68b79d5cf83571b72912ed69bdb543ec",
+      "size": 2250
+    },
+    {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "d24e5521768915dc104e9bc49930cfb710d4040fdf63ba9c3b297a210c330d5a",
-      "size": 10946
+      "sha256": "f0611dfb18ec8608ec815e433ccb9af36efa01648072a305be1f171fdc985491",
+      "size": 11023
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
