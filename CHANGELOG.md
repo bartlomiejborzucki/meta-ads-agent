@@ -9,6 +9,30 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.9.0] - 2026-09-24
+
+**Schemas worth promising.** `MIGRATION: none required` - and now tested
+against the files 0.1.0 and 0.2.0 shipped.
+
+### Added
+
+- [docs/reference/compatibility.md](docs/reference/compatibility.md): what
+  an upgrade may change in the workspace, the CLI, its `--json` output, its
+  exit codes and the skills, and how each promise is tested.
+- Compatibility tests over `tests/fixtures/written-by/`, the examples and
+  templates of every earlier release: each is read, each plan validated, and
+  each saved campaign state resumed against its plan.
+- A `--json` contract: every command's keys recorded, and a test that fails
+  when one is removed or renamed.
+
+### Changed
+
+- A `schema_version` above what this release understands is refused, with
+  an error that says to upgrade, in plans, state, brand config, offers and
+  the asset manifest. Before, a newer file was silently read by older rules.
+- [The roadmap](docs/roadmap.md) ends with the 1.0 checklist: what remains,
+  and who can do each part.
+
 ## [0.8.0] - 2026-09-24
 
 **Catalogs and more than one account.** `MIGRATION: none required`; an
@@ -578,7 +602,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.5.0...v0.6.0

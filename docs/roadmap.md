@@ -102,7 +102,12 @@ was planned:
 - **More than one ad account per workspace**, with every plan, state file and
   asset record already keyed by account.
 
-## 0.9 - schemas worth promising
+## 0.9 - schemas worth promising (done)
+
+In 0.9.0: [the compatibility policy](reference/compatibility.md); files from
+0.1.0 and 0.2.0 read and resumed on every change; newer schema versions
+refused with an error that says to upgrade; the `--json` keys of every
+command held to a recorded contract. What was planned:
 
 The plan, state, workspace and CLI JSON formats are what users and other
 tools depend on. Before 1.0 they get an explicit stability policy, a schema
@@ -125,11 +130,22 @@ Until then the README keeps these under "Never run against Meta".
 
 ## 1.0 - distribution
 
-Only after the blocked group is done: a 1.0 that has never run against Meta
-would claim something it has not shown. Then a final name (it is still
-provisional, which [ADR-009](architecture/adr/ADR-009-distribution.md) lists
-as a reason not to publish), PyPI, a Codex marketplace entry, and plan and
-state schemas stable enough to promise migrations for.
+Everything that could be built without a test account, a connected session or
+a decision that belongs to the owner is in 0.9. What 1.0 still needs, each
+item with who can do it:
+
+| | Needs | Command, once available |
+| --- | --- | --- |
+| The live tests pass on a designated test ad account | a test account and a token | `META_ADS_LIVE_TESTS=1 ... uv run pytest -m live` |
+| The capability map matches a live MCP session | any connected session | `meta-ads-agent capabilities --compare tools.txt` |
+| The Codex plugin installs, on Linux and on Windows | a Codex install | [install-codex.md](getting-started/install-codex.md) |
+| The Windows CI job is green, then made blocking | the job's log, to fix what fails there | - |
+| The trigger evals have run once | an Anthropic API key, and the decision to spend on it | the *Trigger evals* workflow |
+| A final name | the owner's decision - the name is still provisional | - |
+| PyPI, and the plugin marketplaces | the owner's decision and accounts ([ADR-009](architecture/adr/ADR-009-distribution.md)) | [publishing.md](reference/publishing.md) |
+
+Only the owner can tag 1.0. A 1.0 that has never run against Meta would claim
+something it has not shown; the first row is the one that matters most.
 
 ## Ongoing
 
