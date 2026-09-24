@@ -1,0 +1,79 @@
+# ---------------------------------------------------------------------------
+# Example brand configuration — a filled-in .meta-ads/brand.yaml
+# ---------------------------------------------------------------------------
+# All ids are fake and chosen so they cannot be mistaken for real ones.
+# Blank template: skills/meta-ads-core/assets/brand.yaml
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+
+name: Acme Analytics
+website: https://acme.example.com
+default_destination_url: https://acme.example.com/webinar
+one_liner: The weekly report builds itself.
+
+account:
+  ad_account_id: act_0000000000000001
+  currency: PLN
+  timezone: Europe/Warsaw
+  page_id: "100000000000001"
+  instagram_account_id: "170000000000001"
+  dataset_id: "120000000000001"
+  conversion_event: LEAD
+  countries: [PL]
+  cta_type: SIGN_UP
+  objective: OUTCOME_LEADS
+
+naming:
+  campaign: "{brand} | {objective} | {date}"
+  ad_set: "{audience}"
+  ad: "{variant}"
+  date_format: "%Y-%m-%d"
+
+utm:
+  source: meta
+  medium: paid_social
+  campaign: "{offer}_{date}"
+  content: "{variant}"
+
+# Required for EU/EEA delivery. Legal entity names, not brand names — which is
+# exactly why these are configured rather than inferred.
+dsa:
+  beneficiary: Acme Analytics Sp. z o.o.
+  payor: Acme Analytics Sp. z o.o.
+  applies_to_eu_delivery: true
+
+# This advertiser's own business rules. Not Meta constraints, and not
+# media-buying folklore. A configured threshold is treated as binding.
+thresholds:
+  max_cpa_display: 80.0        # PLN per lead we will not exceed
+  min_roas: null               # not a revenue campaign
+  target_frequency_ceiling: 4.0
+  min_conversions_for_decision: 30
+  min_clicks_for_decision: 500
+  ctr_decline_pct_for_fatigue: 30.0
+
+banned_phrases:
+  - game changer
+  - revolutionary
+  - 10x your business
+
+claims_policy: >
+  We may say the report is generated automatically and cite the attendee count
+  from the last webinar. We have NOT measured hours saved, so no
+  time-saved figure may be claimed. No customer may be named without written
+  permission.
+
+# Empty asserts that no special ad category applies. That is a claim we are
+# making about our own ads, not a safe default.
+special_ad_category: []
+
+# Meta may alter creative automatically. Declared so it appears in every plan.
+advantage_defaults:
+  standard_enhancements: false
+
+profile: standard
+
+notes: >
+  Q4 focus is the webinar funnel. Retargeting is handled in a separate account,
+  so nothing here should target warm audiences.

@@ -528,6 +528,7 @@ covers one of our seven gaps is among the most useful things you can send:
 | [Capability refresh](docs/reference/capability-refresh.md) | keeping the map honest |
 | [API versioning](docs/reference/api-versioning.md) | Graph version policy |
 | [Workspace](docs/reference/workspace.md) | what `.meta-ads/` holds, and what to version |
+| [Compatibility](docs/reference/compatibility.md) | what an upgrade may change, and how that is tested |
 | [Privacy](docs/reference/privacy.md) | what is stored, and what never is |
 | [Publishing](docs/reference/publishing.md) | exact commands to push this to GitHub |
 | [Roadmap](docs/roadmap.md) | what comes next, and what waits for a test account |

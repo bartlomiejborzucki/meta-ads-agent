@@ -21,7 +21,12 @@ from enum import StrEnum
 
 from pydantic import Field, model_validator
 
-from meta_ads_agent.models._common import AccountId, StrictModel
+from meta_ads_agent.models._common import (
+    AccountId,
+    AssetManifestSchemaVersion,
+    StateSchemaVersion,
+    StrictModel,
+)
 
 
 class Stage(StrEnum):
@@ -140,7 +145,7 @@ class Failure(StrictModel):
 class CampaignState(StrictModel):
     """``.meta-ads/campaigns/<slug>/state.json``."""
 
-    schema_version: int = 1
+    schema_version: StateSchemaVersion = 1
     slug: str = Field(min_length=1)
     ad_account_id: AccountId
     plan_fingerprint: str | None = Field(
@@ -266,7 +271,7 @@ class AssetManifest(StrictModel):
     ambiguous.
     """
 
-    schema_version: int = 1
+    schema_version: AssetManifestSchemaVersion = 1
     updated_at: _dt.datetime = Field(default_factory=lambda: _dt.datetime.now(_dt.UTC))
     assets: dict[str, AssetRecord] = Field(default_factory=dict)
 

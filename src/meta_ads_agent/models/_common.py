@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Annotated, Any
 from urllib.parse import urlsplit
 
@@ -112,3 +113,42 @@ def dump_yaml_ready(model: BaseModel) -> dict[str, Any]:
     ``null`` noise.
     """
     return model.model_dump(mode="json", exclude_none=True)
+
+
+def _schema_check(current: int) -> Callable[[int], int]:
+    """A ``schema_version`` check that refuses a file from a newer release.
+
+    Pydantic would otherwise read ``schema_version: 2`` as a number like any
+    other and carry on, interpreting a newer format by the older rules - the
+    silent misreading a version field exists to prevent. An older version is
+    accepted: reading those is what the compatibility policy promises
+    (docs/reference/compatibility.md).
+    """
+
+    def check(value: int) -> int:
+        if value < 1:
+            raise ValueError(f"schema_version must be 1 or more, got {value}")
+        if value > current:
+            raise ValueError(
+                f"schema_version {value} was written by a newer meta-ads-agent; this "
+                f"one reads up to {current}. Upgrade (meta-ads-agent upgrade) rather "
+                "than editing the file down."
+            )
+        return value
+
+    return check
+
+
+# Current schema of each user-facing file. A bump needs a migration, a
+# changelog entry, and a fixture of the old shape in tests/fixtures/.
+PLAN_SCHEMA = 1
+STATE_SCHEMA = 1
+BRAND_SCHEMA = 1
+OFFER_SCHEMA = 1
+ASSET_MANIFEST_SCHEMA = 1
+
+PlanSchemaVersion = Annotated[int, AfterValidator(_schema_check(PLAN_SCHEMA))]
+StateSchemaVersion = Annotated[int, AfterValidator(_schema_check(STATE_SCHEMA))]
+BrandSchemaVersion = Annotated[int, AfterValidator(_schema_check(BRAND_SCHEMA))]
+OfferSchemaVersion = Annotated[int, AfterValidator(_schema_check(OFFER_SCHEMA))]
+AssetManifestSchemaVersion = Annotated[int, AfterValidator(_schema_check(ASSET_MANIFEST_SCHEMA))]

@@ -35,6 +35,7 @@ from meta_ads_agent.models._common import (
     HttpUrl,
     MetaEnum,
     MetaId,
+    PlanSchemaVersion,
     PostId,
     StrictModel,
     looks_like_video,
@@ -550,7 +551,7 @@ class CampaignPlanDocument(StrictModel):
     itself stays a clean description of the desired structure.
     """
 
-    schema_version: int = 1
+    schema_version: PlanSchemaVersion = 1
     slug: Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9-]{0,62}$")] = Field(
         description="Directory-safe identifier for this campaign's workspace"
     )

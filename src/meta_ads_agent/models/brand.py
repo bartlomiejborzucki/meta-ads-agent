@@ -19,11 +19,13 @@ from pydantic import Field, model_validator
 
 from meta_ads_agent.models._common import (
     AccountId,
+    BrandSchemaVersion,
     CountryCode,
     CurrencyCode,
     HttpUrl,
     MetaEnum,
     MetaId,
+    OfferSchemaVersion,
     StrictModel,
 )
 
@@ -136,7 +138,7 @@ class AccountDefaults(StrictModel):
 class BrandConfig(StrictModel):
     """``.meta-ads/brand.yaml``."""
 
-    schema_version: int = 1
+    schema_version: BrandSchemaVersion = 1
     name: str = Field(min_length=1, description="Brand name, used in generated object names")
     website: HttpUrl | None = None
     default_destination_url: HttpUrl | None = None
@@ -194,7 +196,7 @@ class Offer(StrictModel):
     does not get filled in.
     """
 
-    schema_version: int = 1
+    schema_version: OfferSchemaVersion = 1
     name: str = Field(min_length=1)
     landing_page: HttpUrl
     audience: str = Field(min_length=1, description="Who this is for, in plain language")
