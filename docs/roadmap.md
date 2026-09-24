@@ -65,15 +65,40 @@ Two items did not happen as planned:
 - **A real Codex install** is still not done: there is no Codex on the
   machine this was built on. It moves to the blocked group below.
 
-## 0.6 and later - new capability
+## 0.6 - creative formats (done)
 
-In the README's order: carousel creatives; placement-specific assets
-(`AssetRef.placement`, refused by the validator until then); Instagram
-existing-post campaigns through `ads_boost_ig_post`; lookalike audience workflows; A/B tests through
-`ads_experiment_*`, with the approval treatment a delivery split needs;
-catalog and dynamic ads; more than one ad account per workspace. An opt-in
-MCP proxy that enforces the approval model is the change to revisit if the
-advisory model proves insufficient ([ADR-001](architecture/adr/ADR-001-mcp-first.md)).
+In 0.6.0: carousel creatives (2 to 10 cards), Instagram existing-post creatives
+built inert rather than boosted, and placement-specific assets through asset
+customisation rules. The carousel grows the fallback, argued in
+[ADR-010](architecture/adr/ADR-010-carousel-and-instagram-posts.md), which
+also records why an Instagram post is not boosted: Meta does not document a
+paused boost.
+
+## 0.7 - audiences and experiments
+
+Workflows over what the MCP already covers, with the approval treatment each
+needs.
+
+- **Lookalike audiences:** source selection (size, recency, event quality),
+  country and ratio choice, and what to say when a source is too small. The
+  MCP creates them; the skill decides what to create and asks first.
+- **A/B tests and lift studies** through `ads_experiment_*`. A test splits
+  live delivery, so creating one is at least `update_active`: the plan names
+  the cells, the metric, the duration, and the minimum detectable effect it
+  can resolve at the current volume - computed, not guessed.
+
+## 0.8 - catalogs and more than one account
+
+- **Catalog and dynamic ads:** a skill workflow over the 34 `ads_catalog_*`
+  tools - catalog health first, then product sets, then a catalog campaign.
+- **More than one ad account per workspace**, with every plan, state file and
+  asset record already keyed by account.
+
+## 0.9 - schemas worth promising
+
+The plan, state, workspace and CLI JSON formats are what users and other
+tools depend on. Before 1.0 they get an explicit stability policy, a schema
+version check on read, and migrations tested from every earlier version.
 
 ## Blocked on a test account
 

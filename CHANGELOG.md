@@ -9,6 +9,38 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.6.0] - 2026-09-24
+
+**Creative formats.** `MIGRATION: none required`; 0.2 fingerprints still
+resume, because the new `cards` field is left out of their recomputation.
+
+### Added
+
+- **Carousel creatives.** `mode: carousel` with 2 to 10 cards; `api
+  create-creative --carousel --cards FILE`. Card order is kept. A new
+  fallback capability, argued in
+  [ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md).
+- **Instagram existing posts.** `mode: existing_post` with
+  `instagram_media_id` and `instagram_account_id`; `api create-creative
+  --post --instagram-media-id`. Built as an inert creative, not a boost:
+  Meta does not document whether `ads_boost_ig_post` can create a paused
+  boost.
+- **Placement-specific assets.** `placement` on an asset in `mode:
+  multi_variant` becomes an asset customisation rule; `api create-creative
+  --variants --placement ASSET=PLACEMENT`. At least one asset stays
+  unpinned as the default.
+- `api create-creative --variants --variants-file FILE`: more than one copy
+  variant from the CLI.
+- Contract tests and live tests for each new request shape.
+
+### Changed
+
+- `placement` outside `mode: multi_variant` is refused by the plan model;
+  the validator's `asset.placement_unsupported` is gone because placements
+  are now built.
+- The fallback covers seven capabilities; the skills, README, routing
+  reference and capability-refresh guide say so.
+
 ## [0.5.0] - 2026-09-23
 
 **Verification without a test account.** `MIGRATION: none required`.
@@ -496,7 +528,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.2.1...v0.3.0
