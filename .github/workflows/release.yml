@@ -25,13 +25,15 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install
-        run: uv sync --extra dev
+        # The api extra, so the contract tests against the real SDK run here
+        # too; without it they skip, and a release would ship unchecked.
+        run: uv sync --extra dev --extra api
 
       - name: Tests, lint, types
         run: |
           uv run pytest -m "not live"
-          uv run ruff format --check src tests
-          uv run ruff check src tests
+          uv run ruff format --check src tests scripts
+          uv run ruff check src tests scripts
           uv run mypy
 
       - name: Templates, examples, manifests
@@ -42,6 +44,7 @@ jobs:
           uv run python scripts/check_gitignore.py
           uv run python scripts/sync_skill_blocks.py --check
           uv run python scripts/check_skill_packaging.py
+          uv run python scripts/build_mcp_tool_inventory.py --check
 
       - name: The packaged tree is the tree that was checked
         # A release whose manifest disagrees with the payload cannot tell a
@@ -57,8 +60,9 @@ jobs:
           declared=$(uv run python -c "import meta_ads_agent; print(meta_ads_agent.__version__)")
           manifest=$(python3 -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
           codex=$(python3 -c "import json;print(json.load(open('.codex-plugin/plugin.json'))['version'])")
-          echo "tag=$tag package=$declared claude=$manifest codex=$codex"
-          for value in "$declared" "$manifest" "$codex"; do
+          release=$(python3 -c "import json;print(json.load(open('release-manifest.json'))['version'])")
+          echo "tag=$tag package=$declared claude=$manifest codex=$codex release-manifest=$release"
+          for value in "$declared" "$manifest" "$codex" "$release"; do
             if [ "$value" != "$tag" ]; then
               echo "error: version mismatch — tag $tag, found $value"
               exit 1
@@ -133,7 +137,9 @@ jobs:
   github-release:
     name: GitHub release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A tag push only: a manual run on an existing tag (to publish to PyPI)
+    # would otherwise try to create a release that already exists, and fail.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -157,6 +163,10 @@ jobs:
             found && /^## \[/ {exit}
             found {print}
           ' CHANGELOG.md > /tmp/notes.md
+          if [ "$(wc -l < /tmp/notes.md)" -lt 2 ]; then
+            echo "::error::no changelog section for $version to use as release notes"
+            exit 1
+          fi
           prerelease=""
           case "$version" in
             0.*) prerelease="--prerelease" ;;

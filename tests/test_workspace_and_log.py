@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import posix_only
 from meta_ads_agent.capabilities import Provider, RiskLevel
 from meta_ads_agent.errors import WorkspaceError
 from meta_ads_agent.state.actionlog import ActionLog, ActionRecord
@@ -281,6 +282,7 @@ class TestPathSafety:
 
 
 class TestFilePermissions:
+    @posix_only
     def test_written_files_are_owner_only(self, workspace: Workspace) -> None:
         """Account ids and performance data should not be world-readable."""
         import stat

@@ -20,6 +20,14 @@ from meta_ads_agent.models.plan import CampaignPlanDocument
 from meta_ads_agent.validation import AccountContext
 from meta_ads_agent.workspace import Workspace
 
+# POSIX file semantics the tests check directly: owner-only modes, exec bits,
+# unreadable files, a bare /usr/bin:/bin PATH. Windows has none of them, and
+# the code under test does not claim otherwise - so on Windows these skip,
+# with the reason, rather than fail for a property the platform lacks.
+posix_only = pytest.mark.skipif(
+    sys.platform == "win32", reason="checks a POSIX file property Windows does not have"
+)
+
 # Obviously-fake credentials. Deliberately not shaped like real Meta tokens so
 # a secret scanner does not flag the test suite, and so nobody can mistake one
 # for a working value.

@@ -30,7 +30,9 @@ import datetime as _dt
 import json
 import os
 import re
+import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -65,6 +67,26 @@ def slugify(text: str) -> str:
     return slug
 
 
+def _replace(source: Path, destination: Path) -> None:
+    """``os.replace``, with Windows' sharing rules taken into account.
+
+    On Windows the replace fails with PermissionError while any other process
+    has the destination open - another session reading the same state file,
+    say, or a virus scanner. The reader closes within milliseconds, so a few
+    short retries succeed where one attempt would fail the whole write.
+    Elsewhere a replace does not wait for readers, and one attempt is right.
+    """
+    attempts = 20 if sys.platform == "win32" else 1
+    for attempt in range(attempts):
+        try:
+            os.replace(source, destination)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05)
+
+
 def atomic_write(path: Path, content: str) -> None:
     """Write via a temporary file and :func:`os.replace`.
 
@@ -81,7 +103,7 @@ def atomic_write(path: Path, content: str) -> None:
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(tmp, path)
+        _replace(tmp, path)
     except BaseException:
         tmp.unlink(missing_ok=True)
         raise

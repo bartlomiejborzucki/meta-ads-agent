@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import write_png
+from conftest import posix_only, write_png
 from meta_ads_agent.errors import StateError, ValidationError
 from meta_ads_agent.models.state import ObjectType
 from meta_ads_agent.state.assets import (
@@ -230,6 +230,7 @@ class TestAdversarialInput:
         with pytest.raises(ValidationError):
             probe_asset(target)
 
+    @posix_only
     def test_an_unreadable_file_raises_our_error_not_a_bare_oserror(self, tmp_path: Path) -> None:
         import os
 

@@ -1,0 +1,7 @@
+# Every text file is stored and checked out with LF line endings.
+#
+# release-manifest.json pins the SHA-256 of every shipped file, and the
+# install and upgrade paths verify against it. A Windows checkout with
+# core.autocrlf would rewrite those files with CRLF, change every hash, and
+# make a clean checkout look like a broken installation.
+* text=auto eol=lf

@@ -75,8 +75,10 @@ class TestFileLock:
             raise OSError(errno.ENOLCK, "No locks available")
 
         monkeypatch.setattr(fcntl, "flock", refuse)
+        ran = []
         with file_lock(tmp_path / "x.json", timeout=0.2):
-            pass
+            ran.append(True)
+        assert ran == [True]
 
 
 class TestConcurrentWriters:

@@ -27,6 +27,7 @@ from pathlib import Path, PureWindowsPath
 
 import pytest
 
+from conftest import posix_only
 from meta_ads_agent.errors import ConfigError
 from meta_ads_agent.install import packaged
 from meta_ads_agent.install.engine import apply_install, plan_install
@@ -446,6 +447,7 @@ class TestOAuthOpensWindowsChrome:
                 bridge.open_url(hostile)
 
 
+@posix_only
 class TestCommandsRunThroughWsl:
     """What Codex on Windows invokes is ``wsl.exe -- <command>``.
 

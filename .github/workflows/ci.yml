@@ -79,7 +79,7 @@ jobs:
         with:
           enable-cache: true
       - name: Install
-        run: uv sync --extra dev
+        run: uv sync --extra dev --extra api
       - name: Unit tests
         run: uv run pytest -m "not live"
 

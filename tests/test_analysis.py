@@ -295,10 +295,14 @@ class TestReportCommand:
     def test_pacing_needs_exactly_one_budget(
         self, insights: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemExit) as missing:
             main(["report", "pacing", str(insights)])
-        with pytest.raises(SystemExit):
+        assert missing.value.code == 2
+        assert "--daily-budget" in capsys.readouterr().err
+        with pytest.raises(SystemExit) as zero:
             main(["report", "pacing", str(insights), "--daily-budget", "0"])
+        assert zero.value.code == 2
+        assert "must be positive" in capsys.readouterr().err
 
     def test_lifetime_pacing_needs_its_schedule(
         self, insights: Path, capsys: pytest.CaptureFixture[str]
@@ -312,6 +316,7 @@ class TestReportCommand:
         bad = tmp_path / "bad.json"
         bad.write_text("{not json")
         assert main(["report", "compare", str(bad), "--days", "7"]) == 2
+        assert "not valid JSON" in capsys.readouterr().err
 
 
 class TestPower:

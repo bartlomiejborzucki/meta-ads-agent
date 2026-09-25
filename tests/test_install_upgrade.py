@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import posix_only
 from meta_ads_agent import __version__
 from meta_ads_agent.errors import StateError
 from meta_ads_agent.install import packaged
@@ -253,6 +254,7 @@ class TestNewScriptBetweenVersions:
         assert script.is_file()
         assert "stamped" in script.read_text(encoding="utf-8")
 
+    @posix_only
     def test_the_script_keeps_its_executable_bit(self, with_script, target) -> None:
         script = target.root / "meta-ads-core" / "scripts" / "migrate_schema.py"
         assert script.stat().st_mode & stat.S_IXUSR
