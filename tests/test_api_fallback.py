@@ -580,3 +580,20 @@ class TestDeletion:
             reason="test",
         )
         assert sdk.deletes == [f"{kind}:120"]
+
+
+def test_a_thumbnail_without_a_uri_is_not_sent_as_the_string_none(
+    sdk: Recorder, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sys
+
+    fake = sys.modules["facebook_business.adobjects.advideo"].AdVideo
+    monkeypatch.setattr(
+        fake,
+        "get_thumbnails",
+        lambda self, fields=None: [{"uri": None, "is_preferred": True}],
+        raising=False,
+    )
+    from meta_ads_agent.api.creatives import _pick_video_thumbnail
+
+    assert _pick_video_thumbnail(ApiClient(), "700000000000001") is None

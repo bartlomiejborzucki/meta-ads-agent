@@ -343,6 +343,24 @@ class CreativePlan(StrictModel):
         refs += [(f"cards[{i}].asset", c.asset) for i, c in enumerate(self.cards)]
         return refs
 
+    def _check_pinned_assets(self) -> None:
+        """What the write path refuses, refused before anything is created."""
+        if all(a.placement for a in self.assets):
+            raise ValueError(
+                "every asset is pinned to a placement, so nothing would serve in the "
+                "others. Leave at least one asset unpinned as the default."
+            )
+        seen: dict[str, str | None] = {}
+        for asset in self.assets:
+            key = asset.local_path or asset.image_hash or asset.video_id or ""
+            if key in seen and seen[key] != asset.placement:
+                raise ValueError(
+                    f"asset {key!r} is listed twice with different placements "
+                    f"({seen[key] or 'unpinned'} and {asset.placement or 'unpinned'}); "
+                    "an asset serves under one rule only"
+                )
+            seen[key] = asset.placement
+
     @model_validator(mode="after")
     def _mode_requirements(self) -> CreativePlan:
         if self.cards and self.mode is not CreativeMode.CAROUSEL:
@@ -351,6 +369,8 @@ class CreativePlan(StrictModel):
             raise ValueError(
                 f"instagram_media_id is only valid with mode=existing_post, not {self.mode.value}"
             )
+        if self.mode is CreativeMode.MULTI_VARIANT and any(a.placement for a in self.assets):
+            self._check_pinned_assets()
         if self.mode is not CreativeMode.MULTI_VARIANT and any(a.placement for a in self.assets):
             raise ValueError(
                 f"placement on an asset needs mode=multi_variant, where it becomes an "

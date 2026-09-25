@@ -445,7 +445,11 @@ def _pick_video_thumbnail(client: ApiClient, video_id: str) -> str | None:
         return None
     if not candidates:
         return None
-    for candidate in candidates:
-        if candidate.get("is_preferred"):
-            return str(candidate.get("uri")) or None
-    return str(candidates[0].get("uri")) or None
+    # str(None) is "None", which is truthy: a thumbnail with no uri would have
+    # been sent to Meta as image_url "None".
+    preferred = [c for c in candidates if c.get("is_preferred")]
+    for candidate in [*preferred, *candidates]:
+        uri = candidate.get("uri")
+        if uri:
+            return str(uri)
+    return None

@@ -439,6 +439,34 @@ class TestCarouselAndInstagram:
             build(mutate)
 
 
+class TestPinnedAssets:
+    @staticmethod
+    def _multi(assets):  # type: ignore[no-untyped-def]
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+            creative["mode"] = "multi_variant"
+            creative["assets"] = assets
+
+        return mutate
+
+    def test_pinning_every_asset_is_refused_before_the_write(self) -> None:
+        with pytest.raises(ValidationError, match="at least one asset unpinned"):
+            build(self._multi([{"image_hash": "a", "placement": "instagram_stories"}]))
+
+    def test_one_asset_with_two_placements_is_refused(self) -> None:
+        assets = [
+            {"image_hash": "a"},
+            {"image_hash": "b", "placement": "instagram_stories"},
+            {"image_hash": "b"},
+        ]
+        with pytest.raises(ValidationError, match="listed twice with different placements"):
+            build(self._multi(assets))
+
+    def test_a_sound_pinned_set_is_accepted(self) -> None:
+        assets = [{"image_hash": "a"}, {"image_hash": "b", "placement": "instagram_stories"}]
+        assert build(self._multi(assets))
+
+
 class TestSchedule:
     def test_end_before_start_is_rejected(self) -> None:
         def mutate(raw):  # type: ignore[no-untyped-def]

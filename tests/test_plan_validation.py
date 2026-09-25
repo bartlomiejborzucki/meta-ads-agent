@@ -563,6 +563,22 @@ class TestCarouselValidation:
         assert "destination.not_public" in codes(report, Severity.ERROR)
 
 
+class TestPinnedPlacementsAgainstTheAdSet:
+    def test_a_pin_to_an_untargeted_placement_blocks(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            ad_set = raw["campaign"]["ad_sets"][0]
+            ad_set["placements"] = {"mode": "manual", "positions": ["facebook_feed"]}
+            creative = ad_set["ads"][0]["creative"]
+            creative["mode"] = "multi_variant"
+            creative["assets"] = [
+                {"image_hash": "a"},
+                {"image_hash": "b", "placement": "instagram_stories"},
+            ]
+
+        report = validate_plan(build(mutate), check_assets=False)
+        assert "asset.placement_not_targeted" in codes(report, Severity.ERROR)
+
+
 class TestAssetChecks:
     def test_a_valid_image_is_reported_with_its_fingerprint(self, tmp_path: Path) -> None:
         image = write_png(tmp_path / "ok.png", 1200, 628)

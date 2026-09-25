@@ -60,6 +60,23 @@ def check_utm_applied(ad_set: AdSetPlan, prefix: str, report: ValidationReport) 
                 )
 
 
+def check_pinned_placements(ad_set: AdSetPlan, prefix: str, report: ValidationReport) -> None:
+    """An asset pinned to a placement the ad set does not use never serves."""
+    if ad_set.placements.mode != "manual":
+        return
+    positions = set(ad_set.placements.positions)
+    for ad_index, ad in enumerate(ad_set.ads):
+        for asset_index, asset in enumerate(ad.creative.assets):
+            if asset.placement and asset.placement not in positions:
+                report.add(
+                    Severity.ERROR,
+                    "asset.placement_not_targeted",
+                    f"this asset is pinned to {asset.placement}, but the ad set's manual "
+                    f"placements are {sorted(positions)}, so it would never serve",
+                    f"{prefix}.ads[{ad_index}].creative.assets[{asset_index}].placement",
+                )
+
+
 def check_names_unique(doc: CampaignPlanDocument, report: ValidationReport) -> None:
     """Duplicate names are legal on Meta but make later reporting ambiguous."""
     ad_set_names = [a.name for a in doc.campaign.ad_sets]
@@ -116,6 +133,7 @@ def check_ad_set(
     check_bid(ad_set, prefix, doc.campaign.currency, account, report)
     check_audiences(ad_set, prefix, account, report)
     check_utm_applied(ad_set, prefix, report)
+    check_pinned_placements(ad_set, prefix, report)
 
     for ad_index, ad in enumerate(ad_set.ads):
         check_creative(ad.creative, f"{prefix}.ads[{ad_index}].creative", account, report)
