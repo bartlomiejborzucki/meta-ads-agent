@@ -493,6 +493,12 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
 
+    # The optional ./.env for the API fallback's META_* settings; the
+    # environment always wins (meta_ads_agent.envfile).
+    from meta_ads_agent import envfile
+
+    envfile.apply()
+
     # Imported here, not at module level: the packaging checks load this
     # module for its argument parser under a bare Python, with no pydantic.
     from pydantic import ValidationError as PydanticValidationError

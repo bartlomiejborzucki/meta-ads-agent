@@ -16,6 +16,7 @@ from typing import Any
 
 import pytest
 
+from meta_ads_agent import envfile
 from meta_ads_agent.models.plan import CampaignPlanDocument
 from meta_ads_agent.validation import AccountContext
 from meta_ads_agent.workspace import Workspace
@@ -33,6 +34,19 @@ posix_only = pytest.mark.skipif(
 # for a working value.
 FAKE_TOKEN = "test-not-a-real-token-0000"
 FAKE_APP_SECRET = "test-not-a-real-secret-0000"
+
+
+# The real loader, kept for tests of it; everywhere else it is a no-op, so a
+# developer's own .env (with a real token) never reaches a test that runs the
+# CLI from the repository.
+REAL_DOTENV_APPLY = envfile.apply
+
+
+@pytest.fixture(autouse=True)
+def _no_developer_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(envfile, "apply", lambda directory=None: ())
+    monkeypatch.setattr(envfile, "loaded_from", None)
+    monkeypatch.setattr(envfile, "loaded_keys", ())
 
 
 @pytest.fixture

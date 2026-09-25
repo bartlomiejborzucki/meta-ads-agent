@@ -350,7 +350,18 @@ def _check_fallback(diagnosis: Diagnosis) -> None:
         None if sdk_present else 'uv pip install "meta-ads-agent[api]"',
     )
 
-    token = os.environ.get("META_ACCESS_TOKEN", "")
+    from meta_ads_agent import envfile
+
+    if envfile.loaded_from is not None:
+        diagnosis.add(
+            ".env",
+            "OK",
+            f"read {envfile.loaded_from}: {', '.join(envfile.loaded_keys) or 'nothing new'}"
+            " (the environment wins where both set a value)",
+        )
+    # Stripped the way ApiClient strips it, so the fingerprint shown is the
+    # token that will be used, and a whitespace-only value reads as unset.
+    token = os.environ.get("META_ACCESS_TOKEN", "").strip()
     diagnosis.add(
         "META_ACCESS_TOKEN",
         "OK" if token else "OPTIONAL",
