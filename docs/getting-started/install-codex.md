@@ -182,7 +182,8 @@ anything that needs it.
 | Audits, reporting, Ad Library research, previews, tracking diagnosis, creative, optimisation diagnosis and the MCP-side changes that follow it | works fully |
 | The `.meta-ads/` workspace | works - the agent writes the files from the templates in the `meta-ads-core` skill's `assets/` |
 | **Campaign builds** | **stops at the plan.** Plan validation is the gate before the first write, and it is the CLI's job |
-| Local image and video upload, video / existing-post / multi-variant creatives, deletion | not available - these are the CLI's only reason to exist |
+| Local image and video upload, video / existing-post / multi-variant / carousel creatives, deletion | not available - these are what the fallback is for |
+| `report` compare, fatigue, pacing and power | done by hand from the written rules instead |
 
 When a campaign build hits that wall the agent stops before creating anything
 and offers the routes forward: run the validator through `uvx` without

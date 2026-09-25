@@ -6,7 +6,7 @@ it, the thing an agent host copies onto a user's machine is a folder with a
 folder.
 
 This is easy to get wrong from a checkout, because in a checkout everything
-resolves. `docs/`, `templates/`, `config/` and the other eight skills are all
+resolves. `docs/`, `templates/`, `config/` and the other eleven skills are all
 one relative path away, and a reference to any of them looks fine until the
 folder is copied somewhere on its own.
 
@@ -68,8 +68,8 @@ if a `templates/` directory reappears at the root.
 
 **Shared prose is generated.** A few passages genuinely belong in more than
 one skill - the preflight checks above all, and the policy for building
-without the CLI. Copying them by hand across nine files is how nine files end
-up saying eight different things, so the single copy lives in
+without the CLI. Copying them by hand across twelve files is how twelve files
+end up saying eleven different things, so the single copy lives in
 `packaging/shared/<name>.md` and
 [`scripts/sync_skill_blocks.py`](../../scripts/sync_skill_blocks.py) renders
 it between markers in each `SKILL.md`:
@@ -96,8 +96,9 @@ diagnosis, and the MCP-side changes that follow it. The workspace files under
 `skills/meta-ads-core/assets/`.
 
 What does not: campaign plan validation, and therefore campaign builds; local
-image and video upload; video, existing-post and multi-variant creatives; and
-deletion.
+image and video upload; video, existing-post, multi-variant and carousel
+creatives; deletion; and the `report` arithmetic, which the skills can do by
+hand instead.
 
 **Campaign writes stop without the validator.** Plan validation catches the
 class of error that is invisible to a careful reader - minor-unit currency
@@ -172,7 +173,7 @@ with the stage it reached. An update killed at any point therefore leaves an
 installation that knows it is half way, and `doctor` says so:
 
 ```
-INTERRUPTED   an update from 0.1.0 to 0.2.0 stopped during 'swap'
+INTERRUPTED   an update from 0.9.0 to 1.0.0 stopped during 'swap'
 ```
 
 Re-running `upgrade` finishes it; the staging directory is rebuilt from the

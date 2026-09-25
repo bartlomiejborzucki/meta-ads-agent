@@ -3,7 +3,7 @@
 **You probably do not need this.** If everything you do is covered by Meta's
 official Ads MCP, you never need a token, an app secret, or this page.
 
-Set it up when you want one of six specific things.
+Set it up when you want one of seven specific things.
 
 ## What the fallback covers
 
@@ -16,8 +16,9 @@ meta-ads-agent capabilities --gaps
 | Upload a local image | `api upload-image` | `ads_get_ad_images` lists images already on the account. No MCP tool ingests a file. |
 | Upload a local video | `api upload-video` | Same gap, plus Meta transcodes asynchronously so the upload must wait for processing. |
 | Video creative | `api create-creative --video` | `ads_create_creative` is documented as single-image link creatives only. |
-| Facebook Page existing-post creative | `api create-creative --post` | `ads_boost_ig_post` covers Instagram; a Page post has no equivalent. |
-| Multi-variant creative | `api create-creative --variants` | Several copy variants need `asset_feed_spec`, which the MCP does not expose. |
+| Existing-post creative | `api create-creative --post` | A Facebook Page post has no MCP tool. An Instagram post has `ads_boost_ig_post`, but Meta does not document a paused boost, so it is built as an inert creative ([ADR-010](../architecture/adr/ADR-010-carousel-and-instagram-posts.md)). |
+| Multi-variant or placement-specific creative | `api create-creative --variants` | Several copy variants, or assets pinned to placements, need `asset_feed_spec`, which the MCP does not expose. |
+| Carousel creative | `api create-creative --carousel` | `ads_create_creative` makes single-image creatives; a carousel's cards need `child_attachments`. |
 | Delete a campaign, ad set, or ad | `api delete` | No MCP delete tool. Prefer pausing anyway. |
 
 Everything else - campaigns, ad sets, ads, single-image creatives, previews,
@@ -59,9 +60,16 @@ password.
 
 ## Configure
 
+Either export the variables in your shell, or put them in a `.env` file in the
+directory you run the CLI from - it reads `./.env` at start-up, and a variable
+already in your environment wins. From a checkout of this repository:
+
 ```bash
 cp .env.example .env
 ```
+
+Installed with `uv tool install` rather than cloned? Create `.env` by hand with
+the lines below; only the `META_*` keys are read from it.
 
 ```bash
 META_ACCESS_TOKEN=<your token>

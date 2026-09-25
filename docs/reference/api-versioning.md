@@ -76,6 +76,6 @@ necessary it must:
 - use the configured version explicitly - never a hardcoded path segment
 - be covered by a test
 
-As of 0.1.0 there are none. The SDK covers every fallback capability, including
+As of 1.0 there are none. The SDK covers every fallback capability, including
 chunked video upload and processing-status polling, which is precisely why we
 use it - see [ADR-002](../architecture/adr/ADR-002-api-fallback.md).

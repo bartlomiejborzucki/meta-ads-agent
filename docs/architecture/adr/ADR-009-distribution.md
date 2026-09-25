@@ -13,7 +13,8 @@ install`, or Codex's `/plugins`. This is what most users need, and it requires
 nothing from us but a tagged repository.
 
 **The CLI** - the Python package. Needed only for `doctor`, `init`,
-`capabilities`, `validate-plan`, `state`, and the six fallback capabilities.
+`capabilities`, `validate-plan`, `state`, and the fallback capabilities (six
+at the time; seven since ADR-010).
 A user whose work is entirely covered by Meta's official MCP never installs it.
 
 Publishing to PyPI would shorten the CLI install from a git clone to

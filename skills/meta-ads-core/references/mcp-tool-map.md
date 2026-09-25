@@ -54,7 +54,7 @@ needed.
 | `ads_get_ad_images` | Images **already uploaded**. Not an upload tool. |
 | `ads_get_ad_videos` | Videos already uploaded. Not an upload tool. |
 | `ads_get_ad_preview` | Render a placement preview. Use it before every activation. |
-| `ads_boost_ig_post` | Promote an existing Instagram post |
+| `ads_boost_ig_post` | Promote an existing Instagram post. **Not the build path:** Meta does not document a paused boost, so an Instagram post is built as an inert creative through the fallback (ADR-010) |
 
 ## Insights and diagnosis
 

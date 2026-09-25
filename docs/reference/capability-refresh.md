@@ -81,7 +81,7 @@ Edit `config/capabilities.yaml`:
   mcp_tools: [ads_upload_video]        # the tool you verified
   deprecated_fallback: true
   deprecated_since: 2026-11-xx
-  removal_target: 0.3.0
+  removal_target: 1.4.0               # one minor after the deprecation (compatibility.md)
   last_reviewed: 2026-11-xx
   notes: >
     Meta added ads_upload_video, verified <date>. The SDK fallback is

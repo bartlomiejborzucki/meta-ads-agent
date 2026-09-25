@@ -44,6 +44,7 @@ logs, Ad Library - belongs to the MCP.
 | Capability | Note |
 | --- | --- |
 | Lead form creation or reading | No MCP tool. A campaign can still use a form id the user supplies. |
+| Catalog (dynamic) ad creative | A template creative, which `ads_create_creative` is not documented to build; catalogs stay MCP-only. Prepare the catalog with `meta-ads-catalog`, build the ad in Ads Manager. |
 | Automated rules | No MCP tool, and out of scope: an autonomous spend optimiser contradicts the approval model. |
 | Partnership / branded-content ads | Out of scope. |
 

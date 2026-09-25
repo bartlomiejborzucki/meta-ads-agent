@@ -227,7 +227,7 @@ SHA-256 matches the manifest.
 ## mcp-config
 
 ```bash
-meta-ads-agent mcp-config --client-id APP_ID [--config FILE | --windows
+meta-ads-agent mcp-config [--client-id APP_ID] [--config FILE | --windows
   [--windows-home DIR]] [--dry-run] [--json]
 ```
 
@@ -235,7 +235,8 @@ Writes the `[mcp_servers.meta-ads]` block into a Codex `config.toml` - by
 default `~/.codex/config.toml`, with `--windows` the Windows profile's copy
 from inside WSL. Only that block is written; every other line, including
 other servers and comments, is preserved byte for byte. The client id is your
-Meta App ID, not a secret.
+Meta App ID, not a secret. Without `--client-id` the block is written with no
+client id, and a warning says Meta will need one.
 
 ## open-url
 
@@ -254,8 +255,9 @@ for you to open by hand. See
 ## api
 
 The fallback. Needs the `api` extra and `META_ACCESS_TOKEN`. Every subcommand
-takes `--json` and `--dry-run`; every one except `delete` takes `--account`
-(`123` and `act_123` are the same account). With no `--account` and no
+takes `--json` and `--dry-run`, and every one except `delete` uses `--account`
+(`delete` accepts it and ignores it: the object's id already names its
+account). `123` and `act_123` are the same account. With no `--account` and no
 `META_AD_ACCOUNT_ID`, a real call is refused before anything is sent.
 
 **Dry runs of uploads and creatives work before any credentials exist** -

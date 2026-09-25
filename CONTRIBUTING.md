@@ -7,7 +7,7 @@ so they are stated up front rather than discovered in review.
 
 **1. MCP first.** Meta's official Ads MCP is the execution layer for everything
 it covers. A change that adds a local implementation of something the MCP
-already does will be declined. The fallback exists for six specific gaps and is
+already does will be declined. The fallback exists for seven specific gaps and is
 expected to **shrink** - see
 [ADR-002](docs/architecture/adr/ADR-002-api-fallback.md).
 
@@ -79,8 +79,8 @@ here. So a relative path inside a skill must resolve inside that same skill.
 Cross-skill and repository pointers are named in prose plus an absolute URL -
 never a path that only resolves in a checkout.
 
-Shared passages are generated rather than copied, so nine files cannot end up
-saying eight different things. Edit `packaging/shared/<name>.md`, never the
+Shared passages are generated rather than copied, so twelve files cannot end
+up saying eleven different things. Edit `packaging/shared/<name>.md`, never the
 rendered block in a `SKILL.md`.
 
 ```bash

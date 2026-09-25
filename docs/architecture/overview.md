@@ -58,7 +58,7 @@ The agent calls the MCP itself. The fallback CLI is a sibling, not a proxy — s
 
 | Skill | Posture | Job |
 | --- | --- | --- |
-| `meta-ads-core` | — | Routing, safety policy, approval classes, workspace, state, error recovery. Every other skill assumes it. |
+| `meta-ads-core` | — | Routing, safety policy, approval classes, workspace, state, error recovery. Every other skill refers to it, and repeats the rules it cannot work without, so each still works alone. |
 | `meta-ads-audit` | read-only | Inspect an account. Separate fact from interpretation from recommendation. |
 | `meta-ads-campaign` | write, gated | Intent -> plan -> validate -> create PAUSED -> verify -> persist. |
 | `meta-ads-creative` | read/plan | Genuinely distinct angles, copy, CTA. Reads brand voice. Never invents evidence. |
@@ -155,7 +155,7 @@ See [ADR-002](adr/ADR-002-api-fallback.md) and
 No API logic in `SKILL.md`. No media-buying strategy in Python. See
 [ADR-008](adr/ADR-008-deterministic-vs-agent-layer.md).
 
-## Deliberate non-goals for 0.1.0
+## Deliberate non-goals
 
 No database, no web server, no web UI, no background daemon, no raw "execute any Graph call"
 escape hatch, no autonomous budget changes. Local files and a CLI are sufficient, and each

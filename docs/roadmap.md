@@ -31,8 +31,8 @@ Two items were looked at and deliberately not done:
   dependency cannot break an unrelated command. Registering from each module
   would import all of them at startup.
 
-`AssetRef.placement` was not built either. It is refused by the validator
-until it is real, and stays on the list below.
+`AssetRef.placement` was not built in 0.3; it was refused by the validator
+until 0.6.0 built it.
 
 ## 0.4 - arithmetic in code (done)
 

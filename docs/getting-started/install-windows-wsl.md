@@ -94,7 +94,7 @@ Close the laptop mid-copy and the installation says so:
 
 ```bash
 meta-ads-agent doctor
-#   INTERRUPTED   an update from 0.1.0 to 0.2.0 stopped during 'swap'
+#   INTERRUPTED   an update from 0.9.0 to 1.0.0 stopped during 'swap'
 ```
 
 Two ways out, both safe:
@@ -166,7 +166,7 @@ meta-ads-agent doctor
 ```
 Installation
 ------------
-  COMPLETE                      0.2.0, verified
+  COMPLETE                      1.0.0, verified
     target: C:\Users\bartl\.agents\skills
 ```
 

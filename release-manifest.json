@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.0.0",
   "payload_root": "skills",
-  "digest": "cbdc617e3eb9bccb063d0b9b1e0a2ad791caf59994a814c82467fecd307ab663",
+  "digest": "eeacbb81849cbd8c1da58fea5c1f54b243d4c84957b83caeecdad702b3473c3f",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -112,13 +112,13 @@
     },
     {
       "path": "meta-ads-core/references/execution-routing.md",
-      "sha256": "3a2a68c5a77289989a9ddfe46f7bf7e1d795568ee57663e4b626e40546d9d3cb",
-      "size": 5224
+      "sha256": "e22cc505292fa244bbe797420fc9e4baa2a04f47c11c385eb1745ce9e39e7b71",
+      "size": 5435
     },
     {
       "path": "meta-ads-core/references/mcp-tool-map.md",
-      "sha256": "acaf3d7a95dc9445e9001a54a7579326a00d6a39615818aa0f71983e70a2ead4",
-      "size": 6657
+      "sha256": "f129997ee9f44642603c2c32d3a33ff401ade73f5f3e4d77187d7d811b9acf61",
+      "size": 6803
     },
     {
       "path": "meta-ads-core/references/meta-errors.md",

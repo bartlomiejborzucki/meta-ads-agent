@@ -113,7 +113,7 @@ Worth doing immediately:
 - **Enable** Dependabot alerts and security updates. `.github/dependabot.yml`
   is already configured, and deliberately does **not** auto-merge
   `facebook-business` majors.
-- **Branch protection on `main`:** require the CI checks, and require a pull
+- **Branch protection on `master`:** require the CI checks, and require a pull
   request. The upstream monitor and Dependabot both open PRs rather than
   pushing.
 - **Actions permissions:** the workflows need `issues: write` for the upstream
@@ -122,15 +122,17 @@ Worth doing immediately:
 ## 5. Releasing
 
 ```bash
-git tag v0.2.1          # the version in pyproject.toml
-git push origin v0.2.1
+git tag -a v1.0.1 -m "meta-ads-agent 1.0.1"   # the version in pyproject.toml
+git push origin v1.0.1
 ```
 
-`.github/workflows/release.yml` then runs the full verification, checks that the
-tag, `__version__`, and **both** plugin manifests agree, checks the changelog
-has a `## [<version>]` entry, builds the wheel and sdist, installs the wheel in a
-clean environment, and creates a GitHub release marked pre-release with notes
-extracted from `CHANGELOG.md`.
+`.github/workflows/release.yml` then runs the full verification (with the SDK
+installed, so the contract tests run), checks that the tag, `__version__`,
+**both** plugin manifests and `release-manifest.json` agree, checks the
+changelog has a `## [<version>]` entry, builds the wheel and sdist, installs
+the wheel in a clean environment, and creates a GitHub release with notes
+extracted from `CHANGELOG.md` - a full release for 1.x, a pre-release for
+0.x.
 
 It does **not** publish to PyPI. That needs a manual `workflow_dispatch` with
 `publish_to_pypi: true`, plus a `pypi` environment and a configured Trusted

@@ -12,7 +12,7 @@ but does not publish full JSON schemas. Parameter columns are therefore intentio
 
 **Spot-checked 2026-09-18.** Meta's `Ad creation and management` page was
 re-read: all 28 tool names in that category are unchanged, none of them closes
-any of the six fallback gaps (no local upload, no video creative, no Page-post
+any of the six fallback gaps then listed (no local upload, no video creative, no Page-post
 creative, no `asset_feed_spec`, no delete for campaigns / ad sets / ads), and
 the server is now documented as generally available rather than gradually
 rolling out. The other categories were not re-read, so their `last_reviewed`
@@ -192,13 +192,14 @@ Business SDK. `BOTH` = MCP can do it but a narrow local path is still justified.
 | **Local image upload** | `API_FALLBACK` | No MCP upload tool; only `ads_get_ad_images` |
 | **Local video upload** | `API_FALLBACK` | No MCP upload tool; needs processing polling |
 | **Video ad creative** | `API_FALLBACK` | `ads_create_creative` documents single-image only |
-| **Facebook Page existing-post creative** | `API_FALLBACK` | `ads_boost_ig_post` covers IG only |
+| **Existing-post creative** | `API_FALLBACK` | Facebook Page posts have no MCP tool; `ads_boost_ig_post` exists for Instagram, but a paused boost is undocumented, so IG posts are built inert too (ADR-010, 2026-09-24) |
 | **Multi-variant / placement-specific creative (`asset_feed_spec`)** | `API_FALLBACK` | Not exposed |
-| **Carousel creative** | `API_FALLBACK` | Not exposed. Deferred past 0.1.0 |
+| **Carousel creative** | `API_FALLBACK` | Not exposed; built through the fallback since 0.6.0 (ADR-010) |
 | **Delete campaign / ad set / ad** | `API_FALLBACK` | No MCP delete tool. Pause is almost always the better answer |
 | Custom audiences | `OFFICIAL_MCP` | Full coverage including PII upload. We add no fallback here on purpose |
 | Datasets / pixels / custom conversions | `OFFICIAL_MCP` | Full coverage |
 | Catalogs | `OFFICIAL_MCP` | 34 tools |
+| Catalog / dynamic ad creative (template) | `UNSUPPORTED` | `ads_create_creative` is not documented to build template creatives; catalogs stay MCP-only |
 | Experiments | `OFFICIAL_MCP` | Full coverage |
 | Ad Library research | `OFFICIAL_MCP` | `ads_library_search` |
 | Activity logs | `OFFICIAL_MCP` | `ads_account_get_activity_logs` |

@@ -71,7 +71,7 @@ Needed for **campaign builds** - plan validation is the gate before the first
 write, and without it a build stops at the plan and offers you the routes
 forward - and for the capabilities Meta's official MCP does not expose:
 uploading an image or video from your filesystem, video / existing-post /
-multi-variant creatives, and deletion. Full breakdown:
+multi-variant / carousel creatives, deletion, and the `report` arithmetic. Full breakdown:
 [packaging.md](../reference/packaging.md).
 
 ```bash

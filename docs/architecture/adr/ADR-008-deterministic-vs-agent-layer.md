@@ -58,9 +58,9 @@ be fixed without rewriting prose. Model variation cannot change a budget convers
 - Some cases sit near the line. Creative fatigue is the clearest: the *signals* (CTR delta vs
   the entity's own baseline, frequency, spend since decline, creative age) are arithmetic and
   belong in code; the *conclusion* — whether this is fatigue, an auction shift, seasonality, a
-  tracking break, or too little data — is judgement and belongs in the skill. For 0.1.0 the
-  signals are computed in the skill from MCP insight responses, with a code path planned for
-  the second milestone. Flagged in the skill so nobody mistakes the current split for the
-  intended one.
+  tracking break, or too little data — is judgement and belongs in the skill. In 0.1.0 the
+  signals were computed in the skill from MCP insight responses. **Update, 0.4.0:** the code
+  path exists - `meta-ads-agent report fatigue`, with `report compare` and `report pacing`
+  beside it - and the skill interprets the numbers it prints.
 - A little duplication between a Pydantic model and its description in a skill. Accepted; the
   model is authoritative and CI checks the plan example validates.
