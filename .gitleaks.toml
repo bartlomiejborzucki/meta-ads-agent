@@ -36,6 +36,10 @@ keywords = ["META_ACCESS_TOKEN", "META_APP_SECRET"]
 
 [allowlist]
 description = "Deliberately credential-shaped strings"
+# Match the regexes below against the whole rule match. Against the default
+# target ("secret") they did not suppress the custom rules above, which have
+# no secret group - so they only ever worked where the path list did too.
+regexTarget = "match"
 
 # Files whose purpose is to contain fake credentials.
 paths = [
@@ -58,4 +62,7 @@ regexes = [
   '''<your token>''',
   '''sha256:[0-9a-f]{12} \(len \d+\)''',
   '''\[REDACTED''',
+  # A fake token from tests/test_envfile.py as first committed (366059a); the
+  # test now uses a value too short for the rule, but history keeps this one.
+  '''secret-token-value-123''',
 ]

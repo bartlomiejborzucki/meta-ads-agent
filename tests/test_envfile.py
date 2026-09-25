@@ -75,9 +75,9 @@ class TestApply:
 
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(envfile, "apply", REAL_DOTENV_APPLY)
-        (tmp_path / ".env").write_text("META_ACCESS_TOKEN=secret-token-value-123\n")
+        (tmp_path / ".env").write_text("META_ACCESS_TOKEN=fake-token-42\n")
         main(["doctor"])
         out = capsys.readouterr().out
         assert ".env" in out
-        assert "secret-token-value-123" not in out
+        assert "fake-token-42" not in out
         assert "sha256:" in out
