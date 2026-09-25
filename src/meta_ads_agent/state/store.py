@@ -7,7 +7,7 @@ import json
 
 from pydantic import ValidationError as PydanticValidationError
 
-from meta_ads_agent.errors import ReconciliationError, StateError
+from meta_ads_agent.errors import ReconciliationError, StateError, WorkspaceError
 from meta_ads_agent.locking import file_lock
 from meta_ads_agent.models.plan import CampaignPlanDocument
 from meta_ads_agent.models.state import (
@@ -168,7 +168,9 @@ class StateStore:
             ad_account_id=doc.ad_account_id,
             plan_fingerprint=plan_fingerprint(doc),
         )
-        self.save_state(state)
+        # Through the merge, so two sessions starting the same campaign at once
+        # end with one state file rather than the second overwriting the first.
+        self._flush(state)
         return state
 
     # -- mutation helpers --------------------------------------------------
@@ -202,9 +204,27 @@ class StateStore:
         """
         path = self.workspace.state_file(state.slug)
         with file_lock(path, what=f"campaign state for {state.slug!r}"):
-            conflicts = (
-                _merge_from_disk(state, self.load_state(state.slug)) if path.is_file() else []
-            )
+            conflicts: list[str] = []
+            if path.is_file():
+                try:
+                    disk = self.load_state(state.slug)
+                except (StateError, WorkspaceError) as exc:
+                    # The file on disk cannot be read - hand-edited, or from a
+                    # newer release. Overwriting it could destroy ids only it
+                    # holds; raising without saving would lose the id just
+                    # created. So this copy goes beside it, and then we stop.
+                    recovered = path.with_name(f"{path.name}.recovered")
+                    self.workspace.write_json(
+                        recovered,
+                        redact_mapping(state.model_dump(mode="json", exclude_none=True)),
+                    )
+                    raise StateError(
+                        f"{path} could not be read, so it was not overwritten. The "
+                        f"state this session holds, including every id it created, "
+                        f"was saved to {recovered}. Reconcile the two before "
+                        f"continuing.\n{exc}"
+                    ) from exc
+                conflicts = _merge_from_disk(state, disk)
             self.save_state(state)
         if conflicts:
             raise ReconciliationError(

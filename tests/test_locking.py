@@ -173,3 +173,50 @@ class TestInstallLock:
         _install_payload(target_kind="path", path=str(target))
         assert (target / LOCK_FILENAME).exists()
         assert installation_report(target_kind="path", path=str(target))["status"] == "complete"
+
+
+class TestMergeCarriesEverything:
+    def test_failures_stage_and_activation_from_the_other_session_survive(
+        self, workspace: Workspace, plan: CampaignPlanDocument
+    ) -> None:
+        from meta_ads_agent.models.state import Failure, Stage
+
+        first, second = StateStore(workspace), StateStore(workspace)
+        mine = first.load_or_create_state(plan)
+        theirs = second.load_or_create_state(plan)
+
+        first.record_failure(mine, Failure(stage=Stage.ADS_CREATED, message="x", retry_safe=False))
+        first.advance(mine, Stage.ADS_CREATED)
+        second.record_object(theirs, _obj("campaign", "120001", ObjectType.CAMPAIGN))
+
+        on_disk = StateStore(workspace).load_state(plan.slug)
+        assert [f.message for f in on_disk.failures] == ["x"]
+        assert on_disk.stage is Stage.ADS_CREATED
+        assert {o.id for o in on_disk.objects} == {"120001"}
+
+    def test_an_unreadable_state_file_is_kept_and_the_new_id_saved_beside_it(
+        self, workspace: Workspace, plan: CampaignPlanDocument
+    ) -> None:
+        store = StateStore(workspace)
+        state = store.load_or_create_state(plan)
+        path = workspace.state_file(plan.slug)
+        path.write_text("{ not json")
+
+        with pytest.raises(StateError, match="could not be read, so it was not overwritten"):
+            store.record_object(state, _obj("campaign", "120001", ObjectType.CAMPAIGN))
+
+        assert path.read_text() == "{ not json"
+        recovered = json.loads(path.with_name("state.json.recovered").read_text())
+        assert [o["id"] for o in recovered["objects"]] == ["120001"]
+
+
+class TestClaimNames:
+    def test_a_dry_run_placeholder_makes_a_filename_windows_accepts(
+        self, workspace: Workspace, tmp_path: Path
+    ) -> None:
+        probe = probe_asset(write_png(tmp_path / "a.png", 10, 10))
+        with AssetStore(workspace).claim(probe, "<no account configured>"):
+            pass
+        names = [p.name for p in (workspace.assets_dir / "locks").iterdir()]
+        assert names
+        assert not any(c in name for name in names for c in '<>:"|?*')

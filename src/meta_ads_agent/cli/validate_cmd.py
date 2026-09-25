@@ -174,7 +174,9 @@ def _load_account(
         fail(f"ignoring {path}: {exc}")
         return None
     # The template ships with every value null; treat that as "not read yet".
-    if not raw.get("id"):
+    # A cache written straight from Meta may carry only `account_id`, which
+    # from_meta turns into the id, so either one means the account was read.
+    if not raw.get("id") and not raw.get("account_id"):
         return None
     try:
         return AccountContext.from_meta({k: v for k, v in raw.items() if v is not None})

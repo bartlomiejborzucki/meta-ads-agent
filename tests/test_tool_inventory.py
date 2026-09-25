@@ -99,6 +99,14 @@ class TestCommand:
         assert "matches the map" in capsys.readouterr().out
 
 
+class TestUnreadableInput:
+    def test_a_directory_is_an_input_error_not_a_crash(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        assert main(["capabilities", "--compare", str(tmp_path)]) == 2
+        assert "could not read" in capsys.readouterr().err
+
+
 class TestInventoryFile:
     def test_it_matches_the_research_document(self) -> None:
         result = subprocess.run(  # noqa: S603

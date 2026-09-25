@@ -553,6 +553,34 @@ class TestFailuresAndDryRunsAreLogged:
         assert sdk.deletes == []
 
 
+class TestBadVariantInput:
+    def test_an_invalid_variants_file_is_logged_and_exits_2(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        variants = project / "variants.json"
+        variants.write_text(json.dumps([{"angle": "x"}]))  # no primary_text
+        argv = ["api", "create-creative", "--variants", "--name", "v"]
+        code, _, err = run(
+            [
+                *argv,
+                "--page-id",
+                "1111111111",
+                "--url",
+                "https://acme.example.com/webinar",
+                "--variants-file",
+                str(variants),
+                "--image-hash",
+                "abc",
+            ],
+            capsys,
+        )
+        assert code == 2
+        assert "primary_text" in err
+        (record,) = ActionLog(Workspace.locate(project)).read()
+        assert record.result == "failed"
+        assert sdk.creatives == []
+
+
 class TestCapabilityGuard:
     def test_a_command_cannot_run_for_an_mcp_owned_capability(
         self,

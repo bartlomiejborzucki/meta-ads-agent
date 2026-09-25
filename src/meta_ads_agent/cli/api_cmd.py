@@ -18,6 +18,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError as PydanticValidationError
+
 from meta_ads_agent.api.client import ACCOUNT_ENV, ApiClient, normalise_account_id
 from meta_ads_agent.api.creatives import (
     CarouselCardSpec,
@@ -32,6 +34,7 @@ from meta_ads_agent.capabilities import Provider, RiskLevel, load_registry
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading
 from meta_ads_agent.errors import ApiFallbackUnavailable, ConfigError, DryRun, MetaAdsAgentError
 from meta_ads_agent.models.plan import CopyVariant
+from meta_ads_agent.redaction import redact
 from meta_ads_agent.state.actionlog import ActionLog, ActionRecord
 from meta_ads_agent.state.assets import AssetStore
 from meta_ads_agent.workspace import Workspace
@@ -414,6 +417,12 @@ def run_create_creative(
         _log_attempt(log, "failed", exc, attempt)
         fail(str(exc))
         return 1
+    except PydanticValidationError as exc:
+        # A bad --cta or --variants-file entry is the user's input, not
+        # Meta's refusal - but it is still an attempt the log should show.
+        _log_attempt(log, "failed", exc, attempt)
+        fail(redact(str(exc)))
+        return 2
 
     log.append(
         ActionRecord(

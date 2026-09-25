@@ -455,6 +455,10 @@ class AssetStore:
         exists to prevent. Other files upload in parallel as before.
         """
         digest = probe.fingerprint.split(":", 1)[-1][:32]
-        target = self.workspace.assets_dir / "locks" / f"{ad_account_id}-{digest}"
+        # The account id is hashed into the name rather than used as is: a dry
+        # run's "<no account configured>" placeholder has characters Windows
+        # does not allow in a filename.
+        account = hashlib.sha256(ad_account_id.encode("utf-8")).hexdigest()[:12]
+        target = self.workspace.assets_dir / "locks" / f"{account}-{digest}"
         with file_lock(target, timeout=_CLAIM_TIMEOUT_SECONDS, what=f"{probe.path.name}"):
             yield

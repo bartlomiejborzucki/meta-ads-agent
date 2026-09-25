@@ -165,25 +165,33 @@ class Workspace:
         if per_account.is_file():
             return per_account
         if self.account_file.is_file():
-            try:
-                raw = yaml.safe_load(self.account_file.read_text(encoding="utf-8")) or {}
-            except yaml.YAMLError:
-                return None
-            if isinstance(raw, dict) and raw.get("id") in (None, ad_account_id):
+            cached = self._cached_account_id(self.account_file)
+            if cached in (None, ad_account_id):
                 return self.account_file
+        return None
+
+    @staticmethod
+    def _cached_account_id(path: Path) -> str | None:
+        """The account a cache file describes: ``id``, or Meta's bare ``account_id``."""
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return None
+        if not isinstance(raw, dict):
+            return None
+        if raw.get("id"):
+            return str(raw["id"])
+        if raw.get("account_id"):
+            return f"act_{raw['account_id']}"
         return None
 
     def cached_accounts(self) -> list[str]:
         """Ad account ids with cached facts in this workspace."""
         ids = sorted(p.stem for p in self.accounts_dir.glob("act_*.yaml"))
         if self.account_file.is_file():
-            try:
-                raw = yaml.safe_load(self.account_file.read_text(encoding="utf-8")) or {}
-            except yaml.YAMLError:
-                raw = {}
-            single = raw.get("id") if isinstance(raw, dict) else None
+            single = self._cached_account_id(self.account_file)
             if single and single not in ids:
-                ids.append(str(single))
+                ids.append(single)
         return sorted(ids)
 
     @property

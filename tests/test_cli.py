@@ -348,6 +348,17 @@ class TestSeveralAccounts:
         _, out, _ = run(["validate-plan", str(path), "--skip-assets", "--json"], capsys)
         assert json.loads(out)["account_context"] is True
 
+    def test_a_cache_keyed_only_by_account_id_is_used(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # Meta's own account payload carries account_id, not id.
+        ws = tmp_path / ".meta-ads"
+        ws.mkdir()
+        (ws / "account.yaml").write_text(yaml.safe_dump({"account_id": "1234567890"}))
+        path = self._plan(ws, "same", "act_1234567890")
+        _, out, _ = run(["validate-plan", str(path), "--skip-assets", "--json"], capsys)
+        assert json.loads(out)["account_context"] is True
+
     def test_state_lists_and_filters_by_account(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:

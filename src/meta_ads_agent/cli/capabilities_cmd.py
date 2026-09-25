@@ -233,6 +233,11 @@ def _compare(registry: Registry, source: str, *, as_json: bool) -> int:
     except FileNotFoundError:
         fail(f"{source} not found")
         return 2
+    except (OSError, UnicodeDecodeError) as exc:
+        # A directory, a permission problem, or a binary file: the user's
+        # input, not a crash.
+        fail(f"could not read {source}: {exc}")
+        return 2
     except MetaAdsAgentError as exc:
         fail(str(exc))
         return 2
