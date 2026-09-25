@@ -1,6 +1,6 @@
 [project]
 name = "meta-ads-agent"
-version = "1.0.0"
+version = "1.0.1"
 description = "Agent-native toolkit for operating Meta Ads through Meta's official Ads MCP, with a narrow Marketing API fallback"
 readme = "README.md"
 requires-python = ">=3.11"

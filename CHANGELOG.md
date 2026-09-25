@@ -9,6 +9,59 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [1.0.1] - 2026-09-25
+
+**Fixes from a review of 1.0.** `MIGRATION: none required`.
+
+### Fixed - `report`
+
+- **An export mixing levels was counted twice.** Campaign and ad-set rows for
+  the same spend were summed together - 140 spent where 70 was, pacing at
+  200%. A mixed export is now refused with the levels it contains, and
+  `--level` picks one.
+- **One day without `actions` made the whole window's results unknown.**
+  Meta leaves `actions` out of a day with none; once an export carries
+  actions at all, such a day counts as zero.
+- `null` in `spend`, `impressions` or `inline_link_clicks` rejected the whole
+  file; it is zero. A CTR decline exactly at the fatigue threshold now has a
+  start date. Frequency uses the window row's own impressions. `pacing`
+  refuses an end before its start.
+
+### Fixed - plans and the fallback
+
+- **The `.env` file the README describes is now read** (`META_*` keys only;
+  the environment wins, even when empty).
+- **An Instagram post creative sends the Page as `object_id`**, as Meta's
+  recipe does; the Page is required for one.
+- **A carousel video card gets a thumbnail** - its own, or one Meta
+  generated - as Meta requires for video cards.
+- A multi-variant creative mixing images and videos is refused: Meta
+  documents one format per `asset_feed_spec`.
+- Placement pins that validated and then failed at the write: every asset
+  pinned, one asset pinned two ways, or a pin to a placement the ad set does
+  not use (`asset.placement_not_targeted`).
+- Carousel card links get UTM parameters, and the validator checks them.
+- A malformed name template (`{date} {`, `{date:%Y}`) is a validation error,
+  not a traceback.
+- A video thumbnail with no uri was sent as the string `"None"`.
+- A new id is no longer lost when the state file on disk cannot be read: it
+  is saved to `state.json.recovered` and the file is left alone.
+- An account cache keyed by `account_id` is used; a dry-run lock name is
+  valid on Windows; bad variant input is logged and exits 2;
+  `capabilities --compare` given a directory is an input error.
+
+### Changed
+
+- Deleting a pixel rule is classed `delete`, like other deletes.
+- CI and releases: a `.gitattributes` keeps LF endings, so Windows checkouts
+  match the release manifest; POSIX-only tests skip on Windows with their
+  reason; `atomic_write` retries a replace Windows refuses while a file is
+  open; the release job installs the SDK, checks the tool inventory and the
+  release manifest's version, creates the GitHub release only on a tag push,
+  and refuses empty notes.
+- The README is rewritten as one document, and the rest of the
+  documentation is brought up to date with 1.0.
+
 ## [1.0.0] - 2026-09-24
 
 **Stable formats, and one caveat stated up front.** `MIGRATION: none
@@ -628,7 +681,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.7.0...v0.8.0
