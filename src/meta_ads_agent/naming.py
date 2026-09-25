@@ -50,7 +50,22 @@ def has_placeholders(text: str | None) -> bool:
 
 def render(template: str, tokens: dict[str, str | None], *, where: str) -> str:
     """Substitute *tokens* into *template*, refusing anything unresolved."""
-    names = [name for _, name, _, _ in string.Formatter().parse(template) if name is not None]
+    try:
+        parsed = list(string.Formatter().parse(template))
+    except ValueError as exc:
+        # A lone "{" or "}", or a format spec like {date:%Y}: Python's own
+        # message ("Single '{' encountered") would reach the user as a crash.
+        raise ValidationError(
+            f"{where}: {template!r} is not a valid template ({exc}). Tokens are "
+            "written {token}; write a literal brace as {{ or }}."
+        ) from exc
+    names = [name for _, name, spec, _ in parsed if name is not None]
+    specs = [spec for _, name, spec, _ in parsed if name is not None and spec]
+    if specs:
+        raise ValidationError(
+            f"{where}: {template!r} uses a format spec; tokens take none - "
+            "{date} follows naming.date_format in brand.yaml"
+        )
     unknown = sorted({n for n in names if n not in TOKENS})
     if unknown:
         raise ValidationError(
@@ -184,6 +199,16 @@ def _apply_utm(
     if new != creative.destination_url:
         result.changes.append((where, creative.destination_url, new))
         creative.destination_url = new
+    # A carousel card with its own link is a destination too: without this,
+    # clicks on those cards reach analytics with no campaign attached.
+    base = where.rsplit(".", 1)[0]
+    for index, card in enumerate(creative.cards):
+        if not card.link:
+            continue
+        linked = with_utm(card.link, params)
+        if linked != card.link:
+            result.changes.append((f"{base}.cards[{index}].link", card.link, linked))
+            card.link = linked
 
 
 def _variant(ad: AdPlan) -> str | None:

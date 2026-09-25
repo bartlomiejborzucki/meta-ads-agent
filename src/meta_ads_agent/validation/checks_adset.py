@@ -40,20 +40,24 @@ def check_utm_applied(ad_set: AdSetPlan, prefix: str, report: ValidationReport) 
         k if k.startswith("utm_") else f"utm_{k}" for k, v in ad_set.tracking.utm.items() if v
     }
     for ad_index, ad in enumerate(ad_set.ads):
-        url = ad.creative.destination_url
-        if not url:
-            continue
-        present = {key for key, _ in parse_qsl(urlsplit(url).query, keep_blank_values=True)}
-        missing = sorted(wanted - present)
-        if missing:
-            report.add(
-                Severity.WARNING,
-                "tracking.utm_not_applied",
-                f"tracking.utm names {missing} but the destination URL does not carry "
-                "them, so analytics will not see them. Run `meta-ads-agent render-plan "
-                "--write`, or add them to the URL.",
-                f"{prefix}.ads[{ad_index}].creative.destination_url",
-            )
+        creative = ad.creative
+        where = f"{prefix}.ads[{ad_index}].creative"
+        urls = [(f"{where}.destination_url", creative.destination_url)]
+        urls += [(f"{where}.cards[{i}].link", c.link) for i, c in enumerate(creative.cards)]
+        for path, url in urls:
+            if not url:
+                continue
+            present = {key for key, _ in parse_qsl(urlsplit(url).query, keep_blank_values=True)}
+            missing = sorted(wanted - present)
+            if missing:
+                report.add(
+                    Severity.WARNING,
+                    "tracking.utm_not_applied",
+                    f"tracking.utm names {missing} but this URL does not carry them, so "
+                    "analytics will not see them. Run `meta-ads-agent render-plan "
+                    "--write`, or add them to the URL.",
+                    path,
+                )
 
 
 def check_names_unique(doc: CampaignPlanDocument, report: ValidationReport) -> None:

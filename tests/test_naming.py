@@ -67,6 +67,27 @@ class TestRender:
         assert has_placeholders("{brand} sale")
 
 
+class TestBadTemplates:
+    @pytest.mark.parametrize("template", ["{date} {", "{brand} 50%}", "{brand} {date:%Y}"])
+    def test_a_malformed_template_is_a_validation_error_not_a_crash(self, template: str) -> None:
+        with pytest.raises(ValidationError, match=r"campaign\.name"):
+            render(template, {"brand": "Acme", "date": "2026"}, where="campaign.name")
+
+    def test_a_literal_brace_can_still_be_written(self) -> None:
+        assert render("{brand} {{sale}}", {"brand": "Acme"}, where="x") == "Acme {sale}"
+
+    def test_render_plan_reports_it_through_the_cli(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        raw = plan_dict(created_at=CREATED)
+        raw["campaign"]["name"] = "{date} {"
+        path = tmp_path / "plan.yaml"
+        path.write_text(yaml.safe_dump(raw))
+        assert main(["render-plan", str(path)]) == 1
+        assert "not a valid template" in capsys.readouterr().err
+
+
 class TestUtm:
     def test_parameters_are_appended(self) -> None:
         assert with_utm("https://a.example/p", {"utm_source": "meta"}) == (
@@ -127,6 +148,41 @@ class TestRenderPlan:
         doc = templated()
         assert doc.created_at.date() == dt.date(2026, 9, 16)
         assert "2026-09-16" in render_plan(doc, brand()).document.campaign.name
+
+
+class TestCarouselCardLinks:
+    @staticmethod
+    def _carousel() -> CampaignPlanDocument:
+        raw = plan_dict(created_at=CREATED)
+        creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+        creative["mode"] = "carousel"
+        creative["assets"] = []
+        creative["cards"] = [
+            {"asset": {"image_hash": "a"}, "link": "https://acme.example.com/a"},
+            {"asset": {"image_hash": "b"}},
+        ]
+        return CampaignPlanDocument.model_validate(raw)
+
+    def test_a_cards_own_link_gets_the_utms_too(self) -> None:
+        creative = (
+            render_plan(self._carousel(), brand()).document.campaign.ad_sets[0].ads[0].creative
+        )
+        assert creative.cards[0].link is not None
+        assert "utm_source=meta" in creative.cards[0].link
+        assert creative.cards[1].link is None  # it uses the destination, which has them
+
+    def test_the_validator_notices_a_card_link_without_them(self) -> None:
+        doc = self._carousel()
+        doc.campaign.ad_sets[0].tracking.utm = {"utm_source": "meta"}
+        doc.campaign.ad_sets[0].ads[
+            0
+        ].creative.destination_url = "https://acme.example.com/webinar?utm_source=meta"
+        paths = {
+            f.path
+            for f in validate_plan(doc, check_assets=False).findings
+            if f.code == "tracking.utm_not_applied"
+        }
+        assert paths == {"campaign.ad_sets[0].ads[0].creative.cards[0].link"}
 
 
 class TestValidatorRefusesWhatWasNotRendered:
