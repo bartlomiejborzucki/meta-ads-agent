@@ -37,13 +37,23 @@ Marketing API's Insights edge returns:
 | `spend` | everything | display amount in the account currency, as Meta returns it - not minor units |
 | `impressions` | rates | |
 | `inline_link_clicks` | CTR, CPC, CVR, fatigue | link clicks, **not** clicks (all). `link_clicks` is accepted as a synonym |
-| `actions` | results, CVR, CPA | results are the `value` of the action whose `action_type` is `--result-event`. An event absent from a row's actions counts as zero; a row with no `actions` at all makes results unknown, never zero |
+| `actions` | results, CVR, CPA | results are the `value` of the action whose `action_type` is `--result-event`. Meta leaves `actions` out of a day with none, so once any row in the export carries `actions`, a row without them counts as zero. Only an export with no `actions` anywhere makes results unknown |
 | `results` | results, when there are no `actions` | a plain count, if the agent already has one |
 | `ad_id`, `adset_id`, `campaign_id` | fatigue (ad and ad set), coverage notes | |
 | `ad_name`, `adset_name`, `campaign_name` | display only | |
 | `reach` | fatigue frequency | only from a row whose dates cover **exactly** the current window - see below |
 
-Numbers may be strings or JSON numbers. Unknown fields are ignored.
+Numbers may be strings or JSON numbers, and `null` in `spend`,
+`impressions` or `inline_link_clicks` is read as zero. Unknown fields are
+ignored.
+
+## One level at a time
+
+A row's level is the most specific id it carries: `ad_id`, else `adset_id`,
+else `campaign_id`, else the account. An export holding a campaign's rows
+**and** its ad sets' rows describes the same spend twice, so `compare` and
+`pacing` refuse a mixed export and name the levels in it; `--level` picks
+one. `fatigue` always uses ad rows.
 
 ## Why reach needs its own row
 

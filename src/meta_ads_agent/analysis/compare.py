@@ -29,7 +29,9 @@ from meta_ads_agent.analysis.insights import (
     InsightRow,
     Totals,
     Window,
+    actions_reported,
     daily_rows,
+    one_level,
     pct_change,
     window_ending,
 )
@@ -99,6 +101,7 @@ def compare_periods(
     min_results: int = 30,
     attribution_days: int | None = None,
     as_of: _dt.date | None = None,
+    level: str | None = None,
 ) -> Comparison:
     """Compare two equal-length windows of daily rows.
 
@@ -106,7 +109,8 @@ def compare_periods(
     ``days`` starting at ``boundary`` - the day a known change happened, so
     before and after actually mean something.
     """
-    daily = daily_rows(rows)
+    daily = one_level(daily_rows(rows), level)
+    reported = actions_reported(daily)
     if not daily:
         raise ValidationError(
             "no daily rows: request insights with time_increment=1, so each row is one day"
@@ -121,8 +125,12 @@ def compare_periods(
     previous = current.before()
 
     band = Decimal(str(noise_band_pct))
-    now = Totals.of([r for r in daily if current.contains(r)], event=result_event)
-    before = Totals.of([r for r in daily if previous.contains(r)], event=result_event)
+    now = Totals.of(
+        [r for r in daily if current.contains(r)], event=result_event, actions_reported=reported
+    )
+    before = Totals.of(
+        [r for r in daily if previous.contains(r)], event=result_event, actions_reported=reported
+    )
 
     changes = {
         metric: _change(
@@ -196,9 +204,13 @@ def _coverage_notes(result: Comparison, daily: list[InsightRow]) -> None:
                 "part of a period, or a partial export, makes the comparison unfair."
             )
     # Per entity: live in one window but not the other.
-    entities = {r.ad_id or r.adset_id or r.campaign_id for r in daily} - {None}
+    # Rows are one level by now; compare entities at that level only.
+    level = daily[0].level
+    if level == "account":
+        return
+    entities = {r.entity(level) for r in daily} - {None}
     for entity in sorted(e for e in entities if e):
-        mine = {r.date_start for r in daily if entity in (r.ad_id, r.adset_id, r.campaign_id)}
+        mine = {r.date_start for r in daily if r.entity(level) == entity}
         now_days = sum(1 for d in result.current_window.dates() if d in mine)
         before_days = sum(1 for d in result.previous_window.dates() if d in mine)
         if now_days != before_days:

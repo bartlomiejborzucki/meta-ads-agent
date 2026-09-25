@@ -19,7 +19,7 @@ import datetime as _dt
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from meta_ads_agent.analysis.insights import InsightRow, Window, daily_rows
+from meta_ads_agent.analysis.insights import InsightRow, Window, daily_rows, one_level
 from meta_ads_agent.errors import ValidationError
 
 
@@ -100,8 +100,10 @@ class LifetimePacing:
         return self.remaining / left if left > 0 else None
 
 
-def _spend_by_day(rows: list[InsightRow], window: Window | None = None) -> list[DaySpend]:
-    daily = daily_rows(rows)
+def _spend_by_day(
+    rows: list[InsightRow], window: Window | None = None, level: str | None = None
+) -> list[DaySpend]:
+    daily = one_level(daily_rows(rows), level)
     if not daily:
         raise ValidationError(
             "no daily rows: request insights with time_increment=1, so each row is one day"
@@ -120,12 +122,15 @@ def pace_daily(
     currency: str | None = None,
     start: _dt.date | None = None,
     end: _dt.date | None = None,
+    level: str | None = None,
 ) -> DailyPacing:
     """Spend per day against a daily budget, over the days in the data (or a range)."""
     if daily_budget <= 0:
         raise ValidationError("a daily budget must be positive")
-    days = _spend_by_day(rows)
+    days = _spend_by_day(rows, level=level)
     window = Window(start or days[0].date, end or days[-1].date)
+    if window.end < window.start:
+        raise ValidationError(f"end {window.end} is before start {window.start}")
     in_window = [d for d in days if window.start <= d.date <= window.end]
     spend = sum((d.spend for d in in_window), Decimal(0))
     result = DailyPacing(
@@ -154,6 +159,7 @@ def pace_lifetime(
     end: _dt.date,
     as_of: _dt.date,
     currency: str | None = None,
+    level: str | None = None,
 ) -> LifetimePacing:
     """Spend to date against a lifetime budget's straight-line schedule."""
     if budget <= 0:
@@ -161,7 +167,7 @@ def pace_lifetime(
     if end < start:
         raise ValidationError(f"end {end} is before start {start}")
     window = Window(start, min(end, as_of))
-    spend = sum((d.spend for d in _spend_by_day(rows, window)), Decimal(0))
+    spend = sum((d.spend for d in _spend_by_day(rows, window, level)), Decimal(0))
     result = LifetimePacing(budget, currency, start, end, as_of, spend)
     if as_of < start:
         result.notes.append(f"as of {as_of} the schedule has not started")

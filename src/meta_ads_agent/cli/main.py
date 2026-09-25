@@ -155,6 +155,11 @@ def build_parser() -> argparse.ArgumentParser:
     report_common = argparse.ArgumentParser(add_help=False)
     report_common.add_argument("insights", help="insights JSON file")
     report_common.add_argument("--currency", help="account currency, for labelling amounts")
+    report_common.add_argument(
+        "--level",
+        choices=("ad", "adset", "campaign", "account"),
+        help="use only rows of this level; needed when the export mixes levels",
+    )
     report_common.add_argument("--json", action="store_true")
 
     compare = report_sub.add_parser(
@@ -723,6 +728,7 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
             attribution_days=args.attribution_days,
             brand_path=args.brand_file,
             as_json=args.json,
+            level=args.level,
         )
     if args.report_command == "fatigue":
         return report_cmd.run_fatigue(
@@ -743,6 +749,7 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
             as_of=args.as_of,
             currency=args.currency,
             as_json=args.json,
+            level=args.level,
         )
     if args.report_command == "power":
         return report_cmd.run_power(

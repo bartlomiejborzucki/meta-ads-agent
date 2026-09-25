@@ -142,11 +142,11 @@ the MCP, and the output says so.
 ```bash
 meta-ads-agent report compare INSIGHTS --days N [--end DATE | --boundary DATE]
   [--result-event ACTION_TYPE] [--attribution-days N] [--currency CODE]
-  [--brand-file FILE] [--json]
+  [--level ad|adset|campaign|account] [--brand-file FILE] [--json]
 meta-ads-agent report fatigue INSIGHTS [--days 7] [--end DATE] [--currency CODE]
   [--brand-file FILE] [--json]
 meta-ads-agent report pacing INSIGHTS (--daily-budget AMOUNT | --lifetime-budget AMOUNT)
-  [--start DATE] [--end DATE] [--as-of DATE] [--currency CODE] [--json]
+  [--start DATE] [--end DATE] [--as-of DATE] [--currency CODE] [--level LEVEL] [--json]
 ```
 
 Read-only and offline arithmetic over insights rows the agent read from Meta.

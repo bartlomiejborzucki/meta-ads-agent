@@ -253,7 +253,10 @@ def _decline_start(
     while end <= current.end:
         rolling = window_ending(end, current.days)
         ctr = Totals.of([r for r in rows if rolling.contains(r)], event=None).ctr
-        fallen = ctr is not None and ctr < floor
+        # <=, like the decline condition itself: a CTR exactly at the threshold
+        # counts as declined in both places, or one says "declined" and the
+        # other finds no decline to date.
+        fallen = ctr is not None and ctr <= floor
         # A recovery resets it: the decline that counts is the one still going.
         start = (start or rolling.start) if fallen else None
         end += _dt.timedelta(days=1)

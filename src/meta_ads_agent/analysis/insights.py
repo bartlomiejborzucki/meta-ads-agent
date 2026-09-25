@@ -31,7 +31,14 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from meta_ads_agent.errors import ValidationError
 
@@ -63,19 +70,21 @@ class InsightRow(BaseModel):
 
     @field_validator("spend", "frequency", "results", mode="before")
     @classmethod
-    def _decimal(cls, value: object) -> object:
+    def _decimal(cls, value: object, info: ValidationInfo) -> object:
         # Meta sends numbers as strings. A float would route 0.1 through binary.
         if value is None or value == "":
-            return None
+            # Meta sends null for a metric with nothing to report. For spend
+            # that is zero; for the optional fields it is "not known".
+            return Decimal(0) if info.field_name == "spend" else None
         if isinstance(value, float):
             return str(value)
         return value
 
     @field_validator("impressions", "reach", "clicks", "link_clicks", mode="before")
     @classmethod
-    def _count(cls, value: object) -> object:
+    def _count(cls, value: object, info: ValidationInfo) -> object:
         if value is None or value == "":
-            return None
+            return 0 if info.field_name in ("impressions", "link_clicks") else None
         if isinstance(value, str):
             return int(Decimal(value))
         return value
@@ -113,6 +122,17 @@ class InsightRow(BaseModel):
                 return sum((_to_decimal(a.get("value")) for a in matched), Decimal(0))
             return Decimal(0) if self.actions else self.results
         return self.results
+
+    @property
+    def level(self) -> str:
+        """The most specific entity the row describes: ad, adset, campaign or account."""
+        if self.ad_id:
+            return "ad"
+        if self.adset_id:
+            return "adset"
+        if self.campaign_id:
+            return "campaign"
+        return "account"
 
     def entity(self, level: str) -> str | None:
         return {"campaign": self.campaign_id, "adset": self.adset_id, "ad": self.ad_id}[level]
@@ -200,6 +220,7 @@ class Totals:
     results: Decimal | None
     days_with_data: int
     reach: int | None = None
+    window_impressions: int | None = None
 
     @classmethod
     def of(
@@ -208,8 +229,20 @@ class Totals:
         *,
         event: str | None,
         window_reach_row: InsightRow | None = None,
+        actions_reported: bool = False,
     ) -> Totals:
-        results_known = [r.result_count(event) for r in rows]
+        """Sum *rows*.
+
+        ``actions_reported`` says the export carries ``actions`` at all. Meta
+        leaves ``actions`` out of a row with no actions that day, so in such an
+        export a day without it had zero results - not an unknown number.
+        """
+        results_known = [
+            Decimal(0)
+            if (value := r.result_count(event)) is None and event and actions_reported
+            else value
+            for r in rows
+        ]
         results: Decimal | None
         if rows and all(value is not None for value in results_known):
             results = sum((v for v in results_known if v is not None), Decimal(0))
@@ -222,6 +255,7 @@ class Totals:
             results=results,
             days_with_data=len({d for r in rows for d in _dates(r)}),
             reach=window_reach_row.reach if window_reach_row else None,
+            window_impressions=window_reach_row.impressions if window_reach_row else None,
         )
 
     @property
@@ -251,8 +285,14 @@ class Totals:
 
     @property
     def frequency(self) -> Decimal | None:
-        """Only from a row covering the window; summed daily reach double-counts."""
-        return _ratio(self.impressions, self.reach) if self.reach else None
+        """Only from a row covering the window; summed daily reach double-counts.
+
+        The covering row's own impressions are used, so a day missing from the
+        daily rows cannot make the frequency look lower than it was.
+        """
+        if not self.reach:
+            return None
+        return _ratio(self.window_impressions or self.impressions, self.reach)
 
 
 def _ratio(
@@ -269,6 +309,37 @@ def _dates(row: InsightRow) -> Iterable[_dt.date]:
 
 def daily_rows(rows: Iterable[InsightRow]) -> list[InsightRow]:
     return [r for r in rows if r.is_daily]
+
+
+LEVELS = ("ad", "adset", "campaign", "account")
+
+
+def one_level(rows: Sequence[InsightRow], level: str | None = None) -> list[InsightRow]:
+    """The rows of a single level, so nothing is counted twice.
+
+    An export holding a campaign's rows *and* its ad sets' rows describes the
+    same spend twice; summing both doubles it. With *level* given, only rows
+    of that level are kept. Without it, a single-level export passes as is,
+    and a mixed one is refused with the levels it contains.
+    """
+    if level is not None:
+        if level not in LEVELS:
+            raise ValidationError(f"level must be one of {', '.join(LEVELS)}, got {level!r}")
+        kept = [r for r in rows if r.level == level]
+        if not kept:
+            raise ValidationError(f"no {level}-level rows in the input")
+        return kept
+    present = sorted({r.level for r in rows}, key=LEVELS.index)
+    if len(present) > 1:
+        raise ValidationError(
+            f"the input mixes {', '.join(present)} rows, which would count the same "
+            "spend more than once. Pass --level to choose one, or export one level."
+        )
+    return list(rows)
+
+
+def actions_reported(rows: Iterable[InsightRow]) -> bool:
+    return any(r.actions or r.results is not None for r in rows)
 
 
 def pct_change(before: Decimal | None, after: Decimal | None) -> Decimal | None:

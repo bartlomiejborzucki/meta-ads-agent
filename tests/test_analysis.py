@@ -372,3 +372,87 @@ class TestPower:
         payload = json.loads(capsys.readouterr().out)
         assert payload["units_per_cell"] == 8155
         assert payload["days_needed"] == pytest.approx(8.155)
+
+
+class TestRealExports:
+    """1.0.1: what Meta's exports actually look like, as opposed to tidy fixtures."""
+
+    def test_rows_at_two_levels_are_refused_rather_than_double_counted(self) -> None:
+        campaign = [row(n, ad=None, adset=None) | {"campaign_id": "c1"} for n in range(14)]
+        adsets = [row(n, ad=None, adset="s1") | {"campaign_id": "c1"} for n in range(14)]
+        with pytest.raises(ValidationError, match="mixes adset, campaign rows"):
+            compare_periods(rows(campaign + adsets), days=7)
+
+    def test_a_level_can_be_chosen_from_a_mixed_export(self) -> None:
+        campaign = [row(n, ad=None, adset=None) | {"campaign_id": "c1"} for n in range(14)]
+        adsets = [row(n, ad=None, adset="s1") | {"campaign_id": "c1"} for n in range(14)]
+        result = compare_periods(rows(campaign + adsets), days=7, level="campaign")
+        assert result.current.spend == Decimal(700)  # not 1,400
+
+    def test_pacing_refuses_a_mixed_export_too(self) -> None:
+        mixed = [row(0, ad=None, adset=None) | {"campaign_id": "c1"}, row(0, ad="a")]
+        with pytest.raises(ValidationError, match="mixes"):
+            pace_daily(rows(mixed), daily_budget=Decimal(100))
+
+    def test_a_day_without_actions_counts_as_zero_results(self) -> None:
+        # Meta leaves `actions` out of a row with no actions that day.
+        raw = [row(n) for n in range(14)]
+        raw[3] = row(3, leads=None)
+        result = compare_periods(rows(raw), days=7, result_event=LEAD)
+        assert result.previous.results == Decimal(30)  # 6 days x 5
+        assert result.changes["cpa"].classification != "unavailable"
+
+    def test_an_export_with_no_actions_anywhere_still_reads_as_unknown(self) -> None:
+        raw = [row(n, leads=None) for n in range(14)]
+        result = compare_periods(rows(raw), days=7, result_event=LEAD)
+        assert result.previous.results is None
+
+    @pytest.mark.parametrize("field", ["spend", "impressions", "inline_link_clicks"])
+    def test_a_null_metric_is_zero_not_a_rejected_file(self, field: str) -> None:
+        (parsed,) = load_rows([row(0) | {field: None}])
+        assert parsed.spend == (0 if field == "spend" else 100)
+        assert parsed.impressions == (0 if field == "impressions" else 10000)
+
+    def test_a_decline_exactly_at_the_threshold_has_a_start_date(self) -> None:
+        # 2.0% -> 1.4% is exactly -30%.
+        raw = [row(n, clicks=140 if n >= 21 else 200) for n in range(28)]
+        ad = assess_fatigue(rows(raw), days=7, min_clicks=500, ctr_decline_pct=30).ad("ad-a")
+        assert ad.declined
+        assert ad.decline_started == day(21)
+        assert ad.spend_since_decline == Decimal(700)
+
+    def test_frequency_uses_the_window_rows_own_impressions(self) -> None:
+        raw = [row(n) for n in range(28) if n != 25]  # a day missing from the dailies
+        window = {
+            "date_start": str(day(21)),
+            "date_stop": str(day(27)),
+            "impressions": "70000",
+            "reach": "14000",
+            "ad_id": "ad-a",
+            "adset_id": "set-1",
+        }
+        ad = assess_fatigue(rows([*raw, window]), days=7, min_clicks=500).ad("ad-a")
+        (frequency,) = [c for c in ad.conditions if c.name == "frequency"]
+        assert frequency.value == Decimal(5)
+
+    def test_pacing_refuses_an_end_before_its_start(self) -> None:
+        with pytest.raises(ValidationError, match="before start"):
+            pace_daily(
+                rows([row(n) for n in range(7)]),
+                daily_budget=Decimal(100),
+                start=day(5),
+                end=day(1),
+            )
+
+    def test_the_level_flag_reaches_the_command(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        campaign = [row(n, ad=None, adset=None) | {"campaign_id": "c1"} for n in range(14)]
+        adsets = [row(n, ad=None, adset="s1") | {"campaign_id": "c1"} for n in range(14)]
+        path = tmp_path / "mixed.json"
+        path.write_text(json.dumps(campaign + adsets))
+        assert main(["report", "compare", str(path), "--days", "7"]) == 2
+        assert "--level" in capsys.readouterr().err
+        argv = ["report", "compare", str(path), "--days", "7", "--level", "adset", "--json"]
+        assert main(argv) == 0
+        assert json.loads(capsys.readouterr().out)["current"]["spend"] == "700.00"

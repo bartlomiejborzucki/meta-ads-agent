@@ -76,6 +76,7 @@ def run_compare(
     attribution_days: int | None,
     brand_path: str | None,
     as_json: bool,
+    level: str | None = None,
 ) -> int:
     rows = _rows(path)
     if rows is None:
@@ -93,6 +94,7 @@ def run_compare(
             min_clicks=t.min_clicks_for_decision,
             min_results=t.min_conversions_for_decision,
             attribution_days=attribution_days,
+            level=level,
         )
     except MetaAdsAgentError as exc:
         fail(str(exc))
@@ -308,6 +310,7 @@ def run_pacing(
     as_of: _dt.date | None,
     currency: str | None,
     as_json: bool,
+    level: str | None = None,
 ) -> int:
     if (daily_budget is None) == (lifetime_budget is None):
         fail("give exactly one of --daily-budget or --lifetime-budget")
@@ -318,7 +321,12 @@ def run_pacing(
     try:
         if daily_budget is not None:
             daily = pace_daily(
-                rows, daily_budget=daily_budget, currency=currency, start=start, end=end
+                rows,
+                daily_budget=daily_budget,
+                currency=currency,
+                start=start,
+                end=end,
+                level=level,
             )
             return _print_daily(daily, as_json)
         if start is None or end is None:
@@ -332,6 +340,7 @@ def run_pacing(
             end=end,
             as_of=as_of or max(r.date_stop for r in rows),
             currency=currency,
+            level=level,
         )
         return _print_lifetime(lifetime, as_json)
     except MetaAdsAgentError as exc:
