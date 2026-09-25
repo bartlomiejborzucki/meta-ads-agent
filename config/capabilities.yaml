@@ -375,23 +375,40 @@ capabilities:
       stats and quality are the difference between "a pixel exists" and
       "events are arriving". Never claim tracking works from existence alone.
 
+  - name: read_pixel_rules
+    area: pixels
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_pixel_event_read, ads_pixel_parameter_read]
+    risk_level: read
+    requires_confirmation: false
+    last_reviewed: 2026-09-25
+
   - name: pixel_rules
     area: pixels
     preferred_provider: official_mcp
     fallback_provider: none
     mcp_tools:
-      - ads_pixel_event_read
       - ads_pixel_event_create
       - ads_pixel_event_update
-      - ads_pixel_event_delete
-      - ads_pixel_parameter_read
       - ads_pixel_parameter_create
       - ads_pixel_parameter_update
-      - ads_pixel_parameter_delete
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-16
-    notes: Event rules are created inactive. Deleting a rule can break reporting.
+    last_reviewed: 2026-09-25
+    notes: Event rules are created inactive; updating a live rule changes what is counted.
+
+  - name: delete_pixel_rules
+    area: pixels
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_pixel_event_delete, ads_pixel_parameter_delete]
+    risk_level: delete
+    requires_confirmation: true
+    last_reviewed: 2026-09-25
+    notes: >
+      Deleting a rule can break reporting and the optimisation that depends on
+      its events - the same class as deleting an audience or a catalog object.
 
   # -- Audiences -----------------------------------------------------------
   - name: read_custom_audiences
