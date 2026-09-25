@@ -110,7 +110,8 @@ def _read_cards(path: str) -> list[CarouselCardSpec]:
     for index, raw in enumerate(_read_json_list(path, "cards")):
         if not isinstance(raw, dict):
             raise ConfigError(f"card {index} in {path} must be an object")
-        unknown = sorted(set(raw) - {"image_hash", "video_id", "headline", "description", "link"})
+        allowed = {"image_hash", "video_id", "headline", "description", "link", "thumbnail_hash"}
+        unknown = sorted(set(raw) - allowed)
         if unknown:
             raise ConfigError(f"card {index} in {path} has unknown field(s) {unknown}")
         cards.append(CarouselCardSpec(**raw))
@@ -336,6 +337,7 @@ def run_create_creative(
                 post_id=post_id,
                 instagram_media_id=instagram_media_id,
                 instagram_account_id=instagram_account_id,
+                page_id=page_id,
                 dry_run=dry_run,
             )
         else:

@@ -371,6 +371,18 @@ class CreativePlan(StrictModel):
             )
         if self.mode is CreativeMode.MULTI_VARIANT and any(a.placement for a in self.assets):
             self._check_pinned_assets()
+        if self.mode is CreativeMode.MULTI_VARIANT:
+            kinds = {
+                "video"
+                if a.video_id or (a.local_path and looks_like_video(a.local_path))
+                else "image"
+                for a in self.assets
+            }
+            if len(kinds) > 1:
+                raise ValueError(
+                    "mode=multi_variant takes images or videos, not both - Meta documents "
+                    "one format per asset_feed_spec. Plan two ads."
+                )
         if self.mode is not CreativeMode.MULTI_VARIANT and any(a.placement for a in self.assets):
             raise ValueError(
                 f"placement on an asset needs mode=multi_variant, where it becomes an "
@@ -385,6 +397,8 @@ class CreativePlan(StrictModel):
                 )
             if self.instagram_media_id and not self.instagram_account_id:
                 raise ValueError("an Instagram post needs the instagram_account_id it belongs to")
+            if self.instagram_media_id and not self.page_id:
+                raise ValueError("an Instagram post creative needs the Facebook page_id too")
             if self.assets or self.variants:
                 raise ValueError(
                     "mode=existing_post promotes the post as published; remove "

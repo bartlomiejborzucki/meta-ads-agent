@@ -214,6 +214,7 @@ class TestNewCreativeShapes:
             name="promote the reel",
             instagram_media_id="17900000000000001",
             instagram_account_id="2222222222",
+            page_id="1111111111",
         )
         params = sdk.creatives[-1]
         assert check(params, "AdCreative") == []

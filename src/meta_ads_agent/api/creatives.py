@@ -123,6 +123,7 @@ def create_existing_post_creative(
     post_id: str | None = None,
     instagram_media_id: str | None = None,
     instagram_account_id: str | None = None,
+    page_id: str | None = None,
     dry_run: bool = False,
 ) -> CreativeResult:
     """Promote an existing published post, preserving its engagement.
@@ -139,6 +140,10 @@ def create_existing_post_creative(
         )
     if instagram_media_id and not instagram_account_id:
         raise ValidationError("an Instagram post needs the Instagram account it belongs to")
+    if instagram_media_id and not page_id:
+        # Meta's recipe for an Instagram post as an ad sends the Page as
+        # object_id alongside the Instagram identity and the media id.
+        raise ValidationError("an Instagram post creative needs the Facebook Page id as well")
     source = f"Instagram post {instagram_media_id}" if instagram_media_id else f"post {post_id}"
     if dry_run:
         raise DryRun(
@@ -151,6 +156,7 @@ def create_existing_post_creative(
         # An inert creative from the post, rather than ads_boost_ig_post, whose
         # ability to create a paused boost Meta does not document (ADR-010).
         params["source_instagram_media_id"] = instagram_media_id
+        params["object_id"] = page_id
     else:
         params["object_story_id"] = post_id
     if instagram_account_id:
@@ -201,6 +207,14 @@ def create_multi_variant_creative(
         raise ValidationError("a multi-variant creative needs at least one copy variant")
     if not image_hashes and not video_ids:
         raise ValidationError("a multi-variant creative needs at least one image or video")
+    if image_hashes and video_ids:
+        # Meta documents asset_feed_spec with one format - SINGLE_IMAGE or
+        # SINGLE_VIDEO - and not a mix. Refusing is better than guessing a
+        # format value and finding out at delivery.
+        raise ValidationError(
+            "a multi-variant creative takes images or videos, not both; build two "
+            "creatives, or pin one kind per placement in separate creatives"
+        )
     pinned = placements or {}
     known = set(image_hashes or []) | set(video_ids or [])
     unknown = sorted(set(pinned) - known)
@@ -279,6 +293,7 @@ class CarouselCardSpec:
     headline: str | None = None
     description: str | None = None
     link: str | None = None
+    thumbnail_hash: str | None = None
 
 
 def create_carousel_creative(
@@ -322,6 +337,19 @@ def create_carousel_creative(
             attachment["image_hash"] = card.image_hash
         else:
             attachment["video_id"] = card.video_id
+            # A video card needs a still: Instagram requires one, and without
+            # it Facebook falls back to the carousel's own image. Take the
+            # card's own, else one of the frames Meta generated.
+            if card.thumbnail_hash:
+                attachment["image_hash"] = card.thumbnail_hash
+            else:
+                picture = _pick_video_thumbnail(client, str(card.video_id)) if client else None
+                if not picture:
+                    raise ValidationError(
+                        f"no thumbnail for video card {card.video_id}: pass its "
+                        "thumbnail_hash, or wait until Meta has processed the video"
+                    )
+                attachment["picture"] = picture
         if card.headline:
             attachment["name"] = card.headline
         if card.description:

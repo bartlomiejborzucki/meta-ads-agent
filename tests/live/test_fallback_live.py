@@ -255,7 +255,7 @@ def test_placement_customisation_rules_are_accepted(
 
 
 def test_an_instagram_post_becomes_a_creative(
-    live_client: ApiClient, live_account: str, object_name: str
+    live_client: ApiClient, live_account: str, live_page: str, object_name: str
 ) -> None:
     created = create_existing_post_creative(
         client=live_client,
@@ -263,5 +263,6 @@ def test_an_instagram_post_becomes_a_creative(
         name=object_name,
         instagram_media_id=_require("META_ADS_LIVE_TEST_IG_MEDIA"),
         instagram_account_id=_require("META_ADS_LIVE_TEST_IG_ACCOUNT"),
+        page_id=live_page,
     )
     assert created.creative_id

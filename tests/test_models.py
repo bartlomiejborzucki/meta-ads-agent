@@ -420,6 +420,25 @@ class TestCarouselAndInstagram:
         with pytest.raises(ValidationError, match="only valid with mode=carousel"):
             build(mutate)
 
+    def test_mixing_images_and_videos_in_multi_variant_is_refused(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+            creative["mode"] = "multi_variant"
+            creative["assets"] = [{"image_hash": "a"}, {"video_id": "700000000000001"}]
+
+        with pytest.raises(ValidationError, match="images or videos, not both"):
+            build(mutate)
+
+    def test_an_instagram_post_needs_the_page(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
+            creative.update(mode="existing_post", assets=[], variants=[], page_id=None)
+            creative["instagram_media_id"] = "17900000000000001"
+            creative["instagram_account_id"] = "2222"
+
+        with pytest.raises(ValidationError, match="page_id"):
+            build(mutate)
+
     def test_an_instagram_post_needs_its_account(self) -> None:
         def mutate(raw):  # type: ignore[no-untyped-def]
             creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.0.0",
   "payload_root": "skills",
-  "digest": "dc17d5b48d3c882b5d604dfb6f9d90c4c00cadc419946ee62e9d16718cbf9a18",
+  "digest": "cbdc617e3eb9bccb063d0b9b1e0a2ad791caf59994a814c82467fecd307ab663",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -57,8 +57,8 @@
     },
     {
       "path": "meta-ads-campaign/references/campaign-plan-guide.md",
-      "sha256": "b1f5fde0e84521ed0a59f83c84e1e534472991e95c23054fe6d03a75a455b436",
-      "size": 7363
+      "sha256": "8ad46ad942712b1d52f2662b1b25aeaf47d64d62755957e4ae82fa54bacd7b43",
+      "size": 7562
     },
     {
       "path": "meta-ads-campaign/references/objectives-and-optimization.md",

@@ -84,8 +84,8 @@ Cards keep the order written: Meta's automatic reordering is turned off,
 because a carousel that tells a story stops telling it when shuffled.
 
 An existing post is either a Facebook Page post (`post_id: "<page>_<post>"`)
-or an Instagram post (`instagram_media_id`, with `instagram_account_id`) -
-exactly one. No assets and no variants: the post runs as published, and keeps
+or an Instagram post (`instagram_media_id`, with `instagram_account_id` and
+the Page's `page_id`) - exactly one. No assets and no variants: the post runs as published, and keeps
 its engagement.
 
 To serve an asset in one placement only, use `mode: multi_variant` and give
@@ -102,6 +102,9 @@ assets:
 ```
 
 In any other mode `placement` is refused, because nothing would honour it.
+A multi-variant creative takes images or videos, not both, and an asset pinned
+to a placement the ad set's manual placements leave out is refused too - it
+would never serve.
 
 ### `angle` is the concept, not the wording
 

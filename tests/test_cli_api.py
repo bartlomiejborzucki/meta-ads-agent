@@ -443,11 +443,20 @@ class TestNewCreativeModes:
     ) -> None:
         argv = ["api", "create-creative", "--post", "--name", "ig"]
         code, _, err = run(
-            [*argv, "--instagram-media-id", "17900000000000001", "--instagram-account-id", "2222"],
+            [
+                *argv,
+                "--instagram-media-id",
+                "17900000000000001",
+                "--instagram-account-id",
+                "2222",
+                "--page-id",
+                "1111111111",
+            ],
             capsys,
         )
         assert code == 0, err
         assert sdk.creatives[-1]["source_instagram_media_id"] == "17900000000000001"
+        assert sdk.creatives[-1]["object_id"] == "1111111111"
 
     def test_an_instagram_post_needs_its_account(
         self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
@@ -457,6 +466,40 @@ class TestNewCreativeModes:
         assert code == 1
         assert "Instagram account" in err
         assert sdk.creatives == []
+
+    def test_an_instagram_post_needs_the_page_too(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["api", "create-creative", "--post", "--name", "ig"]
+        code, _, err = run(
+            [*argv, "--instagram-media-id", "17900000000000001", "--instagram-account-id", "2222"],
+            capsys,
+        )
+        assert code == 1
+        assert "Facebook Page id" in err
+        assert sdk.creatives == []
+
+    def test_a_video_card_gets_a_thumbnail(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        cards = project / "cards.json"
+        cards.write_text(json.dumps([{"image_hash": "abc123"}, {"video_id": "700000000000001"}]))
+        argv = ["api", "create-creative", "--carousel", "--name", "c", *self.BASE]
+        code, _, err = run([*argv, "--primary-text", "x", "--cards", str(cards)], capsys)
+        assert code == 0, err
+        video_card = sdk.creatives[-1]["object_story_spec"]["link_data"]["child_attachments"][1]
+        assert video_card["picture"].startswith("https://")
+
+    def test_mixing_images_and_videos_is_refused(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["api", "create-creative", "--variants", "--name", "v", *self.BASE]
+        code, _, err = run(
+            [*argv, "--primary-text", "x", "--image-hash", "a", "--video-id", "700000000000001"],
+            capsys,
+        )
+        assert code == 1
+        assert "images or videos, not both" in err
 
     def test_several_variants_and_a_placement(
         self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
