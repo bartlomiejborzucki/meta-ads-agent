@@ -1,4 +1,4 @@
-"""``meta-ads-agent report compare|fatigue|pacing`` - insights arithmetic.
+"""``meta-ads-agent report compare|breakdown|fatigue|pacing|power`` - insights arithmetic.
 
 Read-only and offline. The agent reads insights through the official MCP,
 saves them as JSON, and hands the file here; this prints the numbers the
@@ -20,11 +20,13 @@ from typing import Any
 
 from meta_ads_agent.analysis import (
     assess_fatigue,
+    breakdown_by_placement,
     compare_periods,
     load_rows,
     pace_daily,
     pace_lifetime,
 )
+from meta_ads_agent.analysis.breakdown import Breakdown
 from meta_ads_agent.analysis.compare import Comparison
 from meta_ads_agent.analysis.fatigue import FatigueReport
 from meta_ads_agent.analysis.insights import InsightRow, Totals
@@ -179,6 +181,101 @@ def _comparison_json(result: Comparison) -> dict[str, Any]:
         },
         "chain": result.chain,
         "comparable": result.comparable,
+        "notes": result.notes,
+    }
+
+
+# -- breakdown ---------------------------------------------------------------
+def run_breakdown(
+    path: str,
+    *,
+    days: int | None,
+    end: _dt.date | None,
+    result_event: str | None,
+    currency: str | None,
+    brand_path: str | None,
+    as_json: bool,
+    level: str | None = None,
+) -> int:
+    rows = _rows(path)
+    if rows is None:
+        return 2
+    t = _thresholds(brand_path)
+    try:
+        result = breakdown_by_placement(
+            rows,
+            days=days,
+            end=end,
+            result_event=result_event,
+            currency=currency,
+            noise_band_pct=Decimal(str(t.noise_band_pct)),
+            min_clicks=t.min_clicks_for_decision,
+            min_results=t.min_conversions_for_decision,
+            level=level,
+        )
+    except MetaAdsAgentError as exc:
+        fail(str(exc))
+        return 2
+
+    if as_json:
+        emit_json(_breakdown_json(result))
+        return 0
+
+    floor = (
+        f"{result.min_results} results" if result.cost_metric == "cpa"
+        else f"{result.min_clicks} link clicks"
+    )  # fmt: skip
+    heading(f"Placements, {result.window}")
+    echo(
+        f"  rules     {result.cost_metric.upper()} indexed to the whole at 100; noise band "
+        f"{_q(result.noise_band_pct, 1)}%, floor {floor} per placement"
+    )
+    echo("")
+    metric = result.cost_metric
+    echo(f"  {'placement':<34} {'spend':>12} {'share':>7} {metric:>10} {'index':>7}  reading")
+    for line in result.placements:
+        share = _q(line.spend_share_pct, 1) + "%" if line.spend_share_pct is not None else "n/a"
+        echo(
+            f"  {line.label:<34} {_q(line.totals.spend):>12} {share:>7} "
+            f"{_q(line.cost):>10} {_q(line.index, 0):>7}  {line.reading}"
+        )
+    overall = result.total.cpa if metric == "cpa" else result.total.cpc
+    everything = "all placements"
+    echo(
+        f"  {everything:<34} {_q(result.total.spend):>12} {'100.0%':>7} "
+        f"{_q(overall):>10} {'100':>7}"
+    )
+    if result.currency:
+        echo(f"  (spend and {result.cost_metric.upper()} in {result.currency})", "dim")
+    for note in result.notes:
+        echo(f"  ! {note}", "yellow")
+    return 0
+
+
+def _breakdown_json(result: Breakdown) -> dict[str, Any]:
+    return {
+        "window": {"start": str(result.window.start), "end": str(result.window.end)},
+        "currency": result.currency,
+        "result_event": result.result_event,
+        "cost_metric": result.cost_metric,
+        "rules": {
+            "noise_band_pct": _num(result.noise_band_pct, 2),
+            "min_link_clicks": result.min_clicks,
+            "min_results": result.min_results,
+        },
+        "total": _totals_json(result.total),
+        "placements": [
+            {
+                "publisher_platform": line.publisher_platform,
+                "platform_position": line.platform_position,
+                "totals": _totals_json(line.totals),
+                "spend_share_pct": _num(line.spend_share_pct, 2),
+                "cost": _num(line.cost),
+                "index": _num(line.index, 2),
+                "reading": line.reading,
+            }
+            for line in result.placements
+        ],
         "notes": result.notes,
     }
 

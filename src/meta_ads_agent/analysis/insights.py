@@ -67,6 +67,9 @@ class InsightRow(BaseModel):
     campaign_name: str | None = None
     adset_name: str | None = None
     ad_name: str | None = None
+    # Present when the export used breakdowns=publisher_platform,platform_position.
+    publisher_platform: str | None = None
+    platform_position: str | None = None
 
     @field_validator("spend", "frequency", "results", mode="before")
     @classmethod

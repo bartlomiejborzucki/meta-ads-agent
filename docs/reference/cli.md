@@ -143,6 +143,8 @@ the MCP, and the output says so.
 meta-ads-agent report compare INSIGHTS --days N [--end DATE | --boundary DATE]
   [--result-event ACTION_TYPE] [--attribution-days N] [--currency CODE]
   [--level ad|adset|campaign|account] [--brand-file FILE] [--json]
+meta-ads-agent report breakdown INSIGHTS [--days N] [--end DATE]
+  [--result-event ACTION_TYPE] [--currency CODE] [--level LEVEL] [--brand-file FILE] [--json]
 meta-ads-agent report fatigue INSIGHTS [--days 7] [--end DATE] [--currency CODE]
   [--brand-file FILE] [--json]
 meta-ads-agent report pacing INSIGHTS (--daily-budget AMOUNT | --lifetime-budget AMOUNT)
@@ -160,6 +162,12 @@ Input format and thresholds: [report-input.md](report-input.md).
   rules are read off those labels. Incomplete windows, entities live in only
   one window, and a current window still inside `--attribution-days` are
   flagged.
+- **breakdown** - rows exported with `publisher_platform` and
+  `platform_position` breakdowns: each placement's spend, share of spend,
+  and cost per result (per link click without `--result-event`), indexed
+  against all placements at 100 and labelled `cheaper`, `costlier`,
+  `in line`, `insufficient` or `unavailable`. A row without a placement is
+  refused, since it repeats spend the placement rows already hold.
 - **fatigue** - per ad: CTR against its own best earlier window of the same
   length, the frequency condition (from a window-long row, else `unknown`),
   spend since the decline began, days with delivery, and which siblings in

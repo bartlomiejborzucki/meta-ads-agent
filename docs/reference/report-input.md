@@ -41,6 +41,7 @@ Marketing API's Insights edge returns:
 | `results` | results, when there are no `actions` | a plain count, if the agent already has one |
 | `ad_id`, `adset_id`, `campaign_id` | fatigue (ad and ad set), coverage notes | |
 | `ad_name`, `adset_name`, `campaign_name` | display only | |
+| `publisher_platform`, `platform_position` | breakdown | from `breakdowns=publisher_platform,platform_position`; `breakdown` needs `publisher_platform` on every row |
 | `reach` | fatigue frequency | only from a row whose dates cover **exactly** the current window - see below |
 
 Numbers may be strings or JSON numbers, and `null` in `spend`,
@@ -54,6 +55,10 @@ else `campaign_id`, else the account. An export holding a campaign's rows
 **and** its ad sets' rows describes the same spend twice, so `compare` and
 `pacing` refuse a mixed export and name the levels in it; `--level` picks
 one. `fatigue` always uses ad rows.
+
+A placement breakdown splits each row into one per placement, so an export
+holding both placement rows and plain rows counts the same spend twice.
+`breakdown` refuses one; keep a placement query in its own file.
 
 ## Why reach needs its own row
 

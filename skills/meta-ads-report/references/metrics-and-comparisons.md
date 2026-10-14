@@ -149,6 +149,28 @@ delta. Most "mysterious" changes have a timestamped human cause.
 Prefer one query with a breakdown over many queries. It is faster, it is
 consistent, and it does not hit the rate limit.
 
+### Placements, with the CLI
+
+Save the rows of one query with `publisher_platform` and `platform_position`
+breakdowns - and nothing else in the file, since an unbroken-down row is the
+same spend again - and:
+
+```bash
+meta-ads-agent report breakdown placements.json --days 14 \
+  --result-event offsite_conversion.fb_pixel_lead --currency PLN
+```
+
+Each placement's cost per result (per link click without `--result-event`)
+is indexed against all placements at 100, and labelled `cheaper`,
+`costlier`, `in line` (inside the noise band), `insufficient` (below the
+volume floor) or `unavailable`. By hand: sum spend and results per
+placement, divide, and divide again by the same figure for all placements.
+
+**Report it; do not act on it alone.** Meta optimises delivery across the
+placements it is given, so a costlier placement can be what makes the
+cheaper ones cheap. Removing one is a change to test - a split, or a
+before/after with `--boundary` - not a conclusion from the table.
+
 ## Aggregation
 
 Do not average rates across entities. CTR averaged over five ad sets is not the

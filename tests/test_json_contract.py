@@ -63,6 +63,12 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     campaign.mkdir(parents=True)
     (campaign / "plan.yaml").write_text(yaml.safe_dump(plan_dict()))
     (tmp_path / "insights.json").write_text(json.dumps({"data": daily_rows()}))
+    placed = [
+        {**r, "publisher_platform": platform, "platform_position": "feed"}
+        for r in daily_rows()
+        for platform in ("facebook", "instagram")
+    ]
+    (tmp_path / "placements.json").write_text(json.dumps({"data": placed}))
     return tmp_path
 
 
@@ -84,6 +90,7 @@ COMMANDS: dict[str, list[str]] = {
         "--result-event",
         "lead",
     ],
+    "report breakdown": ["report", "breakdown", "placements.json", "--result-event", "lead"],
     "report fatigue": ["report", "fatigue", "insights.json"],
     "report pacing": ["report", "pacing", "insights.json", "--daily-budget", "100"],
     "report power": [

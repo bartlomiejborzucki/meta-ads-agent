@@ -31,7 +31,7 @@ and the few capabilities the official MCP does not expose.
   meta-ads-agent render-plan FILE    apply brand naming and UTM templates
   meta-ads-agent validate-plan FILE  check a plan before anything is created
   meta-ads-agent state [SLUG]        what exists, and how to resume
-  meta-ads-agent report ...          compare periods, fatigue signals, pacing
+  meta-ads-agent report ...          compare periods, placements, fatigue, pacing, power
   meta-ads-agent api ...             the Marketing API fallback
 
 Docs: docs/getting-started/
@@ -181,6 +181,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--attribution-days", type=int, help="click attribution window in days, e.g. 7"
     )
     compare.add_argument("--brand-file", help="brand config for thresholds (default: workspace)")
+
+    breakdown = report_sub.add_parser(
+        "breakdown",
+        parents=[report_common],
+        help="each placement's cost per result (or per click) indexed against the whole",
+    )
+    breakdown.add_argument("--days", type=int, help="last N days only (default: every row)")
+    breakdown.add_argument("--end", type=_date, help="last day of the window")
+    breakdown.add_argument(
+        "--result-event",
+        help="action_type counted as a result; without it placements are indexed on CPC",
+    )
+    breakdown.add_argument("--brand-file", help="brand config for thresholds (default: workspace)")
 
     fatigue = report_sub.add_parser(
         "fatigue",
@@ -728,6 +741,17 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
             result_event=args.result_event,
             currency=args.currency,
             attribution_days=args.attribution_days,
+            brand_path=args.brand_file,
+            as_json=args.json,
+            level=args.level,
+        )
+    if args.report_command == "breakdown":
+        return report_cmd.run_breakdown(
+            args.insights,
+            days=args.days,
+            end=args.end,
+            result_event=args.result_event,
+            currency=args.currency,
             brand_path=args.brand_file,
             as_json=args.json,
             level=args.level,

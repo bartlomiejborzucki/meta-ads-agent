@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.2.0",
   "payload_root": "skills",
-  "digest": "3cda909c34775ec982b66f4c067eefb9a8f28095198804e465ea5e0930364440",
+  "digest": "c33de31032e2b7cc6a85c6f56216ca224803c8f1fac7fad974c9f1f7d67bd426",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -187,8 +187,8 @@
     },
     {
       "path": "meta-ads-report/references/metrics-and-comparisons.md",
-      "sha256": "a83e2f99cceaa6679f009176f402fe1f5ee435661548cefb6e35d7c51c7ed8b7",
-      "size": 6367
+      "sha256": "cbccebc4ef83d1c7776f8d1c5c67f09c0699c1b5c392ff43aded0ae22126f9a6",
+      "size": 7351
     },
     {
       "path": "meta-ads-research/SKILL.md",

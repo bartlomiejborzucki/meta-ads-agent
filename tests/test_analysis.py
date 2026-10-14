@@ -544,3 +544,91 @@ class TestNonFiniteInput:
         code = main(["report", "power", "--baseline-rate", "0.03", *argv])
         assert code != 0
         assert "nan" not in capsys.readouterr().out.lower()
+
+
+def placement_rows(days: int = 14) -> list[dict[str, object]]:
+    """Per day: feed 60 for 3 leads, stories 90 for 3, Messenger 5 for 1,
+    Audience Network 10 for none. Over 14 days CPA is 20, 30 and 5, against
+    2310 / 98 = 23.57 for the whole."""
+    out: list[dict[str, object]] = []
+    for n in range(days):
+        for platform, position, spend, leads in (
+            ("facebook", "feed", "60", 3),
+            ("instagram", "story", "90", 3),
+            ("messenger", "messenger_inbox", "5", 1),
+            ("audience_network", "classic", "10", 0),
+        ):
+            r = row(n, spend=spend, clicks=100, leads=leads, ad=None)
+            r.update(publisher_platform=platform, platform_position=position)
+            if not leads:
+                del r["actions"]
+            out.append(r)
+    return out
+
+
+class TestPlacementBreakdown:
+    def test_each_placement_is_indexed_against_the_whole(self) -> None:
+        from meta_ads_agent.analysis import breakdown_by_placement
+
+        result = breakdown_by_placement(rows(placement_rows()), result_event=LEAD)
+        assert result.cost_metric == "cpa"
+        assert result.total.spend == Decimal(2310)
+        assert result.total.results == Decimal(98)
+        by = {line.label: line for line in result.placements}
+        assert by["facebook / feed"].cost == Decimal(20)
+        assert by["facebook / feed"].reading == "cheaper"
+        assert by["instagram / story"].reading == "costlier"
+        assert by["instagram / story"].index == Decimal(30) / (Decimal(2310) / 98) * 100
+        # 14 leads is under the 30-result floor: an index, not a finding.
+        assert by["messenger / messenger_inbox"].reading == "insufficient"
+        assert by["audience_network / classic"].reading == "unavailable"
+        assert [line.label for line in result.placements][0] == "instagram / story"
+        assert sum(line.spend_share_pct or 0 for line in result.placements) == 100
+
+    def test_without_a_result_event_it_indexes_cpc_and_says_so(self) -> None:
+        from meta_ads_agent.analysis import breakdown_by_placement
+
+        result = breakdown_by_placement(rows(placement_rows()), min_clicks=100)
+        assert result.cost_metric == "cpc"
+        assert any("NO RESULT EVENT" in n for n in result.notes)
+        assert any("change to test" in n for n in result.notes)
+
+    def test_a_window_keeps_only_its_days(self) -> None:
+        from meta_ads_agent.analysis import breakdown_by_placement
+
+        result = breakdown_by_placement(rows(placement_rows()), days=7, result_event=LEAD)
+        assert result.window.start == day(7)
+        assert result.total.spend == Decimal(165 * 7)
+
+    def test_rows_without_a_placement_are_refused(self) -> None:
+        from meta_ads_agent.analysis import breakdown_by_placement
+
+        mixed = [*placement_rows(1), row(0, ad=None)]
+        with pytest.raises(ValidationError, match="no publisher_platform"):
+            breakdown_by_placement(rows(mixed))
+
+    def test_the_command_prints_the_rule_and_the_table(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        path = tmp_path / "placements.json"
+        path.write_text(json.dumps({"data": placement_rows()}))
+        argv = ["report", "breakdown", str(path), "--result-event", LEAD, "--currency", "PLN"]
+        assert main(argv) == 0
+        out = capsys.readouterr().out
+        assert "CPA indexed to the whole at 100" in out
+        assert "instagram / story" in out and "costlier" in out
+        assert "in PLN" in out
+
+        assert main([*argv, "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["cost_metric"] == "cpa"
+        assert payload["placements"][0]["publisher_platform"] == "instagram"
+        assert payload["placements"][0]["reading"] == "costlier"
+
+    def test_the_command_refuses_an_export_without_placements(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        path = tmp_path / "plain.json"
+        path.write_text(json.dumps({"data": [row(0)]}))
+        assert main(["report", "breakdown", str(path)]) == 2
+        assert "breakdowns=publisher_platform" in capsys.readouterr().err
