@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.2.0",
   "payload_root": "skills",
-  "digest": "c33de31032e2b7cc6a85c6f56216ca224803c8f1fac7fad974c9f1f7d67bd426",
+  "digest": "1b0345c0c749866a18ec15b99c9e8bd78b8f06f58eed0bd4aa3a21919682b6bc",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -27,8 +27,8 @@
   "files": [
     {
       "path": "meta-ads-audiences/SKILL.md",
-      "sha256": "a99c6b892b89d667c5ffc9b4ea6afb1c4d92dc70a99e485c8d2c4d23e00d9f7a",
-      "size": 7843
+      "sha256": "7be38588d53dab2678a355ccdf06987b1e8d500bc794d459a4c2de7036b45229",
+      "size": 9245
     },
     {
       "path": "meta-ads-audiences/references/lookalike-sources.md",
@@ -157,8 +157,8 @@
     },
     {
       "path": "meta-ads-optimize/SKILL.md",
-      "sha256": "c7e4cd46f9bd42960c25ea224187989c73ef07298de7fde2ac0ea9f351f5c506",
-      "size": 11114
+      "sha256": "59ed04f7c2b61f46b44834aefab0f191397c0c01487d9fd861091bb1f40af56f",
+      "size": 11359
     },
     {
       "path": "meta-ads-optimize/references/diagnosis-playbook.md",
@@ -169,6 +169,11 @@
       "path": "meta-ads-optimize/references/fatigue-signals.md",
       "sha256": "3f7816eadc3ec0c35236fcff1659f7ecf306d9b9f4ddd6a236df413df33ce87e",
       "size": 6874
+    },
+    {
+      "path": "meta-ads-optimize/references/scale-readiness.md",
+      "sha256": "0d4c801a0c312cd7a7c675e7c3141b4e81d7c34e5c8203f04959e8f12dd2d837",
+      "size": 2818
     },
     {
       "path": "meta-ads-preview/SKILL.md",

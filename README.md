@@ -288,7 +288,7 @@ the MCP. The whole reference is [cli.md](docs/reference/cli.md).
 | `render-plan` | applying the brand's naming and UTM templates to a plan |
 | `validate-plan` | the gate before the first write |
 | `state` | what exists on Meta for a campaign, and where a resume starts |
-| `report compare` · `fatigue` · `pacing` · `power` | period comparisons, fatigue signals, budget pacing, test sizing |
+| `report compare` · `breakdown` · `fatigue` · `pacing` · `power` | period comparisons, placements, fatigue signals, budget pacing, test sizing |
 | `capabilities` | what routes where; `--compare` checks a live session's tools against the map |
 | `install` · `upgrade` · `migrate` · `mcp-config` · `open-url` | installing and updating skills, and Codex/WSL set-up |
 | `api …` | the fallback: uploads, video / existing-post / multi-variant / carousel creatives, deletion |
@@ -438,7 +438,7 @@ where help is worth the most — each is one command, and the
 | --- | --- |
 | **Lead forms** | No MCP tool creates or reads them. A campaign can use a form id you supply. |
 | **Catalog (dynamic) ads** | `meta-ads-catalog` gets the catalog and product sets ready, but the ad's template creative is not something the MCP is documented to build, and catalogs stay MCP-only. Build that ad in Ads Manager. |
-| **Scheduled reporting and monitoring** | Deliberately absent — there is no daemon (below). |
+| **Scheduled reporting and monitoring** | No daemon (below). A read-only session started by your own scheduler does the job: [scheduled-reporting.md](docs/reference/scheduled-reporting.md). |
 
 ### Deliberately out of scope
 
@@ -478,6 +478,7 @@ send: [capability change issue](.github/ISSUE_TEMPLATE/capability_change.yml).
 | --- | --- |
 | [CLI](docs/reference/cli.md) | every command and flag |
 | [Report input](docs/reference/report-input.md) | the insights shape `report` reads |
+| [Scheduled reporting](docs/reference/scheduled-reporting.md) | a weekly report from cron, that can only read |
 | [Workspace](docs/reference/workspace.md) | what `.meta-ads/` holds, and what to version |
 | [Compatibility](docs/reference/compatibility.md) | what an upgrade may change, and how that is tested |
 | [Packaging](docs/reference/packaging.md) | install shapes, updates, migrations, what works without the CLI |

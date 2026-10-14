@@ -139,6 +139,36 @@ nothing to propose. Two checks first:
   refuses an audience that is both (`targeting.audience_included_and_excluded`)
   because it leaves nobody to reach.
 
+### Reviewing exclusions across a campaign
+
+For "are my ad sets fighting each other" or "check my exclusions", read every
+live ad set's targeting in one `ads_get_ad_entities` query, then lay out which
+custom audiences each includes and excludes:
+
+```
+EXCLUSIONS - campaign "Acme leads Q4", 3 live ad sets
+                       Buyers 180d   Site visitors 30d   LAL 1% buyers
+PL prospecting broad   excluded      -                   -
+PL lookalike           -             -                   included
+PL retargeting         excluded      included            -
+
+FACT        "PL lookalike" does not exclude Buyers 180d; the other two do.
+FACT        "Site visitors 30d" is included in retargeting and excluded
+            nowhere, so prospecting ad sets can reach those visitors too.
+QUESTION    Exclude Buyers 180d from "PL lookalike"? A lookalike of buyers
+            reaches some of them.
+```
+
+Read each exclusion audience's size and status too: an empty one is a gap
+that looks like a guard. Meta's MCP has no audience-overlap tool, so do not
+estimate overlap between two audiences; the overlap view in Ads Manager can
+measure it. That ad sets with overlapping audiences split delivery between
+them is a practitioner heuristic - say so.
+
+Every proposed change edits a live ad set's targeting: `update_active`, one
+approval per ad set, or the whole list shown first when there are several
+(`bulk`).
+
 ## Customer lists: `pii_upload`
 
 A customer-file audience is built from personal data. Everything in the core

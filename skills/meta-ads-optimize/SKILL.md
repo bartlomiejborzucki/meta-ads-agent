@@ -209,7 +209,9 @@ the account currency, read from Meta.
   the binding constraint. That is the one case where an increase is the obvious
   proposal.
 
-**Never increase a budget automatically.** Produce a proposal.
+**Never increase a budget automatically.** Produce a proposal - and before
+proposing more budget, run the scale-readiness checklist and show it with the
+proposal: [references/scale-readiness.md](references/scale-readiness.md).
 
 ## Proposing a change
 
@@ -258,6 +260,8 @@ into one, get it confirmed, then act.
 - Mutate as the first response to a performance question.
 - Pause an ad on one metric.
 - Change a budget without approval, both values, and the currency.
+- Propose more budget without the scale-readiness checklist, or bury a
+  `FAIL` in it.
 - Apply a change without verifying it afterwards.
 - Present a heuristic as a platform rule.
 - Conclude from a sample below the user's own floors.
@@ -271,7 +275,7 @@ enforced by Meta.
 | Heuristic | Reasoning | Overridable |
 | --- | --- | --- |
 | Change one thing at a time | otherwise you cannot attribute the result | yes |
-| Smaller budget steps are more stable | large changes re-enter learning harder | yes - `brand.yaml` |
+| Smaller budget steps are more stable | large changes re-enter learning harder | yes - say so |
 | Wait out the learning phase after an edit | early numbers are unstable | yes |
 | Pause rather than delete | deleted objects lose their optimisation history permanently | rarely worth overriding |
 | Require volume before deciding | small samples produce confident nonsense | yes - `thresholds` |
