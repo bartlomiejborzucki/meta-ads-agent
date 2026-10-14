@@ -179,3 +179,33 @@ class TestFingerprint:
 
     def test_length_is_disclosed_to_help_spot_a_truncated_paste(self) -> None:
         assert "len 9" in fingerprint("123456789")
+
+
+class TestRedactionGaps:
+    """Shapes found in review that the first patterns let through."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "page_access_token=abcdEFGH12345678",
+            "fb_exchange_token=abcdEFGH12345678",
+            "input_token=abcdEFGH12345678",
+            "access_token=ab/cd+ef==ghijklmnop",
+            "password=hunter2",
+            '{\\"access_token\\": \\"abcdEFGH12345678\\"}',
+        ],
+    )
+    def test_the_value_is_masked(self, text: str) -> None:
+        out = redact(text)
+        assert MASK in out
+        for secret in ("abcdEFGH12345678", "hunter2", "ghijklmnop"):
+            assert secret not in out
+
+    def test_a_url_encoded_app_token_loses_its_secret(self) -> None:
+        encoded = LOOKS_LIKE_APP_SECRET.replace("|", "%7C")
+        assert "fakeSecret" not in redact(f"access_token={encoded}")
+        assert "fakeSecret" not in redact(f"GET /me?x=1&t={encoded}")
+
+    def test_metas_own_error_text_stays_readable(self) -> None:
+        text = "Error validating access token: Session has expired"
+        assert redact(text) == text

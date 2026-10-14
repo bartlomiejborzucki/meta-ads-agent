@@ -152,6 +152,6 @@ def check_bid(
 
 def _account_offset(account: AccountContext | None, currency: str) -> int | None:
     """Meta's own minor-unit offset, when it is for this currency."""
-    if account and account.currency_offset and account.currency == currency:
+    if account and account.currency_offset is not None and account.currency == currency:
         return account.currency_offset
     return None

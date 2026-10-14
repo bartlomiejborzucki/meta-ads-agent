@@ -224,7 +224,7 @@ class ScriptMigration:
     def _run(self, workspace: Workspace, flag: str) -> subprocess.CompletedProcess[str]:
         self.verify_hash()
         return subprocess.run(  # noqa: S603 - argv is fixed; the path is hash-pinned
-            [sys.executable, str(self.script_path), flag, "--workspace", str(workspace.root)],
+            [sys.executable, "-I", str(self.script_path), flag, "--workspace", str(workspace.root)],
             capture_output=True,
             text=True,
             timeout=300,

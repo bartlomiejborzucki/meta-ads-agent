@@ -200,6 +200,28 @@ def build_manifest(
     return ReleaseManifest(version=version, entries=tuple(entries), migrations=tuple(resolved))
 
 
+def _check_payload_path(path: str) -> None:
+    """Refuse a manifest path that could land outside our own skill folders.
+
+    The installer deletes and replaces ``<target>/<first part>`` for every
+    entry, so a path like ``../x`` or ``other-vendor/x`` would make it remove
+    a directory that is not ours. The digest only proves the manifest agrees
+    with itself, so the shape of every path is checked here.
+    """
+    if not isinstance(path, str):
+        raise ConfigError(f"release manifest lists a non-string path: {path!r}")
+    parts = path.split("/")
+    if (
+        "\\" in path
+        or path.startswith("/")
+        or (len(path) > 1 and path[1] == ":")
+        or len(parts) < 2
+        or any(part in ("", ".", "..") for part in parts)
+        or not parts[0].startswith(SKILL_PREFIX)
+    ):
+        raise ConfigError(f"release manifest lists an unsafe path: {path!r}")
+
+
 def manifest_from_dict(raw: dict[str, Any]) -> ReleaseManifest:
     schema = raw.get("schema_version")
     if schema != SCHEMA_VERSION:
@@ -233,8 +255,13 @@ def manifest_from_dict(raw: dict[str, Any]) -> ReleaseManifest:
             migrations=migrations,
             payload_root=raw.get("payload_root", PAYLOAD_ROOT),
         )
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise ConfigError(f"release manifest is malformed: {exc}") from exc
+    for entry in entries:
+        _check_payload_path(entry.path)
+    for migration in migrations:
+        if migration.script is not None:
+            _check_payload_path(migration.script)
 
     declared = raw.get("digest")
     if declared and declared != manifest.digest:

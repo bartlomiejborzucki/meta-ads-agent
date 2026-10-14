@@ -81,3 +81,15 @@ class TestApply:
         assert ".env" in out
         assert "fake-token-42" not in out
         assert "sha256:" in out
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ('META_ACCESS_TOKEN="EAAvalue" # prod', "EAAvalue"),
+        ("META_ACCESS_TOKEN='EAAvalue'   # prod", "EAAvalue"),
+        ('META_ACCESS_TOKEN="a # not a comment"', "a # not a comment"),
+    ],
+)
+def test_a_quoted_value_with_a_trailing_comment_loses_both(line: str, expected: str) -> None:
+    assert parse(line) == {"META_ACCESS_TOKEN": expected}

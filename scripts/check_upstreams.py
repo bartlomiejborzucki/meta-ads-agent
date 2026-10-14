@@ -136,7 +136,7 @@ def main() -> int:
             reviewed = str(entry.get("reviewed_version", ""))
             if latest is None:
                 failed.append(f"`{repo}` — release lookup failed")
-            elif reviewed and reviewed.lstrip("v") not in latest.lstrip("v"):
+            elif reviewed and reviewed.lstrip("v") != latest.lstrip("v"):
                 drifted.append(
                     f"### `{repo}`\n\n"
                     f"- reviewed: **{reviewed}**\n"

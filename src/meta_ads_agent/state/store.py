@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import secrets
+import time
 
 from pydantic import ValidationError as PydanticValidationError
 
@@ -208,12 +211,17 @@ class StateStore:
             if path.is_file():
                 try:
                     disk = self.load_state(state.slug)
-                except (StateError, WorkspaceError) as exc:
+                except (StateError, WorkspaceError, UnicodeDecodeError, OSError) as exc:
                     # The file on disk cannot be read - hand-edited, or from a
                     # newer release. Overwriting it could destroy ids only it
                     # holds; raising without saving would lose the id just
                     # created. So this copy goes beside it, and then we stop.
-                    recovered = path.with_name(f"{path.name}.recovered")
+                    # Unique per session: a second failing session must not
+                    # overwrite the ids the first one saved here.
+                    stamp = time.strftime("%Y%m%dT%H%M%S")
+                    recovered = path.with_name(
+                        f"{path.name}.recovered-{stamp}-{os.getpid()}-{secrets.token_hex(3)}"
+                    )
                     self.workspace.write_json(
                         recovered,
                         redact_mapping(state.model_dump(mode="json", exclude_none=True)),

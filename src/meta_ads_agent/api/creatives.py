@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from meta_ads_agent.api.client import ApiClient, wrap_sdk_error
+from meta_ads_agent.api.client import ApiClient, check_object_id, wrap_sdk_error
 from meta_ads_agent.errors import (
     ApiCallFailed,
     ApiFallbackUnavailable,
@@ -455,6 +455,9 @@ def _create(
     return str(creative_id)
 
 
+_AUTH_CODES = frozenset({102, 190})
+
+
 def _pick_video_thumbnail(client: ApiClient, video_id: str) -> str | None:
     """Ask Meta for a generated thumbnail for *video_id*.
 
@@ -464,12 +467,18 @@ def _pick_video_thumbnail(client: ApiClient, video_id: str) -> str | None:
     """
     from facebook_business.adobjects.advideo import AdVideo
 
+    video_id = check_object_id(video_id, what="video id")
     try:
         thumbnails = AdVideo(video_id, api=client.connect()).get_thumbnails(
             fields=["uri", "is_preferred"]
         )
         candidates = list(thumbnails)
-    except Exception:
+    except Exception as exc:
+        failure = wrap_sdk_error(exc, stage="read_thumbnails", operation="get_thumbnails")
+        # No thumbnail yet is normal. An expired or revoked token is not, and
+        # hiding it here only moves the failure to the next call.
+        if failure.meta_code in _AUTH_CODES:
+            raise failure from exc
         return None
     if not candidates:
         return None

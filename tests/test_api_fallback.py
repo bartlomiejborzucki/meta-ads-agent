@@ -569,6 +569,34 @@ class TestDeletion:
         assert "irreversible" in str(caught.value)
         assert sdk.deletes == []
 
+    def test_an_id_of_another_type_is_not_deleted(self, sdk: Recorder) -> None:
+        """`--type ad` on a campaign id must not delete the campaign."""
+        from meta_ads_agent.api.deletion import DeletableType, delete_object
+        from meta_ads_agent.errors import ApiCallFailed
+
+        sdk.object_kind = "campaign"
+        with pytest.raises(ApiCallFailed):
+            delete_object(
+                client=ApiClient(),
+                object_id="120",
+                object_type=DeletableType.AD,
+                reason="cleanup",
+            )
+        assert sdk.deletes == []
+
+    @pytest.mark.parametrize("bad", ["1/../me", "123?fields=x", "123#", "act_1", ""])
+    def test_an_id_that_is_not_a_node_id_is_refused(self, sdk: Recorder, bad: str) -> None:
+        from meta_ads_agent.api.deletion import DeletableType, delete_object
+
+        with pytest.raises(ValidationError, match="not a valid object id"):
+            delete_object(
+                client=ApiClient(),
+                object_id=bad,
+                object_type=DeletableType.AD,
+                reason="cleanup",
+            )
+        assert sdk.deletes == []
+
     @pytest.mark.parametrize("kind", ["campaign", "ad_set", "ad"])
     def test_every_deletable_type_is_supported(self, sdk: Recorder, kind: str) -> None:
         from meta_ads_agent.api.deletion import DeletableType, delete_object

@@ -26,6 +26,7 @@ import os
 import re
 from pathlib import Path
 
+_QUOTED = re.compile(r"""^(["'])(.*)\1\s*(?:#.*)?$""")
 _LINE = re.compile(r"^\s*(?:export\s+)?(META_[A-Z0-9_]+)\s*=\s*(.*?)\s*$")
 
 # Set by apply() so doctor can say where the values came from.
@@ -42,8 +43,11 @@ def parse(text: str) -> dict[str, str]:
         if not match:
             continue
         key, value = match.groups()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
-            value = value[1:-1]
+        quoted = _QUOTED.match(value)
+        if quoted:
+            # Checked before comment stripping: KEY="value" # note keeps
+            # neither the quotes nor the note.
+            value = quoted.group(2)
         elif " #" in value:
             value = value.split(" #", 1)[0].rstrip()
         values[key] = value

@@ -72,16 +72,33 @@ _HARMLESS_QUERY_PARAMS = frozenset(
     }
 )
 
+# A pattern for key names, not a secret.
+_SECRET_KEY = r"""
+    (?<![A-Za-z0-9])((?:[a-z0-9]+[_-])*
+      (?:access[_-]?token|app[_-]?secret|client[_-]?secret|appsecret[_-]?proof
+      |bearer|api[_-]?key|token|secret|password|passwd))
+"""  # noqa: S105
+
 _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     # key=value / key: value / "key": "value" in prose, JSON, or shell output.
+    # A prefix such as page_ / fb_exchange_ / input_ is part of the key, and
+    # JSON escaped inside another string (\"key\": \"v\") counts too.
+    #
+    # After "=" any value up to a delimiter is masked: base64 and URL-encoded
+    # values carry / + = and %, and a short password is still a password.
     (
         re.compile(
-            r"""(?ix)
-            \b(access[_-]?token|app[_-]?secret|client[_-]?secret|appsecret[_-]?proof
-              |bearer|api[_-]?key|token|secret|password|passwd)
-            \b\s*["']?\s*[:=]\s*["']?
-            ([A-Za-z0-9._\-|]{8,})
-            """,
+            _SECRET_KEY + r"""\b\\?["']?\s*=\s*\\?["']?([^\s"'&,;}\\]+)""",
+            re.IGNORECASE | re.VERBOSE,
+        ),
+        r"\1=" + MASK,
+    ),
+    # After ":" only a token-length value: "access token: Session has expired"
+    # is Meta's own error text and must stay readable.
+    (
+        re.compile(
+            _SECRET_KEY + r"""\b\\?["']?\s*:\s*\\?["']?([A-Za-z0-9._\-|/+=%]{8,})""",
+            re.IGNORECASE | re.VERBOSE,
         ),
         r"\1=" + MASK,
     ),
@@ -94,7 +111,7 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     # Catch them even when they appear bare, with no key naming them.
     (re.compile(r"\bEAA[A-Za-z0-9]{12,}\b"), MASK),
     # Meta app-scoped secrets appear as <app_id>|<secret>.
-    (re.compile(r"\b\d{15,17}\|[A-Za-z0-9_\-]{20,}\b"), MASK),
+    (re.compile(r"\b\d{15,17}(?:\||%7C)[A-Za-z0-9_\-]{20,}\b", re.IGNORECASE), MASK),
 )
 
 

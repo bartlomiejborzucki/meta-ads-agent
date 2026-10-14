@@ -24,7 +24,7 @@ jobs:
           node-version: "22"
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: npm install -g @anthropic-ai/claude-code@2.1.299
 
       - name: A key is configured
         env:

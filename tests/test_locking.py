@@ -208,8 +208,14 @@ class TestMergeCarriesEverything:
             store.record_object(state, _obj("campaign", "120001", ObjectType.CAMPAIGN))
 
         assert path.read_text() == "{ not json"
-        recovered = json.loads(path.with_name("state.json.recovered").read_text())
+        (recovered_path,) = path.parent.glob("state.json.recovered-*")
+        recovered = json.loads(recovered_path.read_text())
         assert [o["id"] for o in recovered["objects"]] == ["120001"]
+
+        # A second failing session keeps its own copy beside the first.
+        with pytest.raises(StateError):
+            store.record_object(state, _obj("adset", "120002", ObjectType.AD_SET))
+        assert len(list(path.parent.glob("state.json.recovered-*"))) == 2
 
 
 class TestClaimNames:

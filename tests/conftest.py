@@ -219,6 +219,8 @@ class Recorder:
         self.video_id: str | None = "700000000000001"
         self.creative_id: str | None = "800000000000001"
         self.object_fields: dict[str, Any] = {"name": "an ad", "status": "PAUSED"}
+        # What the id really is on Meta, when a test lies about it via --type.
+        self.object_kind: str | None = None
 
 
 @pytest.fixture
@@ -315,7 +317,16 @@ def sdk(monkeypatch: pytest.MonkeyPatch) -> Recorder:
                 self.object_id = object_id
 
             def api_get(self, fields: list[str] | None = None) -> dict[str, Any]:
-                return dict(recorder.object_fields)
+                # Graph only returns a type's own fields; ask for another
+                # type's and the read fails, as Meta's #100 does.
+                own = {"campaign": "objective", "ad_set": "optimization_goal", "ad": "adset_id"}
+                actual = recorder.object_kind or name
+                for field_name in fields or []:
+                    if field_name in own.values() and field_name != own[actual]:
+                        raise RuntimeError(
+                            f"(#100) Tried accessing nonexisting field ({field_name})"
+                        )
+                return {**recorder.object_fields, own[actual]: "1"}
 
             def api_delete(self) -> None:
                 recorder.deletes.append(f"{name}:{self.object_id}")

@@ -7,7 +7,59 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+**Fixes from a security and code-quality review.** `MIGRATION: none required`.
+
+### Security - the fallback
+
+- **`api delete` checks the object is the type it was told.** The read
+  before deleting asks for a field only that type has (`objective`,
+  `optimization_goal`, `adset_id`), so `--type ad` on a campaign id fails
+  instead of deleting the campaign and everything under it.
+- **Graph ids are checked before they become a request path.** Ad accounts
+  must be `act_<digits>`, deleted objects and video ids digits only, so
+  `1/../me` or `123?x=y` cannot redirect an approved call.
+- **Requests time out** (10 s connect, 300 s read). The SDK default was
+  none, so a stalled connection could hang an upload or delete forever.
+- **Redaction covers more shapes:** prefixed keys (`page_access_token=`,
+  `fb_exchange_token=`), values with `/ + = %`, URL-encoded app tokens
+  (`%7C`), escaped JSON and short passwords. Meta's own
+  `access token: Session has expired` stays readable.
+- An expired token while picking a video thumbnail is reported instead of
+  silently building the creative without one.
+- `.env`: `KEY="value" # note` no longer keeps the quotes.
+
+### Security - install
+
+- **Manifest paths are checked:** absolute paths, `..`, backslashes and
+  anything outside a `meta-ads-*` directory are refused, since the installer
+  replaces `<target>/<first part>` of every entry.
+- **A symlinked skill directory** (a development checkout) is replaced by the
+  release without following the link; upgrade and rollback used to stop
+  half-way on it.
+- **`--rollback` after an interrupted `--no-backup` update refuses** rather
+  than restoring an older, unrelated backup.
+- Script migrations run with `python -I`.
+- A campaign state that cannot be read is saved beside it under a unique
+  name, so a second failing session cannot overwrite the first one's ids.
+
+### Fixed - validation and reports
+
+- **`validate-plan` with a `--brand-file` or `--account-file` that is
+  missing or invalid exits 2**, instead of passing without the
+  special-category checks that file feeds.
+- `NaN`/`Infinity` action values and negative spend, impressions or link
+  clicks are refused; `report power` refuses `nan`/`inf`.
+- An account `currency_offset` of 0 is used, not replaced by the built-in
+  table.
+- `python -m meta_ads_agent.cli.main report ...` no longer fails with
+  `NameError`.
+
+### CI
+
+- The gitleaks archive is checked against a pinned SHA-256.
+- Claude Code is installed at a pinned version where an API key is present.
+- `check_upstreams.py` compares release versions exactly (`1.2` no longer
+  matches `1.20`).
 
 ## [1.0.1] - 2026-09-25
 

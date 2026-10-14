@@ -257,11 +257,26 @@ class TestFieldNamesUsedInCode:
     @pytest.mark.parametrize("cls", ["Campaign", "AdSet", "Ad"])
     def test_the_pre_delete_read_asks_for_real_fields(self, cls: str) -> None:
         text = (SRC / "api" / "deletion.py").read_text()
-        (fields,) = re.findall(r"api_get\(fields=\[([^\]]+)\]", text)
+        (fields,) = re.findall(r"api_get\(\s*fields=\[([^\]]+)\]", text)
         names = re.findall(r'"(\w+)"', fields)
         real = REAL[cls]
         assert real is not None
         assert [n for n in names if not hasattr(real.Field, n)] == []
+
+    def test_each_type_field_belongs_to_its_type_alone(self) -> None:
+        """The pre-delete read tells the types apart by a field only one has."""
+        from meta_ads_agent.api.deletion import _TYPE_FIELD, DeletableType
+
+        classes = {
+            DeletableType.CAMPAIGN: "Campaign",
+            DeletableType.AD_SET: "AdSet",
+            DeletableType.AD: "Ad",
+        }
+        for kind, field_name in _TYPE_FIELD.items():
+            for other, cls in classes.items():
+                real = REAL[cls]
+                assert real is not None
+                assert hasattr(real.Field, field_name) == (other is kind), (field_name, cls)
 
     def test_the_video_status_read_asks_for_a_real_field(self) -> None:
         real = REAL["AdVideo"]

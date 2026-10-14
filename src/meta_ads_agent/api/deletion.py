@@ -17,7 +17,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from meta_ads_agent.api.client import ApiClient, normalise_account_id, wrap_sdk_error
+from meta_ads_agent.api.client import (
+    ApiClient,
+    check_object_id,
+    normalise_account_id,
+    wrap_sdk_error,
+)
 from meta_ads_agent.errors import ApiFallbackUnavailable, DryRun, ValidationError
 
 
@@ -25,6 +30,16 @@ class DeletableType(StrEnum):
     CAMPAIGN = "campaign"
     AD_SET = "ad_set"
     AD = "ad"
+
+
+# A field only the declared type has. Asking for it makes Graph refuse the
+# read (#100) when the id is really some other kind of object, so `--type ad`
+# can never delete a campaign and everything under it.
+_TYPE_FIELD = {
+    DeletableType.CAMPAIGN: "objective",
+    DeletableType.AD_SET: "optimization_goal",
+    DeletableType.AD: "adset_id",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,13 +82,17 @@ def delete_object(
             "a useful preview."
         )
 
+    object_id = check_object_id(object_id)
     obj = _object_for(client, object_id, object_type)
+    type_field = _TYPE_FIELD[object_type]
 
     previous_status: str | None = None
     previous_name: str | None = None
     account_id: str | None = None
     try:
-        fetched = obj.api_get(fields=["name", "status", "effective_status", "account_id"])
+        fetched = obj.api_get(
+            fields=["name", "status", "effective_status", "account_id", type_field]
+        )
         previous_status = str((fetched or {}).get("status") or "") or None
         previous_name = str((fetched or {}).get("name") or "") or None
         # Read so the action log can say which account lost the object.
@@ -82,6 +101,13 @@ def delete_object(
         raise wrap_sdk_error(
             exc, stage="delete", operation=f"read_{object_type.value}_before_delete"
         ) from exc
+
+    if not (fetched or {}).get(type_field):
+        raise ValidationError(
+            f"{object_id} did not read back as a {object_type.value} (no "
+            f"{type_field}). Check --type: deleting the wrong kind of object "
+            "can take everything under it."
+        )
 
     if previous_status and previous_status.upper() == "ACTIVE":
         raise ValidationError(

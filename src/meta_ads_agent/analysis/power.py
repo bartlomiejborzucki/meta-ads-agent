@@ -41,9 +41,12 @@ class PowerInputs:
     power: float = 0.8
 
     def __post_init__(self) -> None:
+        # Written so NaN fails every check: NaN compares false both ways.
+        if not math.isfinite(self.units_per_day_per_cell):
+            raise ValidationError("units per day per cell must be a finite number")
         if not 0 < self.baseline_rate < 1:
             raise ValidationError("the baseline rate must be between 0 and 1, e.g. 0.03 for 3%")
-        if self.units_per_day_per_cell <= 0:
+        if not self.units_per_day_per_cell > 0:
             raise ValidationError("units per day per cell must be positive")
         if self.cells < 2:
             raise ValidationError("a test needs at least two cells")
@@ -62,6 +65,8 @@ class PowerInputs:
 
 def sample_size_per_cell(inputs: PowerInputs, lift: float) -> int:
     """Units each cell needs to detect a relative *lift* (0.10 for +10%)."""
+    if not math.isfinite(lift):
+        raise ValidationError("the lift must be a finite number")
     if lift == 0:
         raise ValidationError("a lift of zero cannot be detected by any sample")
     p1 = inputs.baseline_rate
@@ -82,7 +87,7 @@ def minimum_detectable_lift(inputs: PowerInputs, days: float) -> float | None:
     None when even a doubling is out of reach - the test cannot answer
     anything a person would act on, and should not be created.
     """
-    if days <= 0:
+    if not (math.isfinite(days) and days > 0):
         raise ValidationError("the test must run for a positive number of days")
     available = inputs.units_per_day_per_cell * days
     ceiling = min(1.0, (1 / inputs.baseline_rate) - 1 - 1e-9)

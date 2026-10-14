@@ -16,12 +16,13 @@ logged, echoed, or persisted.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
 
 from meta_ads_agent.api.version import graph_api_version, is_probably_unsupported
-from meta_ads_agent.errors import ApiCallFailed, ApiFallbackUnavailable
+from meta_ads_agent.errors import ApiCallFailed, ApiFallbackUnavailable, ValidationError
 from meta_ads_agent.redaction import fingerprint, redact
 
 # Meta error codes that indicate a transient condition. A read may be retried
@@ -122,6 +123,10 @@ class ApiClient:
             app_secret=self.credentials.app_secret,
             access_token=self.credentials.access_token,
             api_version=self.api_version,
+            # The SDK's default is no timeout, so one stalled connection would
+            # hang an upload or a delete forever. (connect, read) in seconds;
+            # the read allowance is long enough for a video upload chunk.
+            timeout=REQUEST_TIMEOUT,
             crash_log=False,
         )
         return self._api
@@ -179,6 +184,9 @@ def wrap_sdk_error(exc: Exception, *, stage: str, operation: str) -> ApiCallFail
     )
 
 
+REQUEST_TIMEOUT = (10, 300)
+
+
 def normalise_account_id(ad_account_id: str) -> str:
     """The one spelling of an ad account id: ``act_<digits>``.
 
@@ -186,4 +194,25 @@ def normalise_account_id(ad_account_id: str) -> str:
     uploads by account - two spellings would mean two uploads of one file.
     """
     target = ad_account_id.strip()
-    return target if target.startswith("act_") else f"act_{target}"
+    target = target if target.startswith("act_") else f"act_{target}"
+    if not _ACCOUNT_ID.fullmatch(target):
+        # The id becomes a Graph path segment. Anything but digits could
+        # point an approved write at a different node or edge.
+        raise ValidationError(f"not an ad account id: {ad_account_id!r} (expected act_<digits>)")
+    return target
+
+
+def check_object_id(object_id: str, *, what: str = "object id") -> str:
+    """A Graph node id used in a request path: digits only.
+
+    Refuses ``1/../me``, ``123?x=y`` and the like, which the SDK would join
+    into the path unchanged.
+    """
+    candidate = object_id.strip()
+    if not _NODE_ID.fullmatch(candidate):
+        raise ValidationError(f"not a valid {what}: {object_id!r} (expected digits)")
+    return candidate
+
+
+_ACCOUNT_ID = re.compile(r"act_\d+")
+_NODE_ID = re.compile(r"\d+")

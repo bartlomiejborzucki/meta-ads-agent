@@ -716,10 +716,6 @@ def _dispatch_api(args: argparse.Namespace, parser: argparse.ArgumentParser) -> 
     return 2
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
-
 def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     from meta_ads_agent.cli import report_cmd
 
@@ -770,3 +766,7 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
         )
     parser.parse_args(["report", "--help"])
     return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

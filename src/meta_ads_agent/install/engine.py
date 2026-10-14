@@ -361,7 +361,12 @@ def _swap_in(
     for skill in manifest.skills:
         staged = stage_root / skill
         live = target_root / skill
-        if live.exists():
+        # A link (say, to a development checkout) is replaced, never followed:
+        # rmtree refuses links, and deleting through one would destroy the
+        # checkout it points at.
+        if live.is_symlink():
+            live.unlink()
+        elif live.exists():
             shutil.rmtree(live)
         shutil.move(str(staged), str(live))
 
@@ -375,6 +380,16 @@ def rollback(target: InstallTarget) -> Path:
     """Restore the most recent backup and forget the interrupted update."""
     state = InstallState.load(target.root)
     candidate = _resume_backup(state)
+    if candidate is None and state.in_progress is not None:
+        # The interrupted update has no backup of its own (--no-backup, or it
+        # was removed). Any backup on disk is from an earlier release, and
+        # restoring it would quietly downgrade the install instead of undoing
+        # this update.
+        raise StateError(
+            "the interrupted update has no backup of its own (it ran without a "
+            "backup, or the backup was removed), so there is nothing of it to "
+            "roll back to. Re-run the install to finish it."
+        )
     if candidate is None:
         backups = (
             sorted((p for p in state.backup_root.iterdir() if p.is_dir()), reverse=True)
@@ -400,7 +415,10 @@ def rollback(target: InstallTarget) -> Path:
             shutil.rmtree(child)
     for saved in sorted(candidate.iterdir()):
         if saved.is_dir():
-            shutil.copytree(saved, target.root / saved.name, symlinks=True)
+            destination = target.root / saved.name
+            if destination.is_symlink():
+                destination.unlink()
+            shutil.copytree(saved, destination, symlinks=True)
     saved_state = candidate / STATE_FILENAME
     if saved_state.is_file():
         shutil.copy2(saved_state, state.path)

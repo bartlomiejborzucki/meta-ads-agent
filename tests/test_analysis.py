@@ -461,3 +461,32 @@ class TestRealExports:
         argv = ["report", "compare", str(path), "--days", "7", "--level", "adset", "--json"]
         assert main(argv) == 0
         assert json.loads(capsys.readouterr().out)["current"]["spend"] == "700.00"
+
+
+class TestNonFiniteInput:
+    @pytest.mark.parametrize("value", ["NaN", "Infinity", "-inf"])
+    def test_a_non_finite_action_value_is_refused(self, value: str) -> None:
+        raw = row(1)
+        raw["actions"] = [{"action_type": LEAD, "value": value}]
+        with pytest.raises(ValidationError, match="finite"):
+            Totals.of(rows([raw]), event=LEAD)
+
+    def test_negative_spend_is_refused(self) -> None:
+        with pytest.raises((ValidationError, ValueError)):
+            rows([row(1, spend="-5")])
+
+    @pytest.mark.parametrize(
+        "argv",
+        [
+            ["--units-per-day", "nan", "--days", "10"],
+            ["--units-per-day", "1000", "--days", "nan"],
+            ["--units-per-day", "1000", "--lift", "nan"],
+            ["--units-per-day", "inf", "--days", "10"],
+        ],
+    )
+    def test_power_refuses_nan_and_inf(
+        self, argv: list[str], capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        code = main(["report", "power", "--baseline-rate", "0.03", *argv])
+        assert code != 0
+        assert "nan" not in capsys.readouterr().out.lower()

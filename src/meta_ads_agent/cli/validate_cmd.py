@@ -17,7 +17,7 @@ import yaml
 from pydantic import ValidationError as PydanticValidationError
 
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
-from meta_ads_agent.errors import MetaAdsAgentError
+from meta_ads_agent.errors import ConfigError, MetaAdsAgentError
 from meta_ads_agent.models.brand import BrandConfig
 from meta_ads_agent.models.plan import CampaignPlanDocument
 from meta_ads_agent.validation import AccountContext, validate_plan
@@ -39,8 +39,14 @@ def run_validate_plan(
         return 2
 
     workspace = Workspace.locate(required=False)
-    brand = load_brand(brand_path, workspace)
-    account = _load_account(account_path, workspace, doc.ad_account_id)
+    try:
+        brand = load_brand(brand_path, workspace)
+        account = _load_account(account_path, workspace, doc.ad_account_id)
+    except ConfigError as exc:
+        # A file named on the command line that cannot be used is a usage
+        # error, like an unreadable plan - not a plan that passed.
+        fail(str(exc))
+        return 2
 
     try:
         report = validate_plan(
@@ -133,10 +139,16 @@ def read_plan(target: Path) -> CampaignPlanDocument | None:
 def load_brand(explicit: str | None, workspace: Workspace) -> BrandConfig | None:
     path = Path(explicit).expanduser() if explicit else workspace.brand_file
     if not path.is_file():
+        if explicit:
+            # A file the user named must not quietly turn into "no brand": the
+            # special-category checks that prevent account suspensions read it.
+            raise ConfigError(f"brand file {path} does not exist")
         return None
     try:
         return BrandConfig.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
     except (PydanticValidationError, yaml.YAMLError) as exc:
+        if explicit:
+            raise ConfigError(f"brand file {path} is not valid: {exc}") from exc
         fail(f"ignoring {path}: {exc}")
         return None
 
@@ -167,11 +179,20 @@ def _load_account(
             return None
         path = found
     if not path.is_file():
+        if explicit:
+            raise ConfigError(f"account file {path} does not exist")
         return None
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
+        if explicit:
+            raise ConfigError(f"account file {path} is not valid YAML: {exc}") from exc
         fail(f"ignoring {path}: {exc}")
+        return None
+    if not isinstance(raw, dict):
+        if explicit:
+            raise ConfigError(f"account file {path} must be a mapping")
+        fail(f"ignoring {path}: not a mapping")
         return None
     # The template ships with every value null; treat that as "not read yet".
     # A cache written straight from Meta may carry only `account_id`, which
@@ -181,5 +202,7 @@ def _load_account(
     try:
         return AccountContext.from_meta({k: v for k, v in raw.items() if v is not None})
     except PydanticValidationError as exc:
+        if explicit:
+            raise ConfigError(f"account file {path} is not valid: {exc}") from exc
         fail(f"ignoring {path}: {exc}")
         return None

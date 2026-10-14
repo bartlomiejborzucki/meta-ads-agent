@@ -669,3 +669,76 @@ class TestIntegrity:
         path.write_text(json.dumps(raw), encoding="utf-8")
         with pytest.raises(Exception, match="digest"):
             load_manifest(path)
+
+
+# ---------------------------------------------------------------------------
+# Hostile or unusual trees
+# ---------------------------------------------------------------------------
+class TestUnsafeInputs:
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "../outside/SKILL.md",
+            "/etc/passwd",
+            "C:/Windows/x",
+            "meta-ads-core/../../x",
+            "meta-ads-core\\x",
+            "other-vendor/SKILL.md",
+            "SKILL.md",
+            "meta-ads-core//SKILL.md",
+        ],
+    )
+    def test_a_manifest_path_outside_our_skills_is_refused(self, path: str) -> None:
+        from meta_ads_agent.errors import ConfigError
+        from meta_ads_agent.install.manifest import SCHEMA_VERSION, manifest_from_dict
+
+        raw = {
+            "schema_version": SCHEMA_VERSION,
+            "version": "9.9.9",
+            "files": [{"path": path, "sha256": "0" * 64, "size": 1}],
+        }
+        with pytest.raises(ConfigError, match="unsafe path"):
+            manifest_from_dict(raw)
+
+    @posix_only
+    def test_a_symlinked_skill_is_replaced_without_touching_its_target(
+        self, tmp_path: Path, target: InstallTarget
+    ) -> None:
+        old, m1 = make_release(tmp_path / "v1", "0.1.0", v1_files())
+        install(m1, old, target)
+        checkout = tmp_path / "dev-checkout"
+        checkout.mkdir()
+        (checkout / "SKILL.md").write_text("developer copy\n", encoding="utf-8")
+        live = target.root / "meta-ads-core"
+        import shutil
+
+        shutil.rmtree(live)
+        live.symlink_to(checkout, target_is_directory=True)
+
+        new, m2 = make_release(tmp_path / "v2", "0.2.0", v2_files())
+        result = apply_install(plan_install(m2, new, target, force=True), new)
+
+        assert result.verification.complete
+        assert not live.is_symlink()
+        assert (checkout / "SKILL.md").read_text(encoding="utf-8") == "developer copy\n"
+
+    def test_rollback_after_a_no_backup_update_does_not_downgrade(
+        self, tmp_path: Path, target: InstallTarget, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        old, m1 = make_release(tmp_path / "v1", "0.1.0", v1_files())
+        install(m1, old, target)
+        new, m2 = make_release(tmp_path / "v2", "0.2.0", v2_files())
+        install(m2, new, target)  # leaves a backup of 0.1.0 on disk
+        v3 = {**v2_files(), "meta-ads-core/references/new.md": "# new\n"}
+        newer, m3 = make_release(tmp_path / "v3", "0.3.0", v3)
+
+        import meta_ads_agent.install.engine as engine
+
+        monkeypatch.setattr(engine, "_swap_in", lambda *a, **k: (_ for _ in ()).throw(OSError("x")))
+        with pytest.raises(OSError):
+            apply_install(plan_install(m3, newer, target), newer, backup=False)
+        monkeypatch.undo()
+
+        with pytest.raises(StateError, match="no backup of its own"):
+            rollback(target)
+        assert "core v2" in (target.root / "meta-ads-core" / "SKILL.md").read_text(encoding="utf-8")

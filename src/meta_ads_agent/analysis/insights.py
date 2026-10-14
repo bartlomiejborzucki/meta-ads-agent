@@ -50,12 +50,12 @@ class InsightRow(BaseModel):
 
     date_start: _dt.date
     date_stop: _dt.date
-    spend: Decimal = Decimal(0)
-    impressions: int = 0
+    spend: Decimal = Field(default=Decimal(0), ge=0, allow_inf_nan=False)
+    impressions: int = Field(default=0, ge=0)
     reach: int | None = None
     frequency: Decimal | None = None
     clicks: int | None = Field(default=None, description="Clicks (all). Not used for CTR.")
-    link_clicks: int = Field(default=0, alias="inline_link_clicks")
+    link_clicks: int = Field(default=0, ge=0, alias="inline_link_clicks")
     results: Decimal | None = Field(
         default=None,
         description="Result count for the optimised event, when the agent already has it",
@@ -143,9 +143,13 @@ class InsightRow(BaseModel):
 
 def _to_decimal(value: object) -> Decimal:
     try:
-        return Decimal(str(value))
+        result = Decimal(str(value))
     except (InvalidOperation, ValueError) as exc:
         raise ValidationError(f"not a number in actions: {value!r}") from exc
+    if not result.is_finite():
+        # NaN poisons every derived metric and makes comparisons raise.
+        raise ValidationError(f"not a finite number in actions: {value!r}")
+    return result
 
 
 def load_rows(source: Path | str | Any) -> list[InsightRow]:

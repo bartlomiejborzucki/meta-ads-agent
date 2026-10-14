@@ -255,6 +255,27 @@ class TestValidatePlan:
         assert code == 2
         assert "not found" in err
 
+    @pytest.mark.parametrize(
+        ("flag", "content"),
+        [
+            ("--brand-file", None),
+            ("--brand-file", "special_ad_category: [HOUSING]\nno_such_key: 1\n"),
+            ("--account-file", None),
+            ("--account-file", "- not\n- a mapping\n"),
+        ],
+    )
+    def test_a_named_brand_or_account_file_that_cannot_be_used_exits_two(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str], flag: str, content: str | None
+    ) -> None:
+        """Silently validating without it would skip the checks it feeds."""
+        path = self._write_plan(tmp_path)
+        extra = tmp_path / "extra.yaml"
+        if content is not None:
+            extra.write_text(content)
+        code, _, err = run(["validate-plan", str(path), "--skip-assets", flag, str(extra)], capsys)
+        assert code == 2
+        assert str(extra) in err
+
     def test_strict_treats_warnings_as_failure(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
