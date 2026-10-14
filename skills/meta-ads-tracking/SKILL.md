@@ -168,8 +168,10 @@ useful statement; "your tracking is working" is not one you can make.
 
 ## Changing pixel rules
 
-`ads_pixel_event_create`, `_update`, `_delete` and the parameter equivalents
-are `update_active` work: they need explicit approval.
+| Tools | Class |
+| --- | --- |
+| `ads_pixel_event_create`, `ads_pixel_event_update`, `ads_pixel_parameter_create`, `ads_pixel_parameter_update` | `update_active` - explicit approval |
+| `ads_pixel_event_delete`, `ads_pixel_parameter_delete` | `delete` - explicit approval, and why deactivating is not enough |
 
 - New event rules are created **inactive**. Activating one is a separate step.
 - **Deleting a rule can break historical reporting** and any audience or

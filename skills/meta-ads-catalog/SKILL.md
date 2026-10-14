@@ -54,8 +54,11 @@ ads_catalog_get_product_feed_details     → a feed: schedule, last upload, erro
 ads_catalog_get_product_sets             → product sets, and their filters
 ads_catalog_get_product_set_products     → what a set actually contains
 ads_catalog_event_source_get_health      → whether pixel events match products
-ads_catalog_*_create / _update / _delete → changes: see the approval table
+ads_catalog_search_product               → find products by id, name or field
+ads_catalog_get_product_product_sets     → which sets a product falls into
 ```
+
+Changes are named tool by tool in the approval table below.
 
 Every one of these is an MCP tool. There is no catalog fallback, by design
 (ADR-002): the MCP covers catalogs thoroughly, and a second path would only
@@ -110,11 +113,15 @@ today, and whether any live ad set already uses a set with the same purpose.
 
 ## Approval
 
-| Step | Class | Why |
-| --- | --- | --- |
-| Any read, diagnostic or health check | `read` | changes nothing |
-| Creating a product set, feed or rule; editing products; connecting an event source | `update_active` - explicit approval | every live catalog ad that reads it changes, without any campaign being touched |
-| Deleting a product, set, feed or rule | `delete` | breaks every ad set that uses it; check first |
+| Step | Tools | Class | Why |
+| --- | --- | --- | --- |
+| Any read, diagnostic or health check | `ads_catalog_get_*`, `ads_catalog_event_source_get*`, `ads_catalog_search_product` | `read` | changes nothing |
+| Product sets | `ads_catalog_create_product_set`, `ads_catalog_update_product_set` | `update_active` - explicit approval | every live catalog ad that reads the set changes, without any campaign being touched |
+| Products | `ads_catalog_product_create`, `ads_catalog_update_product` | `update_active` - explicit approval | the same |
+| Feeds and feed rules | `ads_catalog_create_product_feed`, `ads_catalog_update_product_feed`, `ads_catalog_create_product_feed_upload_session`, `ads_catalog_create_feed_rule` | `update_active` - explicit approval | the next upload rewrites what live ads show |
+| Catalogs | `ads_catalog_create`, `ads_catalog_update_catalog` | `update_active` - explicit approval | the same |
+| Event sources | `ads_catalog_event_source_connect`, `ads_catalog_event_source_disconnect` | `update_active` - explicit approval | retargeting audiences depend on the match |
+| Deleting | `ads_catalog_delete_product`, `ads_catalog_product_set_delete`, `ads_catalog_product_feed_delete`, `ads_catalog_product_feed_delete_rule` | `delete` | breaks every ad set that uses it; check first |
 
 The trap here is indirect: editing a product set's filter never mentions a
 campaign, and still changes what live catalog ads show. Before any change,

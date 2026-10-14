@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.0.2",
   "payload_root": "skills",
-  "digest": "eeacbb81849cbd8c1da58fea5c1f54b243d4c84957b83caeecdad702b3473c3f",
+  "digest": "fbd21b96271fd55c0bd05444827a4fa4b43bdaec9219f04b41b2932a1156768a",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -72,8 +72,8 @@
     },
     {
       "path": "meta-ads-catalog/SKILL.md",
-      "sha256": "a76a4f4c870ba6de2c14722b904de20d865261dd2fd662c8c4072899a48b7ea5",
-      "size": 6346
+      "sha256": "67ecd58e1ac4bf21406c2015741dcb9b21233263ed8942fab137550bb76ec374",
+      "size": 7377
     },
     {
       "path": "meta-ads-catalog/references/catalog-health.md",
@@ -117,8 +117,8 @@
     },
     {
       "path": "meta-ads-core/references/mcp-tool-map.md",
-      "sha256": "f129997ee9f44642603c2c32d3a33ff401ade73f5f3e4d77187d7d811b9acf61",
-      "size": 6803
+      "sha256": "511d11f8683b7c9e7d8cf0545cf1528c114d9ffec109911e1e5a7c5e7c2482e3",
+      "size": 8742
     },
     {
       "path": "meta-ads-core/references/meta-errors.md",
@@ -197,8 +197,8 @@
     },
     {
       "path": "meta-ads-tracking/SKILL.md",
-      "sha256": "e2bcb1aab1836edb57ab4d56d5b403e9cb3bf07f3f23f1f05b9c6a685d60f1d0",
-      "size": 9599
+      "sha256": "4003c4f9e3879306fc63276f1d877b770773f2f5745b2646428fcc06bb150a26",
+      "size": 9778
     },
     {
       "path": "meta-ads-tracking/references/signal-quality.md",

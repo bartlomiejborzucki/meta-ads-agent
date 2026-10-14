@@ -624,3 +624,16 @@ capabilities:
     notes: >
       NOT SUPPORTED, and out of scope by choice. An autonomous spend optimiser
       contradicts the approval model. See ADR-004.
+
+  - name: partnership_ads
+    area: partnership_ads
+    preferred_provider: none
+    fallback_provider: none
+    mcp_tools: []
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-10-14
+    notes: >
+      NOT SUPPORTED, and out of scope. Partnership and branded-content ads
+      need a creator's permission on their own identity, which no MCP tool
+      reads or grants. Build them in Ads Manager.

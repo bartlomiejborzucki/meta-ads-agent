@@ -82,8 +82,12 @@ theorising about fatigue or the auction.
 | `ads_get_dataset_stats` | **Event volume** over up to 28 days |
 | `ads_get_dataset_quality` | Event Match Quality, match-key coverage, freshness |
 | `ads_get_customconversions` | Custom conversions on the account |
-| `ads_pixel_event_read` / `_create` / `_update` / `_delete` | Event rules. Created inactive. |
-| `ads_pixel_parameter_read` / `_create` / `_update` / `_delete` | Parameter extractors |
+| `ads_pixel_event_read` | Event rules on a pixel |
+| `ads_pixel_event_create`, `ads_pixel_event_update` | Change event rules. Created inactive. `update_active`. |
+| `ads_pixel_event_delete` | `delete` - prefer deactivating |
+| `ads_pixel_parameter_read` | Parameter extractors |
+| `ads_pixel_parameter_create`, `ads_pixel_parameter_update` | Change extractors. `update_active`. |
+| `ads_pixel_parameter_delete` | `delete` |
 
 A pixel object existing proves nothing. `stats` and `quality` are the evidence.
 
@@ -99,12 +103,28 @@ class in [safety-policy.md](safety-policy.md). Check
 `ads_get_custom_audience_adsets` before changing or deleting an audience: live
 ad sets may target it.
 
-## Catalogs, experiments, research
+## Catalogs
 
-- 34 `ads_catalog_*` tools: catalogs, products, product sets, feeds, feed
-  rules, event sources. MCP-only; no fallback exists or is planned.
-- `ads_experiment_*`: A/B tests and conversion lift studies. Creating one
-  splits live delivery, so it affects spend.
+34 tools. MCP-only; no fallback exists or is planned. Every change below is
+read by live catalog ads without any campaign being touched - name the live
+ad sets that use the object before asking.
+
+| Area | Read | Change (`update_active`) | Delete (`delete`) |
+| --- | --- | --- | --- |
+| Catalog | `ads_catalog_get_catalogs`, `ads_catalog_get_details`, `ads_catalog_get_diagnostics`, `ads_catalog_get_dynamic_ads_health`, `ads_catalog_get_data_sources` | `ads_catalog_create`, `ads_catalog_update_catalog` | - |
+| Products | `ads_catalog_search_product`, `ads_catalog_get_product_details`, `ads_catalog_get_product_product_sets` | `ads_catalog_product_create`, `ads_catalog_update_product` | `ads_catalog_delete_product` |
+| Product sets | `ads_catalog_get_product_sets`, `ads_catalog_get_product_set_details`, `ads_catalog_get_product_set_products` | `ads_catalog_create_product_set`, `ads_catalog_update_product_set` | `ads_catalog_product_set_delete` |
+| Feeds | `ads_catalog_get_product_feed_details`, `ads_catalog_get_product_feed_upload_sessions` | `ads_catalog_create_product_feed`, `ads_catalog_update_product_feed`, `ads_catalog_create_product_feed_upload_session` | `ads_catalog_product_feed_delete` |
+| Feed rules | `ads_catalog_get_feed_rules` | `ads_catalog_create_feed_rule` | `ads_catalog_product_feed_delete_rule` |
+| Event sources | `ads_catalog_event_source_get`, `ads_catalog_event_source_get_catalogs`, `ads_catalog_event_source_get_health`, `ads_catalog_event_source_get_recommendations` | `ads_catalog_event_source_connect`, `ads_catalog_event_source_disconnect` | - |
+
+## Experiments and research
+
+- `ads_experiment_list_tests`, `ads_experiment_check_eligibility`,
+  `ads_experiment_abtest_get_test`, `ads_experiment_lift_get_test`: reads.
+- `ads_experiment_abtest_create_test`, `ads_experiment_lift_create_test`,
+  `ads_experiment_abtest_update_test`: A/B tests and conversion lift studies.
+  Creating or changing one splits live delivery, so it affects spend.
 - `ads_library_search`: public Meta Ad Library. Research only.
 - `ads_get_help_article`: Business Help Center search. Good for policy
   questions - better than guessing at policy.
