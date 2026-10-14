@@ -582,7 +582,7 @@ class TestPlacementBreakdown:
         # 14 leads is under the 30-result floor: an index, not a finding.
         assert by["messenger / messenger_inbox"].reading == "insufficient"
         assert by["audience_network / classic"].reading == "unavailable"
-        assert [line.label for line in result.placements][0] == "instagram / story"
+        assert result.placements[0].label == "instagram / story"
         assert sum(line.spend_share_pct or 0 for line in result.placements) == 100
 
     def test_without_a_result_event_it_indexes_cpc_and_says_so(self) -> None:
