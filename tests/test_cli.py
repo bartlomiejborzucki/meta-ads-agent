@@ -465,6 +465,76 @@ class TestState:
         assert payload["resume_from"] == "validated"
         assert payload["plan_drift"] is False
 
+    def _saved(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]):  # type: ignore[no-untyped-def]
+        run(["init"], capsys)
+        from meta_ads_agent.models.plan import CampaignPlanDocument
+        from meta_ads_agent.state.store import StateStore
+
+        store = StateStore(Workspace.locate(tmp_path))
+        doc = CampaignPlanDocument.model_validate(plan_dict())
+        store.save_plan(doc)
+        return store, doc, store.load_or_create_state(doc)
+
+    def test_a_failure_that_is_not_retry_safe_says_to_look_first(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from meta_ads_agent.models.state import Failure, Stage
+
+        store, _, state = self._saved(tmp_path, capsys)
+        store.record_failure(
+            state, Failure(stage=Stage.ADS_CREATED, message="create_ad timed out", retry_safe=False)
+        )
+        code, out, _ = run(["state", "acme-webinar"], capsys)
+        assert code == 0
+        assert "ads_created (NOT retry-safe): create_ad timed out" in out
+        assert "Query" in out and "Meta for the object" in out
+        assert "no objects created yet" in out
+
+    def test_a_plan_changed_after_creation_blocks_the_resume(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from meta_ads_agent.models.plan import CampaignPlanDocument
+        from meta_ads_agent.models.state import CreatedObject, ObjectType, Provider
+
+        store, _, state = self._saved(tmp_path, capsys)
+        store.record_object(
+            state,
+            CreatedObject(
+                id="120210000000001",
+                type=ObjectType.CAMPAIGN,
+                provider=Provider.API_FALLBACK,
+                plan_ref="campaign",
+            ),
+        )
+        changed = plan_dict()
+        changed["campaign"]["name"] = "A different campaign"
+        store.save_plan(CampaignPlanDocument.model_validate(changed))
+
+        code, out, _ = run(["state", "acme-webinar"], capsys)
+        assert code == 1
+        assert "BLOCKED: the plan changed" in out
+        assert "FALLBACK" in out
+        assert "API fallback" in out
+
+    def test_a_state_without_its_plan_cannot_plan_a_resume(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        store, _, _ = self._saved(tmp_path, capsys)
+        (store.workspace.root / "campaigns" / "acme-webinar" / "plan.yaml").unlink()
+        code, out, _ = run(["state", "acme-webinar"], capsys)
+        assert code == 0
+        assert "a resume cannot be planned" in out
+
+    def test_the_listing_shows_each_campaign_and_its_stage(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        self._saved(tmp_path, capsys)
+        code, out, _ = run(["state"], capsys)
+        assert code == 0
+        assert "acme-webinar" in out
+        assert "planned" in out
+        assert "meta-ads-agent state <slug>" in out
+
 
 class TestApiGuardrails:
     def test_api_without_a_subcommand_prints_help(self, capsys: pytest.CaptureFixture[str]) -> None:

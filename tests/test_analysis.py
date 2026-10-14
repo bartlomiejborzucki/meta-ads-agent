@@ -318,6 +318,60 @@ class TestReportCommand:
         assert main(["report", "compare", str(bad), "--days", "7"]) == 2
         assert "not valid JSON" in capsys.readouterr().err
 
+    # The human output is what a person reads when the agent shows its work.
+    # The --json tests above hold the numbers; these hold that each command
+    # still prints them, with the rule beside them, instead of a traceback.
+
+    def test_compare_human_output_names_the_windows_and_the_rule(
+        self, insights: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["report", "compare", str(insights), "--days", "7", "--result-event", LEAD]
+        assert main([*argv, "--currency", "PLN"]) == 0
+        out = capsys.readouterr().out
+        assert f"current   {day(21)}" in out
+        assert "noise band 10.0%" in out
+        assert "signal" in out
+        assert "in PLN" in out
+
+    def test_daily_pacing_human_output(
+        self, insights: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["report", "pacing", str(insights), "--daily-budget", "100", "--currency", "PLN"]
+        assert main(argv) == 0
+        out = capsys.readouterr().out
+        assert "Daily budget pacing" in out
+        assert "100.00 PLN per day" in out
+        assert "utilisation" in out
+
+    def test_lifetime_pacing_human_output(
+        self, insights: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = [
+            "report", "pacing", str(insights), "--lifetime-budget", "5000",
+            "--start", str(day(0)), "--end", str(day(59)), "--currency", "PLN",
+        ]  # fmt: skip
+        assert main(argv) == 0
+        out = capsys.readouterr().out
+        assert "Lifetime budget pacing" in out
+        assert "5000.00 PLN" in out
+        assert "% of expected" in out
+
+    def test_power_human_output_says_when_a_test_cannot_answer(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["report", "power", "--baseline-rate", "0.02", "--units-per-day", "10"]
+        assert main([*argv, "--days", "7"]) == 0
+        assert "cannot detect even a doubling" in capsys.readouterr().out
+
+    def test_power_human_output_gives_days_for_a_lift(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["report", "power", "--baseline-rate", "0.05", "--units-per-day", "1000"]
+        assert main([*argv, "--lift", "0.2", "--cells", "3"]) == 0
+        out = capsys.readouterr().out
+        assert "per comparison" in out
+        assert "units per cell" in out
+
 
 class TestPower:
     def test_a_textbook_sample_size(self) -> None:

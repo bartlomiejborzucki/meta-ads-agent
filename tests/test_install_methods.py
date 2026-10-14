@@ -277,6 +277,104 @@ class TestCliSurface:
         assert "fallback" in payload["error"]
 
 
+class TestHumanOutput:
+    """What a person sees when they run the documented commands by hand.
+
+    TestCliSurface holds the --json shapes; these hold that the plain output
+    of the same commands runs and says the things the README promises.
+    """
+
+    def test_install_then_reinstall(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = ["install", "--target", "path", "--path", str(tmp_path / "skills")]
+        assert main(argv) == 0
+        out = capsys.readouterr().out
+        assert "meta-ads-agent install" in out
+        assert "from       not installed" in out
+        assert "verified against the release manifest" in out
+
+        assert main(argv) == 0
+        assert "meta-ads-agent up-to-date" in capsys.readouterr().out
+
+    def test_a_dry_run_says_nothing_was_written(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        skills = tmp_path / "skills"
+        assert main(["install", "--target", "path", "--path", str(skills), "--dry-run"]) == 0
+        assert "dry run - nothing was written" in capsys.readouterr().out
+        assert not skills.exists() or not any(skills.iterdir())
+
+    def test_an_upgrade_lists_what_changed_and_takes_a_backup(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        skills = tmp_path / "skills"
+        argv = ["install", "--target", "path", "--path", str(skills)]
+        assert main(argv) == 0
+        (skills / "meta-ads-core" / "SKILL.md").write_text("tampered\n", encoding="utf-8")
+        capsys.readouterr()
+
+        assert main(["upgrade", "--target", "path", "--path", str(skills)]) == 0
+        out = capsys.readouterr().out
+        assert "changed  meta-ads-core/SKILL.md" in out
+        assert "backup" in out
+        assert "no workspace at" in out
+
+    def test_rollback(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        skills = tmp_path / "skills"
+        argv = ["install", "--target", "path", "--path", str(skills)]
+        assert main(argv) == 0
+        (skills / "meta-ads-core" / "SKILL.md").write_text("broken\n", encoding="utf-8")
+        assert main(argv) == 0
+        capsys.readouterr()
+
+        assert main(["upgrade", "--target", "path", "--path", str(skills), "--rollback"]) == 0
+        out = capsys.readouterr().out
+        assert "Rolled back" in out
+        assert "untouched" in out
+
+    def test_migrate_reports_each_migration(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from meta_ads_agent.workspace import Workspace
+
+        workspace = Workspace.at(tmp_path / ".meta-ads")
+        workspace.create()
+        (workspace.root / ".gitignore").unlink()
+
+        assert main(["migrate", "--workspace", str(workspace.root)]) == 0
+        out = capsys.readouterr().out
+        assert "Workspace migrations" in out
+        assert "0001-workspace-gitignore" in out
+        assert (workspace.root / ".gitignore").is_file()
+
+    def test_migrate_without_a_workspace_fails(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        assert main(["migrate", "--workspace", str(tmp_path / "absent")]) == 1
+        assert "nothing to migrate" in capsys.readouterr().out
+
+    def test_mcp_config_dry_run_then_write_then_unchanged(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        config = tmp_path / "config.toml"
+        config.write_text('model = "gpt-5-codex"\n', encoding="utf-8")
+
+        assert main(["mcp-config", "--config", str(config), "--dry-run"]) == 0
+        out = capsys.readouterr().out
+        assert "would write this block" in out
+        assert "[mcp_servers.meta-ads]" in out
+        assert config.read_text(encoding="utf-8") == 'model = "gpt-5-codex"\n'
+
+        assert main(["mcp-config", "--config", str(config)]) == 0
+        captured = capsys.readouterr()
+        assert "preserved  1 existing line(s)" in captured.out
+        assert "no --client-id" in captured.out + captured.err
+
+        assert main(["mcp-config", "--config", str(config)]) == 0
+        assert "already correct" in capsys.readouterr().out
+
+
 class TestWheelCarriesThePayload:
     """One install command only works if the wheel has the skills in it."""
 

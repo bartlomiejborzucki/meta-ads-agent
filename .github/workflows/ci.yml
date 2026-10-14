@@ -56,7 +56,9 @@ jobs:
 
       - name: Unit tests
         # Live tests are excluded by marker, not only by their env guard.
-        run: uv run pytest -m "not live" --cov=meta_ads_agent --cov-report=term-missing
+        # The floor sits just under the current figure (91% at 1.1.0), so
+        # coverage cannot fall quietly; raise it when coverage rises.
+        run: uv run pytest -m "not live" --cov=meta_ads_agent --cov-report=term-missing --cov-fail-under=90
 
   other-platforms:
     # The offline suite on the two other operating systems a user may run it
@@ -64,11 +66,8 @@ jobs:
     # different code path there (msvcrt), and paths are case-insensitive.
     name: Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # Windows has never run this suite: it was written on Linux, and some
-    # tests assume POSIX paths and binaries. Until its first green run it
-    # reports without blocking, so its failures are visible rather than
-    # either hidden or holding up every change. Make it blocking once green.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    # Windows ran non-blocking until it was green: first from 1.0.1, and on
+    # every master run after it. It blocks from 1.1.0.
     strategy:
       fail-fast: false
       matrix:

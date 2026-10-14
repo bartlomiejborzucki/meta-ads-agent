@@ -172,7 +172,9 @@ class TestSkillsNameEveryTool:
         )
 
     def test_a_class_written_beside_a_tool_matches_the_map(self, registry) -> None:  # type: ignore[no-untyped-def]
-        risk = {t: str(cap.risk_level) for cap in registry.capabilities.values() for t in cap.mcp_tools}
+        risk = {
+            t: str(cap.risk_level) for cap in registry.capabilities.values() for t in cap.mcp_tools
+        }
         wrong: list[str] = []
         checked = 0
         for path, text in _skill_texts().items():
