@@ -55,8 +55,14 @@ enforces the approval classes in `config/capabilities.yaml`.**
 - No proxy, no service, no change to how the MCP is connected (ADR-006).
 
 **Bad, and accepted.**
-- **Only Claude Code.** Codex and agents that read the skills as Markdown
-  stay advisory. The README says which is which.
+- **Codex can only refuse.** Codex loads the plugin's `hooks/hooks.json`
+  once the user trusts it in `/hooks`, but treats `ask` as a failed hook
+  and runs the call. The hook therefore turns every `ask` into `deny` when
+  its input looks like Codex's (`turn_id`, no `permission_mode`), or when
+  `META_ADS_AGENT_HOOKS=strict`. In Codex the user makes approval-class
+  changes themselves. *(Added 2026-10-14, after a Codex install.)*
+- **Agents that read the skills as Markdown stay advisory.** The README says
+  which host is which.
 - **The hook needs `python3` on `PATH`.** Without it the hook fails as a
   non-blocking error and the call proceeds - back to advisory, with an error
   notice the user can see. Making that failure block every Meta call would

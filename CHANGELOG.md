@@ -7,6 +7,31 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-14
+
+**The plugin, installed in Codex.** `MIGRATION: none required`.
+
+### Checked
+
+- **Codex 0.160 on Linux installs the plugin** from GitHub
+  (`codex plugin marketplace add bartlomiejborzucki/meta-ads-agent`, then
+  `codex plugin add meta-ads-agent@meta-ads-agent`) and lists all twelve
+  skills to the model, prefixed `meta-ads-agent:`. Checked with
+  `codex debug prompt-input`, without a model call or a Meta session.
+  Windows is still untested.
+
+### Fixed
+
+- **Under Codex the approval hook refused nothing.** Codex loads a plugin's
+  hooks once the user trusts them in `/hooks`, but treats `ask` as a failed
+  hook and runs the call. The hook now turns `ask` into `deny` when its input
+  is Codex's, or with `META_ADS_AGENT_HOOKS=strict` on any host.
+
+### Changed
+
+- README, SECURITY.md, ADR-011 and the Codex guide say what the hook does in
+  each host, and how to install from the command line.
+
 ## [1.3.0] - 2026-10-14
 
 **Operator workflows.** `MIGRATION: none required`.
@@ -828,7 +853,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.2...v1.1.0

@@ -143,7 +143,7 @@ What remains, as 1.x work, each with who can do it:
 | --- | --- | --- |
 | The live tests pass on a designated test ad account | a test account and a token | `META_ADS_LIVE_TESTS=1 ... uv run pytest -m live` |
 | The capability map matches a live MCP session | any connected session | `meta-ads-agent capabilities --compare tools.txt` |
-| The Codex plugin installs, on Linux and on Windows | a Codex install | [install-codex.md](getting-started/install-codex.md) |
+| The Codex plugin installs on Windows (Linux done after 1.3) | a Codex install on Windows | [install-codex.md](getting-started/install-codex.md) |
 | The trigger evals have run once | an Anthropic API key, and the decision to spend on it | the *Trigger evals* workflow |
 | PyPI, and the plugin marketplaces | the owner's accounts ([ADR-009](architecture/adr/ADR-009-distribution.md)); the name was free on PyPI on 2026-09-24 | [publishing.md](reference/publishing.md) |
 
@@ -216,12 +216,16 @@ Changed on the way:
 - **A multi-variant creative is not duplicated.** Its asset rules do not
   survive a round trip through the plan model, so it is refused by name.
 
-## Next
+## After 1.3
+
+- **Codex on Linux, done.** Codex 0.160 adds this repository as a marketplace
+  from GitHub, installs the plugin, and lists all twelve skills to the model
+  (`codex debug prompt-input`, no model call). It also loads plugin hooks
+  once trusted, but cannot ask, so the approval hook refuses instead under
+  Codex. Windows remains untested.
 
 Nothing new is planned until the first row of the 1.0 table runs: a live
 test on a real account is worth more than another feature built offline.
-The Codex install row may be closer than it was - a machine with Codex is now
-available.
 
 ## Ongoing
 

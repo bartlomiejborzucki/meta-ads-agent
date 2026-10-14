@@ -39,14 +39,33 @@ it is where the routing, safety and workspace detail lives.
 
 ### As a plugin
 
-```
-/plugins
+From the command line (checked with Codex 0.160 on Linux):
+
+```bash
+codex plugin marketplace add bartlomiejborzucki/meta-ads-agent
+codex plugin add meta-ads-agent@meta-ads-agent
 ```
 
-The plugin browser searches configured marketplaces, installs, and toggles
-plugins. Press Space on an installed plugin to enable or disable it.
+Or in a session, `/plugins` opens the plugin browser: it searches configured
+marketplaces, installs, and toggles plugins (Space enables or disables one).
 
 **Start a new session afterwards.** Bundled skills load at session start.
+Installed as a plugin, the skills are named with the plugin's prefix -
+`meta-ads-agent:meta-ads-audit` and so on.
+
+### The approval hook
+
+The plugin ships a hook that checks each Meta MCP call before it runs
+([ADR-011](../architecture/adr/ADR-011-hooks-enforce-approvals.md)). Codex
+does not run a plugin's hooks until you trust them: run `/hooks` in a session
+and trust `approval_gate.py`. It needs `python3` 3.8 or later on your `PATH`.
+
+Codex cannot show a confirmation from a hook, so under Codex the hook
+**refuses** what it would ask about in Claude Code: activation, budget
+changes, live edits, deletes, customer-list uploads, experiments, catalog and
+pixel-rule changes. A create that is not PAUSED is refused too. Reads and
+paused builds pass. To make a refused change, make it in Ads Manager, or run
+that one session with `META_ADS_AGENT_HOOKS=0`.
 
 ### As a skills directory
 
@@ -105,7 +124,8 @@ files a newer release dropped; copying over the top leaves them behind.
 
 ### Using them
 
-Type `$` to pick a skill explicitly:
+Type `$` to pick a skill explicitly (with the plugin prefix when installed
+as a plugin):
 
 ```
 $meta-ads-audit

@@ -129,11 +129,12 @@ and belong to Meta's server, so what holds the rules depends on the host:
 | Host | Enforced by | What it does |
 | --- | --- | --- |
 | Claude Code, with the plugin | a hook that sees each Meta call before it runs | asks you before activation, budget and live changes, deletes and customer-list uploads; refuses a create that is not PAUSED |
-| Codex, and agents reading the skills | the skills only | **advisory**: a confused agent can still call a write tool |
+| Codex, with the plugin, once you trust its hook in `/hooks` | the same hook, in strict mode | Codex cannot ask, so it **refuses** what Claude Code would ask about; you make those changes yourself |
+| Codex without the trusted hook, and agents reading the skills | the skills only | **advisory**: a confused agent can still call a write tool |
 
-The hook is on by default; `META_ADS_AGENT_HOOKS=0` turns it off. It needs
-`python3` on your `PATH`; without one, Claude Code reports a hook error and the
-call goes ahead, as it would in Codex
+In Claude Code the hook is on by default; `META_ADS_AGENT_HOOKS=0` turns it
+off. It needs `python3` on your `PATH`; without one, the host reports a hook
+error and the call goes ahead
 ([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)).
 
 For a hard guarantee on any host, authorise a read-only session — `ads_read`
@@ -154,9 +155,16 @@ claude plugin install meta-ads-agent@meta-ads-agent
 Guide, including local development installs:
 [install-claude-code.md](docs/getting-started/install-claude-code.md).
 
-**Codex** — type `/plugins`, install, press Space to enable, and **start a new
-session** (skills load at session start). Without a marketplace entry, link the
-skills straight from a clone:
+**Codex**
+
+```bash
+codex plugin marketplace add bartlomiejborzucki/meta-ads-agent
+codex plugin add meta-ads-agent@meta-ads-agent
+```
+
+Then **start a new session** (skills load at session start), and run `/hooks`
+to review and trust the approval hook. Or link the skills straight from a
+clone:
 
 ```bash
 git clone https://github.com/bartlomiejborzucki/meta-ads-agent.git
@@ -423,9 +431,9 @@ The largest gap, and the one to read first.
   published tool reference as of 2026-09-16. Anyone with a connected session
   can check it in one command: `meta-ads-agent capabilities --compare` takes
   the session's tool list and reports every difference.
-- **The Codex plugin has not been installed.** Its manifest is checked against
-  OpenAI's published specification by
-  [a script](scripts/validate_codex_plugin.py), not by a working install.
+- **Codex has installed the plugin, not run it.** On Linux, Codex 0.160
+  installs it from GitHub and lists all twelve skills to the model; no
+  session has used them against Meta, and Windows is untested.
 - **The trigger evals have not run.** [`evals/`](evals/README.md) checks that
   each skill's description selects it; running it is a paid model call.
 

@@ -166,6 +166,41 @@ class TestFailure:
         off = run_hook("ads_activate_entity", env={"META_ADS_AGENT_HOOKS": "0"})
         assert off is None
 
+    def test_strict_mode_turns_ask_into_deny(self) -> None:
+        # Codex parses "ask" but runs the call anyway; only deny holds there.
+        answer = run_hook("ads_activate_entity", env={"META_ADS_AGENT_HOOKS": "strict"})
+        assert decision(answer) == "deny"
+        assert "strict mode" in reason(answer)
+        assert "`activate`" in reason(answer)
+
+    def test_codex_gets_strict_mode_without_asking_for_it(self) -> None:
+        codex = json.dumps(
+            {
+                "hook_event_name": "PreToolUse",
+                "turn_id": "t1",
+                "model": "gpt-5-codex",
+                "tool_name": SERVER + "ads_delete_custom_audience",
+                "tool_input": {},
+            }
+        )
+        assert decision(run_hook("", raw=codex)) == "deny"
+
+    def test_claude_code_input_still_asks(self) -> None:
+        claude = json.dumps(
+            {
+                "hook_event_name": "PreToolUse",
+                "permission_mode": "default",
+                "tool_name": SERVER + "ads_delete_custom_audience",
+                "tool_input": {},
+            }
+        )
+        assert decision(run_hook("", raw=claude)) == "ask"
+
+    def test_strict_mode_leaves_reads_and_paused_creates_alone(self) -> None:
+        strict = {"META_ADS_AGENT_HOOKS": "strict"}
+        assert run_hook("ads_get_ad_accounts", env=strict) is None
+        assert run_hook("ads_create_campaign", {"status": "PAUSED"}, env=strict) is None
+
     def test_a_missing_class_table_fails_towards_asking(self, tmp_path: Path) -> None:
         copy = tmp_path / "approval_gate.py"
         copy.write_text(HOOK.read_text(encoding="utf-8"), encoding="utf-8")

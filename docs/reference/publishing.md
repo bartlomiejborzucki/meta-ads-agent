@@ -122,8 +122,8 @@ Worth doing immediately:
 ## 5. Releasing
 
 ```bash
-git tag -a v1.3.0 -m "meta-ads-agent 1.3.0"   # the version in pyproject.toml
-git push origin v1.3.0
+git tag -a v1.3.1 -m "meta-ads-agent 1.3.1"   # the version in pyproject.toml
+git push origin v1.3.1
 ```
 
 `.github/workflows/release.yml` then runs the full verification (with the SDK

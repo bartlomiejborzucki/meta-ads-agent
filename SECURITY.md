@@ -102,14 +102,16 @@ Stated so you know what to test, and what the intended behaviour is.
 Stated plainly, because a security policy that only lists strengths is not
 useful.
 
-**The approval model is advisory outside Claude Code.** Meta's MCP write
-tools execute immediately, and they belong to Meta's server. In Claude Code the
-plugin's `PreToolUse` hook asks the user before every call whose class needs
-approval and refuses a create that is not PAUSED
-([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)). Elsewhere
-- Codex, or an agent reading the skills - this project shapes agent behaviour
-through skills only, and a sufficiently confused agent can still call
-`ads_activate_entity`. A proxy in front of Meta's MCP was considered and
+**The approval model is advisory without the plugin's hook.** Meta's MCP
+write tools execute immediately, and they belong to Meta's server. In Claude
+Code the plugin's `PreToolUse` hook asks the user before every call whose
+class needs approval and refuses a create that is not PAUSED; in Codex the same
+hook, once the user trusts it in `/hooks`, refuses what it would ask about,
+because Codex cannot ask
+([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)). Without
+the hook - an untrusted one in Codex, or an agent reading the skills - this
+project shapes agent behaviour through skills only, and a sufficiently
+confused agent can still call `ads_activate_entity`. A proxy in front of Meta's MCP was considered and
 rejected ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md),
 [ADR-004](docs/architecture/adr/ADR-004-write-safety.md)).
 

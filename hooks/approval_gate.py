@@ -14,7 +14,10 @@ server, with the call as JSON on stdin. It answers on stdout:
 
 Standard library only, and Python 3.8 or later (macOS ships 3.9), so it
 works without the optional CLI and with the system python3. It never writes
-the tool input anywhere. ``META_ADS_AGENT_HOOKS=0`` turns it off. The design
+the tool input anywhere. ``META_ADS_AGENT_HOOKS=0`` turns it off, and
+``META_ADS_AGENT_HOOKS=strict`` turns every ``ask`` into ``deny``. Under
+Codex, which loads plugin hooks once the user trusts them but cannot ask,
+strict is automatic. The design
 and its limits are in docs/architecture/adr/ADR-011-hooks-enforce-approvals.md.
 """
 
@@ -181,9 +184,39 @@ def _load_classes() -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def _strict(answer: dict[str, Any]) -> dict[str, Any]:
+    """``ask`` as ``deny``, for a host that cannot ask.
+
+    Codex parses ``ask`` but does not support it: it reports a failed hook
+    and runs the call. On such a host the only answer that holds is ``deny``.
+    """
+    out = answer["hookSpecificOutput"]
+    if out["permissionDecision"] != "ask":
+        return answer
+    reason = out["permissionDecisionReason"][len("meta-ads-agent: ") :]
+    return _decision(
+        "deny",
+        f"strict mode refuses what it would otherwise ask about. {reason} "
+        "To make this change, the user runs it with META_ADS_AGENT_HOOKS unset, "
+        "or makes it in Ads Manager.",
+    )
+
+
+def _host_cannot_ask(payload: Any) -> bool:
+    """Codex runs this hook from the plugin too, and cannot ask.
+
+    Its PreToolUse input carries ``turn_id`` and no ``permission_mode``;
+    Claude Code's carries ``permission_mode``. Mistaking one for the other
+    errs towards deny, which is the safe direction.
+    """
+    return isinstance(payload, dict) and "turn_id" in payload and "permission_mode" not in payload
+
+
 def main() -> int:
-    if os.environ.get("META_ADS_AGENT_HOOKS", "").strip().lower() in _DISABLED:
+    mode = os.environ.get("META_ADS_AGENT_HOOKS", "").strip().lower()
+    if mode in _DISABLED:
         return 0
+    payload: Any = None
     try:
         payload = json.loads(sys.stdin.read() or "{}")
         if not isinstance(payload, dict):
@@ -191,6 +224,8 @@ def main() -> int:
         answer = decide(payload, _load_classes())
     except Exception as exc:  # any failure must still ask
         answer = _decision("ask", f"the approval hook could not check this call ({exc}).")
+    if answer is not None and (mode == "strict" or _host_cannot_ask(payload)):
+        answer = _strict(answer)
     if answer is not None:
         sys.stdout.write(json.dumps(answer))
     return 0
