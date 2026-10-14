@@ -7,6 +7,39 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-14
+
+**Every MCP tool named, and the tests that keep it so.** `MIGRATION: none
+required`.
+
+### Changed - skills
+
+- **`meta-ads-catalog` names its tools.** The write tools were a wildcard
+  (`ads_catalog_*_create / _update / _delete`); the approval table now
+  lists each one with its class.
+- **Pixel-rule tools are written out in full** in `meta-ads-tracking` and the
+  core tool map, which used `_update`, `_delete` shorthand.
+- **`meta-ads-tracking` classed pixel-rule deletes as `update_active`.**
+  `capabilities.yaml` has classed them `delete` since 1.0.1; the skill now
+  agrees.
+- The core tool map lists all 34 catalog tools by area and class, and the
+  experiment tools by name.
+- Partnership and branded-content ads are in `capabilities.yaml` as not
+  supported. They were only in prose.
+
+### Added - tests
+
+- Every tool in `config/mcp-tools.yaml` must be named in a skill, and an
+  approval class written in a skill table beside a tool must match
+  `capabilities.yaml`.
+- The plain (non-`--json`) output of `install`, `upgrade`, `--rollback`,
+  `migrate`, `mcp-config`, `state` and `report compare` / `pacing` / `power`.
+
+### CI
+
+- A coverage floor of 90% (91% at this release).
+- The Windows job blocks. It has been green on every master run since 1.0.1.
+
 ## [1.0.2] - 2026-10-14
 
 **Fixes from a security and code-quality review.** `MIGRATION: none required`.
@@ -735,7 +768,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.9.0...v1.0.0

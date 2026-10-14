@@ -144,12 +144,60 @@ What remains, as 1.x work, each with who can do it:
 | The live tests pass on a designated test ad account | a test account and a token | `META_ADS_LIVE_TESTS=1 ... uv run pytest -m live` |
 | The capability map matches a live MCP session | any connected session | `meta-ads-agent capabilities --compare tools.txt` |
 | The Codex plugin installs, on Linux and on Windows | a Codex install | [install-codex.md](getting-started/install-codex.md) |
-| The Windows CI job is green, then made blocking | the job's log, to fix what fails there | - |
 | The trigger evals have run once | an Anthropic API key, and the decision to spend on it | the *Trigger evals* workflow |
 | PyPI, and the plugin marketplaces | the owner's accounts ([ADR-009](architecture/adr/ADR-009-distribution.md)); the name was free on PyPI on 2026-09-24 | [publishing.md](reference/publishing.md) |
 
 The first row is the one that matters most. When it runs, its result - pass
 or fail - belongs in the changelog.
+
+## 1.1 - every tool named (done)
+
+In 1.1.0: the skills name every tool in the MCP inventory, with its approval
+class, and two tests hold that - one that every inventoried tool appears in a
+skill, one that a class written beside a tool agrees with
+`capabilities.yaml`. Tests for the plain output of `install`, `upgrade`,
+`migrate`, `mcp-config`, `state` and `report`; a 90% coverage floor; and the
+Windows CI job blocking, green on every master run since 1.0.1.
+
+Two items did not happen as planned:
+
+- **Refreshing the capability map** against Meta's documentation. Meta's
+  pages render in the browser, so they could not be read from the machine
+  this was built on. The map's age is already watched: the weekly upstream
+  check opens an issue at 75 days, so a separate reminder was not added.
+- **Using `ads_creative_upload_image` for images at a URL.** It would narrow
+  the image-upload gap without code, but the tool is community-reported and
+  unverified, and pointing the agent at a tool nobody has seen run is the
+  kind of guess the routing rules exist to prevent. It waits for a session.
+
+## 1.2 - approvals enforced by the host (next)
+
+The README says the approval model is advisory because this project does not
+own the transport. Claude Code's plugin hooks run before a tool call executes,
+which gives enforcement without the proxy ADR-001 rejected. Planned:
+
+- an ADR revisiting ADR-001's "advisory by construction" for hosts with hooks;
+- a `PreToolUse` hook in the plugin that classes each Meta MCP call by
+  `capabilities.yaml`: reads pass, a create that is not PAUSED is denied, and
+  activation, budget changes, live edits, deletes and customer-list uploads
+  ask the user;
+- stdlib-only, so it works without the CLI, and it never logs tool input;
+- Codex and plain-Markdown agents stay advisory, and the README says which
+  is which.
+
+## 1.3 - operator workflows (planned)
+
+From the gaps in the [ecosystem audit](research/ecosystem-audit.md), each
+within ADR-007 and ADR-008:
+
+- duplicating a campaign as a new plan (`plan from-entities`), built through
+  the usual validate-then-build path;
+- `report breakdown` by placement, and a conversion-lag flag on `compare`
+  that labels an immature window instead of drawing a conclusion from it;
+- a scale-readiness checklist in `meta-ads-optimize`;
+- an audience-exclusion review in `meta-ads-audiences`;
+- scheduled reporting with a read-only session through the host's own
+  scheduler, documented rather than built as a daemon.
 
 ## Ongoing
 
