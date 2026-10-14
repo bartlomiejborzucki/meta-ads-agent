@@ -193,19 +193,35 @@ Not yet done: a run inside Claude Code against a live Meta session. The
 hook's input and output follow Claude Code's documented hook schema, and the
 tests run it as Claude Code does, as a separate process with JSON on stdin.
 
-## 1.3 - operator workflows (planned)
+## 1.3 - operator workflows (done)
 
-From the gaps in the [ecosystem audit](research/ecosystem-audit.md), each
-within ADR-007 and ADR-008:
+In 1.3.0, from the gaps in the [ecosystem audit](research/ecosystem-audit.md),
+each within ADR-007 and ADR-008:
 
-- duplicating a campaign as a new plan (`plan from-entities`), built through
-  the usual validate-then-build path;
-- `report breakdown` by placement, and a conversion-lag flag on `compare`
-  that labels an immature window instead of drawing a conclusion from it;
+- `duplicate-plan`: a campaign read from Meta becomes a new plan, built
+  through the usual validate-then-build path;
+- `report breakdown`: each placement's cost indexed against the whole;
 - a scale-readiness checklist in `meta-ads-optimize`;
-- an audience-exclusion review in `meta-ads-audiences`;
-- scheduled reporting with a read-only session through the host's own
-  scheduler, documented rather than built as a daemon.
+- an exclusion review across a campaign in `meta-ads-audiences`;
+- [scheduled reporting](reference/scheduled-reporting.md) through the host's
+  own scheduler with a read-only session, documented rather than built.
+
+Changed on the way:
+
+- **No conversion-lag flag.** `compare --attribution-days` already labels a
+  window still inside attribution as `RECENT`; a second flag would say the
+  same thing twice.
+- **The command is `duplicate-plan`**, a top-level command like
+  `render-plan` and `validate-plan`, rather than `plan from-entities`.
+- **A multi-variant creative is not duplicated.** Its asset rules do not
+  survive a round trip through the plan model, so it is refused by name.
+
+## Next
+
+Nothing new is planned until the first row of the 1.0 table runs: a live
+test on a real account is worth more than another feature built offline.
+The Codex install row may be closer than it was - a machine with Codex is now
+available.
 
 ## Ongoing
 

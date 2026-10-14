@@ -7,6 +7,36 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-14
+
+**Operator workflows.** `MIGRATION: none required`.
+
+### Added
+
+- **`meta-ads-agent duplicate-plan`**: a campaign read from Meta, saved as
+  JSON in the Marketing API's field names, becomes a new plan. Budgets and
+  bids are converted from minor units (a currency is required), every
+  status is PAUSED, schedules are left out, unmodelled targeting is kept in
+  `targeting.raw`, and single-image, video, carousel and existing-post
+  creatives are mapped. A multi-variant creative is refused by name. The
+  campaign skill has the workflow, and its references the input shape.
+- **`meta-ads-agent report breakdown`**: rows exported with placement
+  breakdowns, each placement's cost per result (or per click) indexed
+  against the whole at 100, labelled with `compare`'s noise band and volume
+  floors. An export mixing placement rows with plain rows is refused.
+- **`meta-ads-optimize`**: a scale-readiness checklist to run and show
+  before proposing more budget.
+- **`meta-ads-audiences`**: reviewing exclusions across a campaign's live
+  ad sets.
+- **[Scheduled reporting](docs/reference/scheduled-reporting.md)**: a weekly
+  report from cron, locked to reads by a read-only Meta session and a tool
+  allowlist.
+
+### Fixed
+
+- `meta-ads-optimize` said budget step size was configurable in
+  `brand.yaml`, which has no such field.
+
 ## [1.2.0] - 2026-10-14
 
 **In Claude Code, the approval classes are enforced.** `MIGRATION: none
@@ -798,7 +828,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.1...v1.0.2
