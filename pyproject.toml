@@ -74,7 +74,7 @@ packages = ["src/meta_ads_agent"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "src/", "config/", "skills/", "integrations/", "packaging/",
+  "src/", "config/", "skills/", "hooks/", "integrations/", "packaging/",
   "release-manifest.json",
   "docs/", "examples/", "tests/",
   "README.md", "LICENSE", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
@@ -93,7 +93,7 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["src", "tests", "scripts"]
+src = ["src", "tests", "scripts", "hooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "S"]

@@ -123,12 +123,22 @@ Nothing spends money without you saying so, about that specific thing.
 - **Money is never ambiguous.** The account currency — and Meta's own minor-unit
   offset for it — is read before any budget is interpreted.
 
-> **Read this honestly:** the model is **advisory**. Meta's MCP write tools
-> execute immediately and belong to Meta's server; this project shapes agent
-> behaviour through skills but cannot gate a transport it does not own. For a
-> hard guarantee, authorise a read-only session — `ads_read` without
-> `ads_management` makes the whole write surface unavailable
-> ([ADR-004](docs/architecture/adr/ADR-004-write-safety.md)).
+**Where the rules are enforced.** Meta's MCP write tools execute immediately
+and belong to Meta's server, so what holds the rules depends on the host:
+
+| Host | Enforced by | What it does |
+| --- | --- | --- |
+| Claude Code, with the plugin | a hook that sees each Meta call before it runs | asks you before activation, budget and live changes, deletes and customer-list uploads; refuses a create that is not PAUSED |
+| Codex, and agents reading the skills | the skills only | **advisory**: a confused agent can still call a write tool |
+
+The hook is on by default; `META_ADS_AGENT_HOOKS=0` turns it off. It needs
+`python3` on your `PATH`; without one, Claude Code reports a hook error and the
+call goes ahead, as it would in Codex
+([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)).
+
+For a hard guarantee on any host, authorise a read-only session — `ads_read`
+without `ads_management` makes the whole write surface unavailable
+([ADR-004](docs/architecture/adr/ADR-004-write-safety.md)).
 
 ## Getting started
 
@@ -441,9 +451,10 @@ Decisions, with reasoning, that will not change without an ADR:
   interface; local files are enough
   ([architecture overview](docs/architecture/overview.md)).
 - **A proxy in front of Meta's MCP.** It would make the approval model
-  enforceable rather than advisory, and was considered and rejected
-  ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md)) — the change to
-  revisit, as an opt-in, if the advisory model proves insufficient.
+  enforceable on every host, and was considered and rejected
+  ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md)). In Claude Code a
+  plugin hook now does that job without one
+  ([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)).
 - **Growing the fallback without a reason.** Each of the seven capabilities is
   argued in [ADR-002](docs/architecture/adr/ADR-002-api-fallback.md) or
   [ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md).
@@ -475,7 +486,7 @@ send: [capability change issue](.github/ISSUE_TEMPLATE/capability_change.yml).
 
 | Background | |
 | --- | --- |
-| [Architecture overview](docs/architecture/overview.md) · [ADRs](docs/architecture/adr/) | how the layers fit; ten decisions, with the rejected options |
+| [Architecture overview](docs/architecture/overview.md) · [ADRs](docs/architecture/adr/) | how the layers fit; eleven decisions, with the rejected options |
 | [Ecosystem audit](docs/research/ecosystem-audit.md) · [Meta capabilities](docs/research/current-meta-capabilities.md) · [Provenance](docs/research/provenance.md) | eleven projects reviewed; Meta's tools, tool by tool; licences |
 | [Roadmap](docs/roadmap.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) | what is next; what changed; how to help |
 

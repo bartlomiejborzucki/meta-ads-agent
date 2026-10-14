@@ -107,6 +107,23 @@ Build a paused campaign for this offer: <offer>, landing page <url>,
 
 Nothing becomes active without you saying so, explicitly, after seeing previews.
 
+## The approval hook
+
+The plugin ships a `PreToolUse` hook on Meta's MCP tools
+([ADR-011](../architecture/adr/ADR-011-hooks-enforce-approvals.md)). It runs
+before each `ads_*` call and:
+
+- asks you before activation, budget changes, edits to live objects,
+  deletes, customer-list uploads and experiments;
+- refuses to create a campaign, ad set or ad with a status other than PAUSED;
+- stays silent on reads and paused builds, leaving them to your own
+  permission settings. It never approves anything on your behalf.
+
+It needs `python3` (3.8 or later) on your `PATH`. To check it is loaded, run
+`/hooks` in a Claude Code session and look for `approval_gate.py` under
+`PreToolUse`, with the matcher `mcp__.*__ads_.*`. To turn it off, set
+`META_ADS_AGENT_HOOKS=0` in the environment Claude Code starts from.
+
 ## Uninstalling
 
 ```bash

@@ -120,6 +120,20 @@ ad 12345"* - that **is** the approval. Do not ask twice for something they
 already stated precisely. The gate exists to catch inference, not to add
 ceremony.
 
+## When the host asks or refuses
+
+Some hosts run a check of their own on each Meta MCP call before it runs:
+this project ships one as a plugin hook where the host supports it. It may
+show the user a confirmation prompt, or refuse the call with a reason that
+starts `meta-ads-agent:`.
+
+- **A prompt is the host's, not yours.** If the user already approved this
+  specific change, do not ask a third time; tell them the host will confirm it.
+- **A refusal is the safety model working.** Report it with its reason. Do not
+  retry with a different tool, the CLI, or the fallback to get the same effect.
+- **A user who declines the prompt has declined the change.** Say what did not
+  happen, and stop there.
+
 ## Never
 
 - Activate anything the user has not seen.
@@ -129,6 +143,7 @@ ceremony.
 - Delete when pausing would do.
 - Retry an ambiguous write without querying Meta first.
 - Use the CLI to route around any of the above.
+- Route around a confirmation the user declined, or a call the host refused.
 
 ## Profiles
 

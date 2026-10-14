@@ -1,0 +1,17 @@
+{
+  "description": "meta-ads-agent: asks before Meta Ads MCP calls that spend, change live delivery, delete or upload customer data, and refuses to create a campaign, ad set or ad that is not PAUSED. Off with META_ADS_AGENT_HOOKS=0. See docs/architecture/adr/ADR-011-hooks-enforce-approvals.md.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*__ads_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/approval_gate.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -46,10 +46,10 @@ jobs:
         run: uv sync --extra dev --extra api
 
       - name: Format check
-        run: uv run ruff format --check src tests scripts
+        run: uv run ruff format --check src tests scripts hooks
 
       - name: Lint
-        run: uv run ruff check src tests scripts
+        run: uv run ruff check src tests scripts hooks
 
       - name: Type check
         run: uv run mypy
@@ -59,6 +59,14 @@ jobs:
         # The floor sits just under the current figure (91% at 1.1.0), so
         # coverage cannot fall quietly; raise it when coverage rises.
         run: uv run pytest -m "not live" --cov=meta_ads_agent --cov-report=term-missing --cov-fail-under=90
+
+      - name: The approval hook on the oldest python3 a user may have
+        # The plugin hook runs on the system python3, not this project's
+        # environment; macOS ships 3.9. ADR-011.
+        if: matrix.python == '3.11'
+        run: |
+          uv python install 3.8
+          META_ADS_HOOK_PYTHON="$(uv python find 3.8)" uv run pytest tests/test_hooks.py -q
 
   other-platforms:
     # The offline suite on the two other operating systems a user may run it

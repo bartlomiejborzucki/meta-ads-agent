@@ -102,13 +102,22 @@ Stated so you know what to test, and what the intended behaviour is.
 Stated plainly, because a security policy that only lists strengths is not
 useful.
 
-**The approval model is advisory.** Meta's MCP write tools execute immediately,
-and they belong to Meta's server. This project shapes agent behaviour through
-skills; it cannot gate a transport it does not own. A sufficiently confused
-agent can still call `ads_activate_entity`. Mitigating this properly would mean
-proxying Meta's MCP, which was considered and rejected - see
-[ADR-001](docs/architecture/adr/ADR-001-mcp-first.md) and
-[ADR-004](docs/architecture/adr/ADR-004-write-safety.md).
+**The approval model is advisory outside Claude Code.** Meta's MCP write
+tools execute immediately, and they belong to Meta's server. In Claude Code the
+plugin's `PreToolUse` hook asks the user before every call whose class needs
+approval and refuses a create that is not PAUSED
+([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)). Elsewhere
+- Codex, or an agent reading the skills - this project shapes agent behaviour
+through skills only, and a sufficiently confused agent can still call
+`ads_activate_entity`. A proxy in front of Meta's MCP was considered and
+rejected ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md),
+[ADR-004](docs/architecture/adr/ADR-004-write-safety.md)).
+
+The hook itself has limits, recorded in ADR-011: it needs `python3` on `PATH`
+and fails open without it; it classes calls by tool name, so every
+`ads_update_entity` asks; and its PAUSED check reads status fields Meta does
+not document. A way to make it pass a call it should have asked about is a
+vulnerability - report it privately.
 
 If this matters for your use, grant your token or OAuth session read-only
 scopes. `ads_read` without `ads_management` makes the whole write surface
