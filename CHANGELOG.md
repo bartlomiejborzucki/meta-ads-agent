@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-14
+
 **Fixes from a security and code-quality review.** `MIGRATION: none required`.
 
 ### Security - the fallback
@@ -733,7 +735,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v0.8.0...v0.9.0

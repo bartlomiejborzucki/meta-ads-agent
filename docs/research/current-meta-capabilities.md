@@ -203,7 +203,7 @@ Business SDK. `BOTH` = MCP can do it but a narrow local path is still justified.
 | Experiments | `OFFICIAL_MCP` | Full coverage |
 | Ad Library research | `OFFICIAL_MCP` | `ads_library_search` |
 | Activity logs | `OFFICIAL_MCP` | `ads_account_get_activity_logs` |
-| Lead forms (`leadgen_forms`) | `UNSUPPORTED` | No MCP tool; no fallback in 0.1.0 |
+| Lead forms (`leadgen_forms`) | `UNSUPPORTED` | No MCP tool; no fallback |
 | Automated rules | `UNSUPPORTED` | No MCP tool; out of scope |
 | Partnership / branded-content ads | `UNSUPPORTED` | Out of scope |
 
