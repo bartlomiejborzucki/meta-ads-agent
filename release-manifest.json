@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "payload_root": "skills",
   "digest": "3cda909c34775ec982b66f4c067eefb9a8f28095198804e465ea5e0930364440",
   "skills": [

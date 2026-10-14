@@ -7,6 +7,36 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-14
+
+**In Claude Code, the approval classes are enforced.** `MIGRATION: none
+required`. Update the plugin to get the hook; nothing else changes.
+
+### Added
+
+- **A `PreToolUse` hook in the Claude Code plugin**
+  ([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)). Before
+  each `ads_*` MCP call it:
+  - asks the user for activation, budget changes, live edits, deletes,
+    customer-list uploads, experiments and catalog or pixel-rule changes,
+    with the class and, for an entity update, the status and budget it sets;
+  - refuses a campaign, ad set or ad created with a status other than PAUSED;
+  - asks for an `ads_*` tool it does not know whose name is not a read;
+  - stays silent otherwise. It never approves a call.
+
+  `META_ADS_AGENT_HOOKS=0` turns it off. It needs `python3` 3.8 or later;
+  without one the call proceeds with a hook error, as before.
+- `hooks/tool-classes.json`, generated from `capabilities.yaml` by
+  `scripts/build_hook_tool_classes.py` and checked by the tests.
+- The safety policy tells the agent that a host prompt or refusal is not to
+  be routed around.
+
+### Changed
+
+- README and SECURITY.md: the approval model is enforced in Claude Code with
+  the plugin, and advisory in Codex and other agents.
+- CI lints `hooks/` and runs the hook tests on Python 3.8.
+
 ## [1.1.0] - 2026-10-14
 
 **Every MCP tool named, and the tests that keep it so.** `MIGRATION: none
@@ -768,7 +798,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.0.0...v1.0.1

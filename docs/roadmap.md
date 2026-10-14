@@ -170,20 +170,28 @@ Two items did not happen as planned:
   unverified, and pointing the agent at a tool nobody has seen run is the
   kind of guess the routing rules exist to prevent. It waits for a session.
 
-## 1.2 - approvals enforced by the host (next)
+## 1.2 - approvals enforced by the host (done)
 
-The README says the approval model is advisory because this project does not
-own the transport. Claude Code's plugin hooks run before a tool call executes,
-which gives enforcement without the proxy ADR-001 rejected. Planned:
+In 1.2.0: [ADR-011](architecture/adr/ADR-011-hooks-enforce-approvals.md) and
+a `PreToolUse` hook in the Claude Code plugin. Approval-required classes ask
+the user, a create that is not PAUSED is denied, an unknown write tool asks,
+and everything else is left to the user's own permission settings - the hook
+never approves. It is stdlib-only and runs on Python 3.8 or later. Codex and
+plain-Markdown agents stay advisory, and the README says which is which.
 
-- an ADR revisiting ADR-001's "advisory by construction" for hosts with hooks;
-- a `PreToolUse` hook in the plugin that classes each Meta MCP call by
-  `capabilities.yaml`: reads pass, a create that is not PAUSED is denied, and
-  activation, budget changes, live edits, deletes and customer-list uploads
-  ask the user;
-- stdlib-only, so it works without the CLI, and it never logs tool input;
-- Codex and plain-Markdown agents stay advisory, and the README says which
-  is which.
+Changed on the way:
+
+- **The hook writes nothing.** The plan was to log its decisions to
+  `actions.jsonl`; that file's format is a 1.x promise and is validated by
+  the CLI's models, which a stdlib-only script cannot use. Claude Code's own
+  transcript already records each prompt and answer.
+- **The fallback's shell calls are not hooked.** Catching `meta-ads-agent api
+  delete` would mean a Python process on every shell command; `api delete`
+  already refuses without `--approved`.
+
+Not yet done: a run inside Claude Code against a live Meta session. The
+hook's input and output follow Claude Code's documented hook schema, and the
+tests run it as Claude Code does, as a separate process with JSON on stdin.
 
 ## 1.3 - operator workflows (planned)
 
