@@ -286,6 +286,7 @@ the MCP. The whole reference is [cli.md](docs/reference/cli.md).
 | --- | --- |
 | `doctor` · `init` | readiness checks; creating the workspace |
 | `render-plan` | applying the brand's naming and UTM templates to a plan |
+| `duplicate-plan` | a campaign read from Meta, as a new plan to review and build PAUSED |
 | `validate-plan` | the gate before the first write |
 | `state` | what exists on Meta for a campaign, and where a resume starts |
 | `report compare` · `breakdown` · `fatigue` · `pacing` · `power` | period comparisons, placements, fatigue signals, budget pacing, test sizing |

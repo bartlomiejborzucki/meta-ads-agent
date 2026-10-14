@@ -71,6 +71,24 @@ exposes, ask your agent to list its tools - and then hand that list to
 what it has that the map does not, and which new tools may close a fallback
 gap. It exits 1 when the session and the map differ, and changes nothing.
 
+## duplicate-plan
+
+```bash
+meta-ads-agent duplicate-plan SOURCE --slug SLUG [--name NAME] [--currency CODE]
+  [--account act_ID] [--write] [--json]
+```
+
+A campaign the agent read from Meta - campaign, ad sets, ads and creatives,
+saved as JSON in the Marketing API's field names
+([the shape](../../skills/meta-ads-campaign/references/duplicate-input.md)) -
+becomes a new plan. Budgets and bids are converted from minor units to display
+amounts, so a currency is required when any is set. Every status is PAUSED;
+schedules are not copied; targeting keys the plan does not model are kept in
+`targeting.raw`. A multi-variant creative is refused, naming the ad. Without
+`--write` the plan is printed; with it, it is saved as
+`.meta-ads/campaigns/<slug>/plan.yaml`, and an existing plan there is never
+overwritten (exit 1). Exit 2 when the source cannot be read or mapped.
+
 ## render-plan
 
 ```bash

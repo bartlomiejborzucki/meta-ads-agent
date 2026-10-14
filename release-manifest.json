@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.2.0",
   "payload_root": "skills",
-  "digest": "1b0345c0c749866a18ec15b99c9e8bd78b8f06f58eed0bd4aa3a21919682b6bc",
+  "digest": "1ec90c7ff1bd640c29a441237e6bc5e6981479af7758818fba540508ff283836",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -47,8 +47,8 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "ea0ff44d6075141a8d9da564d91354f2084b1c3ff2f15239ff6a4c032f7ee8d5",
-      "size": 12719
+      "sha256": "9e2739c94618449ed236992ede4a8de21d9a8d215a71e0516c65f9e8f6aff9ce",
+      "size": 13819
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
@@ -59,6 +59,11 @@
       "path": "meta-ads-campaign/references/campaign-plan-guide.md",
       "sha256": "8ad46ad942712b1d52f2662b1b25aeaf47d64d62755957e4ae82fa54bacd7b43",
       "size": 7562
+    },
+    {
+      "path": "meta-ads-campaign/references/duplicate-input.md",
+      "sha256": "27517d89fdcc9ddfee5e2a6c22a356ebc9cf8388584668a8821c7052341390ee",
+      "size": 2699
     },
     {
       "path": "meta-ads-campaign/references/objectives-and-optimization.md",

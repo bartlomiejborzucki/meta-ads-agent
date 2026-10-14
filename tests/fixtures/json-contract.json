@@ -19,6 +19,15 @@
     "reviewed",
     "source"
   ],
+  "duplicate-plan": [
+    "ad_sets",
+    "ads",
+    "campaign",
+    "notes",
+    "plan",
+    "slug",
+    "written"
+  ],
   "render-plan": [
     "brand_config",
     "changes",

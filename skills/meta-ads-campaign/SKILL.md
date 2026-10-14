@@ -282,6 +282,31 @@ and continue from the first incomplete stage.
 If the plan changed after objects were created, the tool blocks the resume -
 correctly. Restore the plan that produced them, or start a new slug.
 
+## Duplicating a campaign
+
+"Same as last quarter's, with a new offer" is a new plan, not a copy call:
+the copy goes through the same review, validation and PAUSED build.
+
+1. Read the source through the MCP: the campaign, its ad sets with
+   `targeting`, `promoted_object`, budgets and bids, and each ad's creative
+   with its full fields, not only its id. Save them as one JSON file in the Marketing
+   API's field names - the shape is in [references/duplicate-input.md](references/duplicate-input.md).
+2. With the CLI:
+
+   ```bash
+   meta-ads-agent duplicate-plan source.json --slug acme-webinar-q4 \
+     --currency PLN --write
+   ```
+
+   Budgets and bids come back as display amounts in the account currency,
+   every status is PAUSED, and schedules are left out. Read its notes out
+   to the user. Without the CLI, write the plan by hand from the same
+   fields, following the same rules.
+3. Make the change the user asked for in the new plan, then continue at
+   step 4 above. The source campaign is never touched.
+
+A multi-variant creative is not duplicated: say so, and plan that ad by hand.
+
 ## Regional and regulatory
 
 **EU/EEA delivery** requires DSA transparency fields - beneficiary and payor.

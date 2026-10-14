@@ -69,6 +69,9 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         for platform in ("facebook", "instagram")
     ]
     (tmp_path / "placements.json").write_text(json.dumps({"data": placed}))
+    from test_duplicate import source
+
+    (tmp_path / "source.json").write_text(json.dumps(source()))
     return tmp_path
 
 
@@ -90,6 +93,7 @@ COMMANDS: dict[str, list[str]] = {
         "--result-event",
         "lead",
     ],
+    "duplicate-plan": ["duplicate-plan", "source.json", "--slug", "acme-copy"],
     "report breakdown": ["report", "breakdown", "placements.json", "--result-event", "lead"],
     "report fatigue": ["report", "fatigue", "insights.json"],
     "report pacing": ["report", "pacing", "insights.json", "--daily-budget", "100"],
