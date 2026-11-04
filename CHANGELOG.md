@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-04
+
 **Meta's MCP as it is on 2026-11-04.** `MIGRATION: none required`. Found by a
 campaign built on 2026-11-03 against the official MCP on a PLN account; the
 tool facts below are from that build ("live") or from the tool descriptions a
@@ -940,7 +942,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.1.0...v1.2.0
