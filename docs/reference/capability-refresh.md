@@ -36,29 +36,24 @@ meta-ads-agent capabilities --compare tools.txt
 It reports tools the map routes work to that the session lacks (fix these
 first: a skill will reach for them), tools the session has that Meta's
 reference did not list, whether each community-reported name exists, and new
-tools whose names suggest one of the seven gaps below. It exits 1 on any
-difference and changes nothing.
+tools whose names suggest one of the fallback gaps, while any remain. It exits
+1 on any difference and changes nothing.
 
 ## 2. Check the gaps specifically
 
-Seven capabilities currently route to the fallback. Each is a bet that Meta will
-not ship the feature, and losing that bet is the desired outcome.
+On 2026-11-04 no capability routes to the fallback any more: Meta's MCP
+covered all seven former gaps, and their commands are deprecated (ADR-012).
+`meta-ads-agent capabilities --gaps` lists them. Two things to check now
+instead:
 
-For each, ask whether a tool now exists:
-
-| Gap | Look for |
+| Check | Why |
 | --- | --- |
-| `local_image_upload` | any tool that accepts a local file path, not just a URL |
-| `local_video_upload` | a video upload tool |
-| `create_video_creative` | `ads_create_creative` accepting `video_id` or `video_data` |
-| `create_existing_post_creative` | a Facebook Page equivalent of `ads_boost_ig_post` |
-| `create_existing_post_creative` (Instagram) | `ads_boost_ig_post` accepting a paused status |
-| `create_multi_variant_creative` | anything exposing `asset_feed_spec` |
-| `create_carousel_creative` | `ads_create_creative` accepting cards (`child_attachments`) |
-| `delete_entity` | a delete tool for campaigns, ad sets, or ads |
+| Each deprecated fallback's MCP route still exists - `ads_creative_upload_media`, `ads_create_creative` (`video_id`, `cards`, `multi_media`, `placement_customizations`, `object_story_id`, `source_instagram_media_id`), `ads_boost_ig_post`, `ads_update_entity` with `status: DELETED` | the next release deletes the fallback code; a route that went away is a reason to keep it |
+| Whether hosts without MCP Apps can upload a local file | the one use left for `api upload-image` / `upload-video` |
+| How `ads_activate_entity` describes a draft publish | the descriptions disagreed on 2026-11-04 about the status a published campaign takes |
 
-Finding one is good news: it means one less reason for anyone to hold an access
-token.
+A new gap - something the skills need that no tool provides - goes through
+ADR-002's rule: name the tool checked and why it is insufficient.
 
 ## 3. Update the registry
 

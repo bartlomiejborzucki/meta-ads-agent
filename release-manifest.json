@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.3.1",
   "payload_root": "skills",
-  "digest": "8ea3ef576a49a8ee39229ffdeb1087993a59a18db8d6f2db927c5bd3169ebf3a",
+  "digest": "6356dafa5185f7fdd5bdb43fbfa7c7408856a49bd6018fbeb8fd7d364c9e30ae",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -112,8 +112,8 @@
     },
     {
       "path": "meta-ads-core/references/connect-meta-mcp.md",
-      "sha256": "47709bd41f19622f48803a60f1c3961e0c1f40f14bde1ec899605d4a500fbeb6",
-      "size": 3900
+      "sha256": "62b68c53a5715fcfa1c4580412f41d127872f849f317191401802de2aabec9b8",
+      "size": 4342
     },
     {
       "path": "meta-ads-core/references/execution-routing.md",

@@ -69,9 +69,10 @@ optimisation diagnosis all work with Meta's MCP alone.
 
 Needed for **campaign builds** - plan validation is the gate before the first
 write, and without it a build stops at the plan and offers you the routes
-forward - and for the capabilities Meta's official MCP does not expose:
-uploading an image or video from your filesystem, video / existing-post /
-multi-variant / carousel creatives, deletion, and the `report` arithmetic. Full breakdown:
+forward - and for the `report` arithmetic. Its `api` commands are a
+deprecated fallback: since 2026-11-04 Meta's MCP uploads media, builds every
+creative format and deletes, and the one thing left for them in a terminal
+host is uploading a local file that has no public URL. Full breakdown:
 [packaging.md](../reference/packaging.md).
 
 ```bash

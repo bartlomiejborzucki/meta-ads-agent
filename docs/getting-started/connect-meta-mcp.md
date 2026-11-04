@@ -99,6 +99,15 @@ Then `codex mcp list`, and start a new session. On older Codex builds remote
 HTTP servers sat behind `experimental_use_rmcp_client = true`; if `url` seems
 ignored, update Codex before reaching for that flag.
 
+### Claude Cowork and claude.ai
+
+There Meta's MCP is a **connector on your Claude account**, added in
+claude.ai's connector settings - no `mcp add`, and no App ID in a local file.
+Every session then sees the `ads_*` tools under a connector prefix. `doctor`
+cannot see an account connector and says so. The rest of the set-up -
+the CLI per session, the workspace in the connected folder -
+is in [install-claude-cowork.md](install-claude-cowork.md).
+
 ### Other MCP clients
 
 The endpoint is a standard streamable-HTTP MCP server with OAuth. Any compliant
@@ -176,13 +185,15 @@ per-entity queries.
 
 ## What this gives you
 
-Around 90 tools, covering accounts, Pages, Instagram identities, campaigns, ad
-sets, ads, single-image creatives, previews, insights and trend analysis,
-custom audiences, datasets and pixel rules, catalogs, experiments, activity
-logs, delivery errors, and public Ad Library search.
+Around 100 tools (104 in a session on 2026-11-04), covering accounts, Pages,
+Instagram identities, campaigns, ad sets, ads, drafts, media upload, every
+creative format - image, video, carousel, multi-media, placement-customised,
+existing posts - previews, insights and trend analysis, custom audiences,
+datasets and pixel rules, catalogs, experiments, activity logs, delivery
+errors, and public Ad Library search.
 
 Current inventory:
 [docs/research/current-meta-capabilities.md](../research/current-meta-capabilities.md).
 
-What it does **not** cover, and what this project fills in:
+What the project's fallback used to fill in, and the one gap left:
 [api-fallback.md](api-fallback.md).

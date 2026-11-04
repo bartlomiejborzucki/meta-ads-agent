@@ -280,7 +280,12 @@ for you to open by hand. See
 
 ## api
 
-The fallback. Needs the `api` extra and `META_ACCESS_TOKEN`. Every subcommand
+The fallback - **deprecated as of 2026-11-04**, when Meta's MCP came to cover
+every one of these
+([ADR-012](../architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)). The
+commands still work for one more release and print a warning naming the MCP
+tool to use instead; a capability that has no fallback in the registry is
+refused. Needs the `api` extra and `META_ACCESS_TOKEN`. Every subcommand
 takes `--json` and `--dry-run`, and every one except `delete` uses `--account`
 (`delete` accepts it and ignores it: the object's id already names its
 account). `123` and `act_123` are the same account. With no `--account` and no
@@ -314,9 +319,10 @@ meta-ads-agent api create-creative (--video | --post | --variants | --carousel)
 post with `--post-id` (`object_story_id`), or an Instagram post with
 `--instagram-media-id`, `--instagram-account-id` and the Page's `--page-id`
 (`source_instagram_media_id`, with the Page as `object_id`).
-The Instagram post is built as an inert creative rather than through
-`ads_boost_ig_post`, whose ability to create a paused boost Meta does not
-document ([ADR-010](../architecture/adr/ADR-010-carousel-and-instagram-posts.md)).
+The Instagram post is built as an inert creative. Through the MCP, pass the
+post inline in `ads_create_ad`, or use `ads_boost_ig_post`, which documents
+that it creates everything PAUSED
+([ADR-012](../architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)).
 
 `--carousel` reads 2 to 10 cards from `--cards`, a JSON list of
 `{"image_hash" | "video_id", "headline", "description", "link", "thumbnail_hash"}`,

@@ -76,27 +76,24 @@ brand context that lives outside the tool, arithmetic done in code rather than
 estimated, and an honest line between what Meta enforces and what a
 practitioner believes.
 
-**A small, optional fallback fills what the MCP cannot do.** Built on Meta's
-official [`facebook-business`](https://github.com/facebook/facebook-python-business-sdk)
-SDK, it covers exactly seven gaps:
-
-| Capability | Why it is not the MCP's job |
-| --- | --- |
-| Local image upload | no MCP tool ingests a file |
-| Local video upload | the same, plus asynchronous transcoding to wait for |
-| Video creative | `ads_create_creative` is documented as single-image only |
-| Existing-post creative | a Facebook Page post has no MCP tool; `ads_boost_ig_post` is not documented to create a paused boost ([ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md)) |
-| Multi-variant and placement-specific creative | `asset_feed_spec` is not exposed |
-| Carousel creative | `ads_create_creative` is single-image; carousels need `child_attachments` |
-| Delete a campaign, ad set or ad | no MCP delete tool (and pausing is usually better) |
-
-**This list is meant to shrink.** Every entry is a bet that Meta will not ship
-the feature, and we expect to lose those bets: when Meta adds one, we flip the
-provider, deprecate our code, and delete it
-([ADR-002](docs/architecture/adr/ADR-002-api-fallback.md)).
+**The fallback is being retired.** An optional layer built on Meta's official
+[`facebook-business`](https://github.com/facebook/facebook-python-business-sdk)
+SDK covered seven things the MCP could not do: local image and video upload,
+video, existing-post, multi-variant / placement-specific and carousel
+creatives, and deletion. As of **2026-11-04 the MCP does all seven** -
+`ads_creative_upload_media`, `ads_create_creative` with `video_id`, `cards`,
+`multi_media`, `placement_customizations`, `object_story_id` and
+`source_instagram_media_id`, a PAUSED `ads_boost_ig_post`, and
+`ads_update_entity` with `status: DELETED`
+([ADR-012](docs/architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)).
+The `meta-ads-agent api` commands still work for one more release, warn that
+they are deprecated, and will then be deleted - which is what the fallback was
+for ([ADR-002](docs/architecture/adr/ADR-002-api-fallback.md)). What they
+still do that the MCP cannot: upload a local file from a terminal host that
+cannot show Meta's upload app.
 
 A default install needs no access token, no app secret, and no Developer App
-credentials. Only the fallback does.
+credentials. Only the deprecated fallback does.
 
 ## Safety model
 
@@ -105,17 +102,22 @@ Nothing spends money without you saying so, about that specific thing.
 | Operation | What it needs |
 | --- | --- |
 | Read anything | nothing |
-| Create campaigns, ad sets, ads — **PAUSED** | you asked for something to be built |
+| Create campaigns, ad sets, ads — **PAUSED**, or as drafts | you asked for something to be built |
 | Edit a paused entity | you asked for the edit |
 | Change a **live** entity's delivery | explicit approval |
 | Change a budget, up or down | explicit approval, with old and new shown in the account currency |
-| Activate anything | explicit approval, **after** previews and QA |
+| Activate anything, or **publish a draft** | explicit approval, **after** previews and QA |
 | Delete | explicit approval, and why pausing is not enough |
 | Touch many entities at once | the list shown first, then approval |
 | Upload a customer list | explicit instruction and a lawful basis |
 
-- **Everything is created PAUSED.** The plan format has no field for anything else.
-- **"Launch it" is still staged:** build → preview → QA → ask → activate.
+- **Everything is created PAUSED**, or as a draft where Meta's draft mode is on
+  for the account. The plan format has no field for anything else.
+- **Publishing a draft is agreeing to spend.** Only the objects that were
+  built are published, by id, after the account's other drafts have been
+  shown to you.
+- **"Launch it" is still staged:** build → preview → QA → ask → publish or
+  activate.
 - **Approval is specific.** "Sounds good" while reviewing a plan is not
   permission to spend.
 - **Pause beats delete.** Deleted objects lose their optimisation history for
@@ -191,6 +193,11 @@ uv tool install "git+https://github.com/bartlomiejborzucki/meta-ads-agent.git" \
 Guide, including OAuth through your Windows browser:
 [install-windows-wsl.md](docs/getting-started/install-windows-wsl.md).
 
+**Claude Cowork and claude.ai** — Meta's MCP is a connector on your Claude
+account, the CLI is reinstalled per session, and the workspace belongs in the
+connected project folder:
+[install-claude-cowork.md](docs/getting-started/install-claude-cowork.md).
+
 **Other agents** — the skills are plain Markdown; point the agent's skills or
 prompt directory at `skills/`, and connect any streamable-HTTP MCP client to
 the endpoint below.
@@ -241,7 +248,7 @@ rather than a command you cannot run.
 
 It is needed for **campaign builds** — plan validation is the gate before the
 first write, so without it a build stops at the plan and offers you the routes
-forward — and for the seven fallback capabilities and the `report` arithmetic.
+forward — for the `report` arithmetic, and for the deprecated fallback.
 Detail: [packaging.md](docs/reference/packaging.md).
 
 ```bash
@@ -300,7 +307,7 @@ the MCP. The whole reference is [cli.md](docs/reference/cli.md).
 | `report compare` · `breakdown` · `fatigue` · `pacing` · `power` | period comparisons, placements, fatigue signals, budget pacing, test sizing |
 | `capabilities` | what routes where; `--compare` checks a live session's tools against the map |
 | `install` · `upgrade` · `migrate` · `mcp-config` · `open-url` | installing and updating skills, and Codex/WSL set-up |
-| `api …` | the fallback: uploads, video / existing-post / multi-variant / carousel creatives, deletion |
+| `api …` | the deprecated fallback: uploads, video / existing-post / multi-variant / carousel creatives, deletion - all covered by Meta's MCP since 2026-11-04 |
 
 **Plan, validate, then build.** Validation checks what **Meta** enforces —
 account state and payment, currency and its minor units, budget level and
@@ -315,7 +322,7 @@ $ meta-ads-agent validate-plan .meta-ads/campaigns/acme-webinar/plan.yaml
 ERROR    dsa.missing_fields  targeting PL requires beneficiary, payor
 WARNING  currency.unverified plan budgets are in PLN, not verified against the account
 INFO     budget.resolved     daily budget at ad_set level: 70.00 PLN (7000 minor units)
-INFO     routing.fallback    single_video will use the Business SDK fallback
+INFO     plan.deviation      placements differs from Meta's recommendation: the creative is a 9:16 Reel only
 
 BLOCKED: 1 error(s), 1 warning(s), 2 note(s)
 ```
@@ -332,8 +339,8 @@ stage      creatives_created (6/11)
 
 campaign   120210000000001  MCP       PAUSED   Acme | OUTCOME_LEADS | 2026-09-16
 ad_set     120210000000045  MCP       PAUSED   PL - broad 25-55
-video      700000000000031  FALLBACK
-creative   120210000000089  FALLBACK
+video      700000000000031  MCP
+creative   120210000000089  MCP
 
 Failures (1)
   ads_created (NOT retry-safe): create_ad failed: Invalid parameter
@@ -464,24 +471,27 @@ Decisions, with reasoning, that will not change without an ADR:
   ([ADR-001](docs/architecture/adr/ADR-001-mcp-first.md)). In Claude Code a
   plugin hook now does that job without one
   ([ADR-011](docs/architecture/adr/ADR-011-hooks-enforce-approvals.md)).
-- **Growing the fallback without a reason.** Each of the seven capabilities is
+- **Growing the fallback without a reason.** Each of the seven capabilities was
   argued in [ADR-002](docs/architecture/adr/ADR-002-api-fallback.md) or
-  [ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md).
+  [ADR-010](docs/architecture/adr/ADR-010-carousel-and-instagram-posts.md), and
+  all seven are now deprecated
+  ([ADR-012](docs/architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)).
 
 ### The one that fixes itself
 
-Every capability Meta adds to its official MCP is one we delete. A report that
-a tool now covers one of the seven gaps is among the most useful things you can
+Every capability Meta adds to its official MCP is one we delete - on
+2026-11-04 that was all seven. A report that a tool changed, or that one of the
+skills describes the MCP wrongly, is among the most useful things you can
 send: [capability change issue](.github/ISSUE_TEMPLATE/capability_change.yml).
 
 ## Documentation
 
 | Getting started | |
 | --- | --- |
-| [Claude Code](docs/getting-started/install-claude-code.md) · [Codex](docs/getting-started/install-codex.md) · [Codex on Windows + WSL](docs/getting-started/install-windows-wsl.md) | installing the skills |
+| [Claude Code](docs/getting-started/install-claude-code.md) · [Codex](docs/getting-started/install-codex.md) · [Codex on Windows + WSL](docs/getting-started/install-windows-wsl.md) · [Claude Cowork](docs/getting-started/install-claude-cowork.md) | installing the skills |
 | [Connect Meta's MCP](docs/getting-started/connect-meta-mcp.md) | the App ID and the OAuth round trip |
 | [Your first campaign](docs/getting-started/first-campaign.md) | a worked walkthrough, including failures |
-| [The API fallback](docs/getting-started/api-fallback.md) | tokens, `.env`, and what the fallback covers |
+| [The API fallback](docs/getting-started/api-fallback.md) | the deprecated fallback: tokens, `.env`, and what is left of it |
 
 | Reference | |
 | --- | --- |
@@ -496,7 +506,7 @@ send: [capability change issue](.github/ISSUE_TEMPLATE/capability_change.yml).
 
 | Background | |
 | --- | --- |
-| [Architecture overview](docs/architecture/overview.md) · [ADRs](docs/architecture/adr/) | how the layers fit; eleven decisions, with the rejected options |
+| [Architecture overview](docs/architecture/overview.md) · [ADRs](docs/architecture/adr/) | how the layers fit; twelve decisions, with the rejected options |
 | [Ecosystem audit](docs/research/ecosystem-audit.md) · [Meta capabilities](docs/research/current-meta-capabilities.md) · [Provenance](docs/research/provenance.md) | eleven projects reviewed; Meta's tools, tool by tool; licences |
 | [Roadmap](docs/roadmap.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) | what is next; what changed; how to help |
 

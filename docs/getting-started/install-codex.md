@@ -202,7 +202,7 @@ anything that needs it.
 | Audits, reporting, Ad Library research, previews, tracking diagnosis, creative, optimisation diagnosis and the MCP-side changes that follow it | works fully |
 | The `.meta-ads/` workspace | works - the agent writes the files from the templates in the `meta-ads-core` skill's `assets/` |
 | **Campaign builds** | **stops at the plan.** Plan validation is the gate before the first write, and it is the CLI's job |
-| Local image and video upload, video / existing-post / multi-variant / carousel creatives, deletion | not available - these are what the fallback is for |
+| Image and video upload, video / existing-post / multi-variant / carousel creatives, deletion | works through the MCP as of 2026-11-04. A local file needs a public URL in Codex, which cannot show Meta's upload app - or the deprecated `api upload-*` fallback |
 | `report` compare, fatigue, pacing and power | done by hand from the written rules instead |
 
 When a campaign build hits that wall the agent stops before creating anything

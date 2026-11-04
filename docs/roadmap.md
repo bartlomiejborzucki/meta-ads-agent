@@ -227,7 +227,23 @@ Changed on the way:
 Nothing new is planned until the first row of the 1.0 table runs: a live
 test on a real account is worth more than another feature built offline.
 
+## Unreleased - what a real build found
+
+A campaign built on 2026-11-03 against the official MCP, on a PLN account,
+was the first live use of the skills at length. It found the capability map
+two months stale - the MCP had come to cover every fallback gap, and had
+gained a draft mode in which publishing is spending - and a list of smaller
+things the plan, the validator and the skills did not know
+([ADR-012](architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)). The
+CHANGELOG's Unreleased section has the list.
+
+Next, after this ships: **delete the deprecated fallback** (ADR-002 step 5),
+keeping at most local-file upload for hosts without Meta's upload app, and
+check the open questions the build left - whether `page_id` beside an
+Instagram post fills Ads Manager's Page field, and what status a published
+draft really takes.
+
 ## Ongoing
 
 Shrinking the fallback. Every capability Meta adds to its official MCP is one
-we delete.
+we delete - on 2026-11-04, all seven.

@@ -4,7 +4,9 @@
 
 `meta-ads-agent` is a plugin of skills, guardrails, and small deterministic helpers that turns
 a coding agent into a careful Meta Ads operator on top of Meta's **official** Ads MCP server,
-with a narrow Marketing API fallback for the few things that server cannot do.
+with a narrow Marketing API fallback for the few things that server could not do - all of
+which it covers as of 2026-11-04, so the fallback is deprecated
+([ADR-012](adr/ADR-012-mcp-coverage-and-draft-mode.md)).
 
 ## What it is not
 

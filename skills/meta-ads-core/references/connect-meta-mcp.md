@@ -42,6 +42,15 @@ authorisation step that opens a browser. A redirect-URL mismatch between the
 app's Facebook Login settings and what the client sent is the most common
 first-run failure, so check that before anything else.
 
+### Account connectors
+
+Some hosts (claude.ai and Cowork, as of 2026-11-04) connect Meta's MCP as a
+connector on the user's account instead - no App ID, no local config. The
+tools then appear with a host prefix, such as
+`mcp__claude_ai_Facebook_ads__ads_get_ad_accounts`; the `ads_*` part is what
+matters. A local `meta-ads-agent doctor` cannot see such a connector and
+reports it as not found locally - listing the tools is the real check.
+
 ## Scopes
 
 Meta documents these for this server. Grant only what the work needs -

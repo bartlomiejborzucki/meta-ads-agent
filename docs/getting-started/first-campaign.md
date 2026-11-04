@@ -68,7 +68,7 @@ meta-ads-agent validate-plan .meta-ads/campaigns/acme-webinar-q4/plan.yaml
 INFO     budget.resolved     daily budget at ad_set level: 70.00 PLN (7000 minor units)
 INFO     dsa.present         EU delivery to PL with beneficiary 'Acme Sp. z o.o.'
 INFO     asset.ok            image hero.jpg: 1200x628, sha256:466af508f1e3...
-INFO     routing.local_upload  local files upload through the Business SDK fallback
+INFO     routing.local_upload  the plan references local files. Meta's MCP uploads them with ads_creative_upload_media ...
 WARNING  tracking.attribution_unset  no attribution window recorded
 
 VALID: 0 error(s), 1 warning(s), 7 note(s)
@@ -87,10 +87,14 @@ same angle are one idea, and the validator will have warned you.
 ```
 campaign        MCP        120210000000001   PAUSED
 ad set          MCP        120210000000045   PAUSED
-image upload    FALLBACK   fake_image_hash   (no MCP local-upload tool)
+image upload    MCP        fake_image_hash   (ads_creative_upload_media)
 creative        MCP        120210000000089
 ad × 3          MCP        ...123 ...124 ...125   PAUSED
 ```
+
+Where Meta has turned on draft mode for the account, the same objects come
+back as `DRAFT` instead of `PAUSED`: they sit in Ads Manager's draft until they
+are published.
 
 Each id is written to `state.json` the moment it exists. If the build fails
 halfway, `meta-ads-agent state <slug>` tells you what exists and where to
@@ -133,6 +137,13 @@ Activate it.
 
 Activation is top-down, and the agent verifies each status afterwards. An
 active ad under a paused ad set does not deliver.
+
+With drafts, "activate" means **publish** - and publishing is agreeing to
+spend. The agent first shows you any other drafts on the account, then
+publishes only the campaign, ad set and ads it built, by id. Afterwards it
+reads back `effective_status` (`PENDING_REVIEW` while Meta reviews the ads),
+checks for delivery errors, writes a launch baseline next to the plan, and
+offers to look again a day and three days later.
 
 ## 8. Afterwards
 

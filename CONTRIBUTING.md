@@ -7,9 +7,10 @@ so they are stated up front rather than discovered in review.
 
 **1. MCP first.** Meta's official Ads MCP is the execution layer for everything
 it covers. A change that adds a local implementation of something the MCP
-already does will be declined. The fallback exists for seven specific gaps and is
-expected to **shrink** - see
-[ADR-002](docs/architecture/adr/ADR-002-api-fallback.md).
+already does will be declined. The fallback existed for seven specific gaps,
+all of which the MCP covers as of 2026-11-04; it is deprecated and due to be
+deleted - see [ADR-002](docs/architecture/adr/ADR-002-api-fallback.md) and
+[ADR-012](docs/architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md).
 
 **2. Constraints, heuristics, and business rules are different things.** The
 validator enforces only what Meta enforces. Media-buying opinions live in skill

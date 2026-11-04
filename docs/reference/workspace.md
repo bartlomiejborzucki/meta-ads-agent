@@ -31,6 +31,7 @@ So the workspace lives in your project and the plugin never writes to itself —
     state.json            what exists on Meta
     creatives.json        creative detail as built
     qa.md                 preview QA notes
+    baseline.yaml         launch-day facts Meta cannot give back later (written by the agent)
     report.md             latest report
   reports/                account-level reports
   actions.jsonl           append-only audit log

@@ -95,10 +95,12 @@ diagnosis, and the MCP-side changes that follow it. The workspace files under
 `.meta-ads/` can be written by hand from the templates in
 `skills/meta-ads-core/assets/`.
 
-What does not: campaign plan validation, and therefore campaign builds; local
-image and video upload; video, existing-post, multi-variant and carousel
-creatives; deletion; and the `report` arithmetic, which the skills can do by
-hand instead.
+What does not: campaign plan validation, and therefore campaign builds; the
+`report` arithmetic, which the skills can do by hand instead; and uploading a
+local file in a host that cannot show Meta's upload app (a public URL works
+there). Since 2026-11-04 the MCP builds video, existing-post, multi-variant and
+carousel creatives and deletes, so those no longer need the CLI; its `api`
+commands for them are deprecated.
 
 **Campaign writes stop without the validator.** Plan validation catches the
 class of error that is invisible to a careful reader - minor-unit currency

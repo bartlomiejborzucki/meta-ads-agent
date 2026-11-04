@@ -1,32 +1,32 @@
 # Optional: the Marketing API fallback
 
-**You probably do not need this.** If everything you do is covered by Meta's
-official Ads MCP, you never need a token, an app secret, or this page.
+**Deprecated as of 2026-11-04.** Meta's official Ads MCP now does everything
+this fallback was built for
+([ADR-012](../architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)). The
+commands still work for one more release, print a deprecation warning, and
+will then be removed. If everything you do goes through the MCP, you never
+need a token, an app secret, or this page.
 
-Set it up when you want one of seven specific things.
-
-## What the fallback covers
+## What the fallback covered, and what does it now
 
 ```bash
-meta-ads-agent capabilities --gaps
+meta-ads-agent capabilities --gaps     # no gaps; the deprecated fallbacks listed
 ```
 
-| Capability | Command | Why it is not the MCP's job |
+| Capability | Deprecated command | Through the MCP, as of 2026-11-04 |
 | --- | --- | --- |
-| Upload a local image | `api upload-image` | `ads_get_ad_images` lists images already on the account. No MCP tool ingests a file. |
-| Upload a local video | `api upload-video` | Same gap, plus Meta transcodes asynchronously so the upload must wait for processing. |
-| Video creative | `api create-creative --video` | `ads_create_creative` is documented as single-image link creatives only. |
-| Existing-post creative | `api create-creative --post` | A Facebook Page post has no MCP tool. An Instagram post has `ads_boost_ig_post`, but Meta does not document a paused boost, so it is built as an inert creative ([ADR-010](../architecture/adr/ADR-010-carousel-and-instagram-posts.md)). |
-| Multi-variant or placement-specific creative | `api create-creative --variants` | Several copy variants, or assets pinned to placements, need `asset_feed_spec`, which the MCP does not expose. |
-| Carousel creative | `api create-creative --carousel` | `ads_create_creative` makes single-image creatives; a carousel's cards need `child_attachments`. |
-| Delete a campaign, ad set, or ad | `api delete` | No MCP delete tool. Prefer pausing anyway. |
+| Upload a local image | `api upload-image` | `ads_creative_upload_media` - a public URL anywhere, or a local file through Meta's upload app in hosts with interactive MCP Apps |
+| Upload a local video | `api upload-video` | the same, then wait for `ads_get_ad_videos` to report it ready |
+| Video creative | `api create-creative --video` | `ads_create_creative` with `video_id` and a thumbnail |
+| Existing-post creative | `api create-creative --post` | `ads_create_ad` with the post inline (`object_story_id`, or `source_instagram_media_id` with `instagram_user_id`), or `ads_boost_ig_post`, which creates PAUSED |
+| Multi-variant or placement-specific creative | `api create-creative --variants` | `ads_create_creative` with `multi_media` or `placement_customizations` |
+| Carousel creative | `api create-creative --carousel` | `ads_create_creative` with `cards` |
+| Delete a campaign, ad set, or ad | `api delete` | `ads_update_entity` with `status: DELETED`. Prefer pausing anyway. |
 
-Everything else - campaigns, ad sets, ads, single-image creatives, previews,
-insights, audiences, datasets, catalogs, experiments, activity logs, Ad Library -
-belongs to the MCP and needs no credentials.
-
-If you can upload assets in Ads Manager and pass the resulting `image_hash` or
-`video_id`, you can skip this entirely.
+The one case the MCP does not cover: a local file, in a terminal host that
+cannot show Meta's upload app, with no public URL for it. For that, until the
+commands go, this page still applies - or upload the file in Ads Manager and
+pass the resulting `image_hash` or `video_id`.
 
 ## Install
 

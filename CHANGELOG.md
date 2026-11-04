@@ -7,6 +7,93 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+**Meta's MCP as it is on 2026-11-04.** `MIGRATION: none required`. Found by a
+campaign built on 2026-11-03 against the official MCP on a PLN account; the
+tool facts below are from that build ("live") or from the tool descriptions a
+connected session exposed on 2026-11-04 (read, not called).
+
+### Changed
+
+- **Every former fallback gap routes to the MCP**
+  ([ADR-012](docs/architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md)):
+  media upload (`ads_creative_upload_media`; live), video, carousel,
+  multi-media and placement-customised creatives (`ads_create_creative`),
+  existing posts (`object_story_id`, `source_instagram_media_id`; live for
+  Instagram), and deletion (`ads_update_entity` with `status: DELETED`).
+  `meta-ads-agent capabilities --gaps` now shows no gaps and seven deprecated
+  fallbacks.
+- **Meta's draft mode is part of the safety model.** Where it is on, the
+  create tools stage drafts and `ads_activate_entity` publishes them;
+  publishing is the `activate` class. The skills check the account's other
+  drafts before a publish, publish only by `object_ids`, and never publish
+  after a pause.
+- **An Instagram post goes inline in the ad.** A `creative_id` made from the
+  post failed with `ObjectStorySpecRedundant` (1443051); the inline post
+  worked. `ads_boost_ig_post` documents that it creates PAUSED, so it is now
+  a plan-first alternative rather than "not the build path".
+- **The hook** classes the 2026-11-04 tool list: `ads_creative_delete` and
+  the upload app's delete ask, a `confirmed=true` boost asks (it fills unset
+  fields with Meta's defaults, US targeting among them), and an
+  `ads_update_entity` that deletes or discards drafts says so.
+- **Tool inventory** refreshed from a live session: 104 tools, catalog reads
+  renamed to `ads_catalog_list_*`, the three community-reported names absent.
+- **`targeting.audience_unknown` is a warning**, not an error: the cached
+  account can predate an audience created minutes ago. The message says how
+  to refresh the cache.
+- **Placements:** a campaign on one platform takes every position on it by
+  default (a heuristic), and a hand-picked subset is recorded as a deviation.
+
+### Added
+
+- **Plan fields**, all optional: `campaign.spend_cap`,
+  `targeting.age_suggestion` (sent as `targeting.age_range` under Advantage+
+  audience), `placements.platforms` (every position on a platform), and
+  `campaign.deviations` (a setting chosen against Meta's recommendation, with
+  its reason). A plan that uses them is not readable by 1.3.1 or earlier.
+- **Validator:** a warning for a PLN spend cap below 500 (Meta's 2446307, seen
+  2026-11-03), for hard age bounds under Advantage+ audience, and for an age
+  suggestion without it; each deviation is shown in the report.
+- **Skills:** the button an Instagram-post ad needs for "Visit Instagram
+  profile"; screenshotting previews and checking the Reels safe zone; why
+  Ads Manager's Page field can be empty on an API-built post ad; no interest
+  search in the MCP, and the routes instead; the audience that excludes
+  current Instagram followers; refreshing the cached account after creating
+  an audience; a step after publishing (`effective_status`, errors, a launch
+  baseline, D+1 and D+3 check-ins); cost per follower from that baseline;
+  Ads Manager's campaign score versus `ads_get_opportunity_score`; keeping
+  large reads small.
+- **[Claude Cowork and claude.ai](docs/getting-started/install-claude-cowork.md)**:
+  Meta's MCP as an account connector, the CLI per session, and the workspace
+  in the connected folder.
+- Known errors 1443051 and 2446307 in `meta-errors.md`.
+
+### Deprecated
+
+- `meta-ads-agent api upload-image`, `upload-video`, `create-creative
+  --video | --post | --variants | --carousel`, and `api delete`. They still
+  work and print a warning naming the MCP tool to use; they will be removed
+  in a later release. The one use left is a local file in a host that cannot
+  show Meta's upload app.
+
+### Fixed
+
+- `doctor` reported the Meta MCP as `MISSING` when it was connected as a
+  claude.ai account connector. The status is unchanged for the JSON
+  contract; the message now says it may be an account connector.
+
+### Not verified
+
+- Whether `page_id` beside `source_instagram_media_id` in an ad's creative
+  fills Ads Manager's Page field.
+- What status a published draft campaign takes: the tool descriptions
+  disagree.
+- Whether `instagram_profile_follow_v2`, listed by `ads_get_ad_entities`, is
+  offered for a given account.
+- A gender suggestion under Advantage+ audience: no field is documented.
+- Video, carousel, multi-media and placement-customised creatives, and
+  deletion by status, through the MCP: per the tool descriptions, not yet
+  run live by this project.
+
 ## [1.3.1] - 2026-10-14
 
 **The plugin, installed in Codex.** `MIGRATION: none required`.
