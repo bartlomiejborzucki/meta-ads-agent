@@ -77,6 +77,22 @@ class TestDoctor:
             assert "claude mcp add --transport http" in out
             assert "mcp.facebook.com/ads" in out
 
+    def test_a_missing_local_entry_allows_for_an_account_connector(
+        self, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Cowork and claude.ai connect Meta as an account connector, which no
+        # local config shows; "MISSING" alone sent a working user hunting.
+        from meta_ads_agent.cli import doctor
+
+        monkeypatch.setattr(doctor, "_CLAUDE_CONFIG_CANDIDATES", ())
+        monkeypatch.setattr(doctor, "_CODEX_CONFIG_CANDIDATES", ())
+        _, out, _ = run(["doctor", "--json"], capsys)
+        check = next(
+            c for c in json.loads(out)["checks"] if c["label"] == "Meta Ads MCP configured"
+        )
+        assert check["status"] == "MISSING"
+        assert "account connector" in check["detail"]
+
     def test_a_token_is_never_echoed(
         self, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
     ) -> None:

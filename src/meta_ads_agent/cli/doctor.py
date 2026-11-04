@@ -272,6 +272,10 @@ def _check_mcp_connection(diagnosis: Diagnosis) -> None:
     Detection only. Whether the OAuth session is live can only be established
     by a running agent listing the server's tools, which is why the core skill
     tells it to do exactly that before starting Meta work.
+
+    A connector added to the user's claude.ai account (claude.ai, Cowork, the
+    desktop app) lives on Anthropic's side, not in any local file, so "not
+    found here" is not "not connected" - the message says so.
     """
     found: list[str] = []
     for path in (*_CLAUDE_CONFIG_CANDIDATES, *_CODEX_CONFIG_CANDIDATES):
@@ -294,7 +298,10 @@ def _check_mcp_connection(diagnosis: Diagnosis) -> None:
         diagnosis.add(
             "Meta Ads MCP configured",
             "MISSING",
-            f"no reference to {MCP_ENDPOINT} found in the host configs checked",
+            f"no reference to {MCP_ENDPOINT} found in the local host configs checked. "
+            "It may still be connected as a claude.ai account connector (claude.ai, "
+            "Cowork, the desktop app), which no local file shows - the agent "
+            "confirms by listing its ads_* tools",
             "claude mcp add --transport http --client-id <META_APP_ID> "
             f"meta-ads {MCP_ENDPOINT}\n"
             f"    (Codex: codex mcp add meta-ads --url {MCP_ENDPOINT} "
@@ -417,7 +424,11 @@ def _render(diagnosis: Diagnosis) -> None:
     elif mcp_configured:
         echo("  READY FOR MCP                 yes", "green")
     else:
-        echo("  READY FOR MCP                 local prerequisites ok, MCP not connected", "yellow")
+        echo(
+            "  READY FOR MCP                 local prerequisites ok, MCP not found in local "
+            "config (may be an account connector)",
+            "yellow",
+        )
 
     if diagnosis.fallback_ready:
         echo("  READY FOR API FALLBACK        yes", "green")
