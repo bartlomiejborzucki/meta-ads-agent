@@ -85,6 +85,14 @@ available - report that, not zero. Zero reads as a result.
 **Cost per result.** Spend ÷ results, for the optimised event. If different ad
 sets optimise for different events, their costs per result are not comparable.
 
+**Followers.** Two different numbers: follows Meta attributes to the ads
+(`instagram_profile_follow_v2`, where `ads_get_field_context` offers it for the
+account), and the profile's growth, which includes everyone who followed for
+any reason. A campaign optimised for reach or ThruPlay does not report
+follows as its result at all. When only the second is available, the cost per
+follower is an estimate against a recorded baseline - the recipe is in the
+skill, and its answer is a range.
+
 ## Attribution
 
 Meta attributes a conversion to an ad within a window - a click window and

@@ -39,7 +39,10 @@ go, and note anything you could not check.
 
 - [ ] `ads_get_errors` — every delivery-blocking error, by entity
 - [ ] Ads in review, rejected, or limited
-- [ ] `ads_get_opportunity_score` — report as Meta's opinion, attributed
+- [ ] `ads_get_opportunity_score` — report as Meta's opinion, attributed; it
+      scores the account, not the per-campaign score Ads Manager shows
+- [ ] A low campaign score against a recorded plan `deviations` entry — a
+      decision, reported with its reason
 
 ## Signals — do not confuse configuration with evidence
 

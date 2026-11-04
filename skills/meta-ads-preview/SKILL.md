@@ -41,12 +41,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ## Render the placements that matter
@@ -62,6 +62,11 @@ the placement least likely to break.
 
 For each preview, give the user the `preview_url` as a link. A link they can
 open beats a description of what you saw.
+
+A fresh draft ad may not render by `ad_id` yet; the tool's own fallback is to
+preview the `creative_id` instead. An ad built with an inline post has no
+`creative_id` you made - read it from `ads_get_ad_entities` (`creative_id` at
+`level=ad`).
 
 If a placement fails to render, say which one and why. A creative that cannot
 render in a targeted placement will not deliver there, and that is a finding,
@@ -95,7 +100,10 @@ because the copy is what you are reading.
 - [ ] Headline is not cut mid-word
 - [ ] Description renders where the placement supports it, and is absent where
       it does not
-- [ ] CTA button text matches what happens next
+- [ ] CTA button text matches what happens next - and an Instagram-post ad
+      has the button the plan asked for: "Visit Instagram profile" needs
+      `VIEW_INSTAGRAM_PROFILE` with the profile URL as its link, and with no
+      call to action Meta shows a "Learn more" that goes nowhere
 - [ ] No typos, no doubled spaces, no stray markdown
 
 Truncation is the most common real defect. Copy that reads well in a plan and
@@ -107,7 +115,9 @@ badly at the cut is a plan that passed review and an ad that does not work.
 - [ ] The crop keeps the subject in frame at this aspect ratio
 - [ ] Text in the creative is legible at rendered size
 - [ ] Nothing important sits under a safe-zone overlay - in Stories and Reels,
-      UI covers the top and bottom
+      UI covers the top and bottom. Burned-in captions low in a Reel are the
+      usual casualty: captions at 60-75% of the frame height sat partly under
+      the native button on 2026-11-03
 - [ ] Video: the first frame is not a black or blank frame
 - [ ] Video: it makes sense with the sound off
 
@@ -130,6 +140,20 @@ If you can look at rendered previews as images, do. Reading a preview is
 categorically better than reading a description of one, and crop, legibility,
 and safe-zone problems are visual problems that do not survive being put into
 words.
+
+**Screenshot the preview.** If the session has a browser tool (Playwright, a
+browser extension, a built-in browser), open each `preview_url`, take a
+screenshot, and look at it - it worked from a cloud container on 2026-11-03.
+Check, for every placement:
+
+1. **Identity** - the right Instagram handle and Page, not a fallback name.
+2. **Button** - the label the plan asked for, and that it is there at all.
+3. **Reels and Stories safe zone** - nothing that matters under the native
+   UI, especially captions in the lower third.
+
+`ads_get_ad_preview_screenshot` is documented as an internal tool for Meta's
+preview card, not for the model; do not call it. With no browser tool, give
+the user the links and the three checks above to do by eye.
 
 Describe what you actually see, and separate observation from judgement:
 
@@ -190,6 +214,18 @@ page works, that tracking fires, or that the offer will convert.
 Check `ads_get_errors` for delivery-blocking problems, and use
 `meta-ads-tracking` for the signal side. Previews cover the creative, and
 saying so is more useful than implying broader coverage.
+
+## After building from an existing post
+
+Read the creative back with `ads_get_creatives`: `effective_object_story_id`
+(it starts with the Page id) and `effective_instagram_media_id` show which
+post and which Page the ad really uses. On 2026-11-04 an ad built through the
+MCP from an Instagram post showed an **empty "Facebook Page" field** in Ads
+Manager even though `effective_object_story_id` began with the right Page id.
+Tell the user before they find it: the Page is attached; the field is how
+Ads Manager displays an API-built post ad. Whether also passing `page_id`
+beside `source_instagram_media_id` in the ad's creative fills that field is
+not yet verified - try it on a draft, and record what happens.
 
 Placement specifics:
 [references/placement-qa.md](references/placement-qa.md).

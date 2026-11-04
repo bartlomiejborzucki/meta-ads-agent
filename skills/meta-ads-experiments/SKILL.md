@@ -37,12 +37,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ```

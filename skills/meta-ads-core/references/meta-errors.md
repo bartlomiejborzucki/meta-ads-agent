@@ -61,6 +61,8 @@ temporary block becomes a longer one.
 | 100 / subcode 1885183 | Invalid creative spec | A required field for the creative type is missing. |
 | 100 / subcode 1487036 | Invalid targeting spec | Often `targeting` sent as an object where a JSON string is expected. |
 | 400 | Malformed request | Usually a shape problem, not a value problem. |
+| 1443051 `ObjectStorySpecRedundant` | "Only one of image_url and image_hash ... video_data" - seen 2026-11-03 when `ads_create_ad` used a `creative_id` that `ads_create_creative` had made from an Instagram post (`source_instagram_media_id`) | Pass the post **inline** in `ads_create_ad`'s `creative`: `source_instagram_media_id`, `instagram_user_id`, `call_to_action`. That worked on the same post. |
+| 2446307 | Campaign spend cap below the minimum - seen 2026-11-03 for a PLN cap under 500 PLN | Raise `spend_cap` to at least 500 PLN, or leave it out. Other currencies' minimums are not recorded here. |
 
 ### Account and delivery
 
@@ -69,6 +71,16 @@ temporary block becomes a longer one.
 | 1487742 | Account has a spending limit that has been reached | Tell the user. Do not raise it yourself - that is a `budget_increase`. |
 | 1359188 | Special ad category restriction | The campaign must declare the correct category. Do not try to bypass it. |
 | 2635 | Deprecated API version or field | Check the configured Graph version. Version policy: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/api-versioning.md>. |
+
+### Rejections recorded without a code
+
+- **Advantage+ audience and age.** Under Advantage+ audience Meta rejects a
+  hard `age_max` below 65 or an `age_min` above 25 (tool description,
+  2026-11-04). Send the target range as `targeting.age_range` - a suggestion -
+  or turn Advantage+ audience off with the advertiser's reason.
+- **"Required Field Is Missing" in a preview** of an Instagram-post ad with a
+  `VIEW_INSTAGRAM_PROFILE` button (2026-11-03): the button needs
+  `value.link` set to the profile URL, `https://www.instagram.com/<login>/`.
 
 An account can also fail *without* an error: no payment method, a disabled
 status, or a zero spend limit all let objects be created and never deliver.

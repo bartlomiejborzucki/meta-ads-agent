@@ -42,6 +42,11 @@ bands is partly hidden on most devices.
 Keep text and logos in the middle portion of the frame. The preview shows the
 overlays; look at it rather than measuring.
 
+One measured case (2026-11-03): karaoke-style captions burned into a Reel at
+60-75% of the frame height were partly covered by the native call-to-action
+button in the Reels preview. Lower-third captions are the first thing to
+check in a screenshot of the preview.
+
 ## Text truncation
 
 Primary text truncates with a "see more" affordance, and the cut lands earlier
@@ -69,8 +74,9 @@ regardless of policy. Judge it from the preview at the size it renders.
 - **Vertical.** A horizontal video in Stories gets letterboxed or cropped.
   Neither is good.
 
-Where a video creative is built through the fallback, the thumbnail comes from
-Meta's generated frames unless one was supplied. Check which frame it picked.
+A video creative needs a thumbnail: `ads_create_creative` takes an
+`image_hash` or `image_url` for it, and the deprecated fallback takes Meta's
+generated frames unless one was supplied. Check which frame it is.
 
 ## Instagram identity
 
@@ -90,6 +96,11 @@ Check:
   recreated as a dark post rather than promoted
 - the post's own copy, which you cannot edit through the ad
 - that the post's link, if any, goes where the campaign intends
+- the button: an Instagram post has one only if the ad set it (see the
+  CTA check in the skill)
+- the identity: `effective_object_story_id` and
+  `effective_instagram_media_id` from `ads_get_creatives` name the Page and
+  the post actually used
 
 ## Multi-variant creatives
 

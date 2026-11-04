@@ -62,5 +62,5 @@ onto these names rather than guessing.
 | `object_story_spec.link_data` | a single-image ad, or a carousel with `child_attachments` | |
 | `object_story_spec.video_data` | a single-video ad | the link is the call to action's |
 | `object_story_id`, `source_instagram_media_id` | an existing-post ad | |
-| `asset_feed_spec` | refused | a multi-variant creative is planned by hand |
+| `asset_feed_spec` | refused | a multi-variant creative is planned by hand; the MCP can rebuild it with `multi_media` or `placement_customizations` |
 | `start_time`, `end_time`, `stop_time` | not copied | the source's dates are usually past |

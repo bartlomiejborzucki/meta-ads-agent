@@ -39,12 +39,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ## Read the constraints first
@@ -181,6 +181,23 @@ When the user wants to promote a post that already exists, **do not rewrite
 it**. Promoting the real post preserves its likes, comments, and shares;
 recreating the content as a new dark post starts from zero. If they ask you to
 "make an ad from this post", find out which they mean.
+
+What you still choose is the **button**, and an Instagram post gets one only
+if you set it (seen 2026-11-03):
+
+| Goal | `call_to_action` on the ad |
+| --- | --- |
+| Visit the Instagram profile | `{"type": "VIEW_INSTAGRAM_PROFILE", "value": {"link": "https://www.instagram.com/<login>/"}}` |
+| A website | a website CTA such as `LEARN_MORE` or `SIGN_UP`, with the URL as its link |
+| A chat | a messaging CTA (`INSTAGRAM_MESSAGE`, `WHATSAPP_MESSAGE`, `MESSAGE_PAGE`), matched to the ad set's destination |
+| No button | `NO_BUTTON`, or leave it out |
+
+Without the profile link the preview fails with "Required Field Is Missing";
+with no call to action at all, Meta showed a "Learn more" button that led
+nowhere. `ads_create_creative`'s own CTA list has no `VIEW_INSTAGRAM_PROFILE`,
+which is one more reason the post goes inline in `ads_create_ad` (the
+`meta-ads-campaign` skill has the build). `ads_boost_ig_post` fills the
+profile link itself.
 
 ## Competitor research
 

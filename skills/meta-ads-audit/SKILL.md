@@ -41,12 +41,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ## Order of work
@@ -92,6 +92,14 @@ that do not match what the user says they want.
 Delivery-blocking errors are the highest-value finding in most audits, because
 they are specific, actionable, and often invisible in the performance numbers.
 Report Meta's own score and recommendations as Meta's opinion, attributed.
+
+Two different scores carry the same idea. `ads_get_opportunity_score` scores
+the **account**; Ads Manager also shows a score per **campaign**, which the
+MCP does not return. They disagree - on 2026-11-04 one account scored 100 with
+no recommendations while a campaign in it showed 53 for "too few
+placements". Name which one you are quoting. Where the campaign's plan
+records a `deviations` entry for the setting Meta marks down, report it as a
+decision the user made, with its reason, not as a defect.
 
 ### 5. Signals
 

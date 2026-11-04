@@ -23,6 +23,7 @@ ships, so with no CLI you can write them out yourself and lose nothing.
     state.json            what exists on Meta
     creatives.json        creative detail as built
     qa.md                 preview QA notes
+    baseline.yaml         what the account looked like on launch day
     report.md             latest report
   reports/                account-level reports
   actions.jsonl           append-only audit log
@@ -36,6 +37,31 @@ Nothing in `brand.yaml` is required. Most of it is discoverable from Meta, and
 a cached copy of a discoverable value invites drift. Prefer reading from Meta;
 use the config for what Meta cannot tell you - voice, banned phrases, claims
 policy, DSA beneficiary, the user's own thresholds.
+
+### The cached account
+
+`account.yaml` is what the agent last read from Meta. `validate-plan` checks a
+plan's Pages, Instagram identities, datasets and custom audiences against it,
+so it goes stale the moment something is created. After creating a custom
+audience, add its id to `available_custom_audience_ids` there - or read the
+account again and rewrite the file - before validating a plan that uses it.
+Until then the validator warns that it cannot see the audience.
+
+### The launch baseline
+
+`campaigns/<slug>/baseline.yaml` is written by the agent on the day a
+campaign is published, for numbers Meta's ads tools cannot give back later -
+an Instagram follower count above all. It has no schema the CLI checks; keep
+it to facts with their source:
+
+```yaml
+recorded_at: 2026-11-04T09:00:00+01:00
+instagram_followers: 1234          # read from the profile, by the user
+source: "user, from the Instagram app"
+organic_baseline:
+  window: 2026-10-21..2026-11-03   # the days before launch
+  followers_gained: 42             # or null if nobody knows
+```
 
 ## Sources of truth
 

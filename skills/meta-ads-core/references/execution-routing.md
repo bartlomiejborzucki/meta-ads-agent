@@ -17,27 +17,33 @@ than remembering:
 
 ```bash
 meta-ads-agent capabilities                    # everything, grouped by area
-meta-ads-agent capabilities --gaps             # only what the fallback covers
+meta-ads-agent capabilities --gaps             # gaps, and the deprecated fallbacks
 meta-ads-agent capabilities local_video_upload # one capability, with the reason
 ```
 
-## What the fallback covers
+## What the fallback used to cover
 
-Seven capabilities, as of 2026-09-24. This list should shrink.
+As of 2026-11-04 the gap list is empty: Meta's MCP covers every capability the
+fallback was built for. The commands below still work for one more release,
+print a deprecation warning, and will then be deleted (ADR-002's
+shrinking-fallback rule). "Live" means used in a real build on 2026-11-03;
+"described" means the tool description says so on 2026-11-04.
 
-| Capability | Command | Why it exists |
+| Capability | Through the MCP | Deprecated command |
 | --- | --- | --- |
-| `local_image_upload` | `meta-ads-agent api upload-image` | `ads_get_ad_images` lists images already on the account. No MCP tool ingests a local file. A community source reports an `ads_creative_upload_image` tool that takes URLs only - which still leaves local files unsolved. |
-| `local_video_upload` | `meta-ads-agent api upload-video` | Same gap for video, plus Meta transcodes asynchronously so the upload has to wait for processing before the video is usable. |
-| `create_video_creative` | `meta-ads-agent api create-creative --video` | `ads_create_creative` is documented as single-image link creatives only. |
-| `create_existing_post_creative` | `meta-ads-agent api create-creative --post` | A Facebook Page post has no MCP equivalent. An Instagram post has `ads_boost_ig_post`, but Meta does not document a paused boost, so the post is built as an inert creative instead. |
-| `create_multi_variant_creative` | `meta-ads-agent api create-creative --variants` | Several copy variants, or assets pinned to placements (`--placement`), need `asset_feed_spec`, which the MCP does not expose. |
-| `create_carousel_creative` | `meta-ads-agent api create-creative --carousel` | `ads_create_creative` makes single-image link creatives; a carousel's 2 to 10 cards need `child_attachments`. |
-| `delete_entity` | `meta-ads-agent api delete` | The MCP has no delete tool for campaigns, ad sets, or ads. Prefer pausing anyway. |
+| `local_image_upload` | `ads_creative_upload_media`: a public URL anywhere, or a local file through Meta's upload app in hosts with interactive MCP Apps (live) | `meta-ads-agent api upload-image` |
+| `local_video_upload` | the same tool; usable once `ads_get_ad_videos` reports `ready` (described) | `meta-ads-agent api upload-video` |
+| `create_video_creative` | `ads_create_creative` with `video_id` and a thumbnail (described) | `meta-ads-agent api create-creative --video` |
+| `create_existing_post_creative` | `ads_create_ad` with the post inline in `creative` - `source_instagram_media_id` + `instagram_user_id`, or `object_story_id` (live, Instagram); or `ads_boost_ig_post`, which creates everything PAUSED (described) | `meta-ads-agent api create-creative --post` |
+| `create_multi_variant_creative` | `ads_create_creative` with `multi_media` or `placement_customizations`, then its `creative_id` in `ads_create_ad` (described) | `meta-ads-agent api create-creative --variants` |
+| `create_carousel_creative` | `ads_create_creative` with `cards` (described) | `meta-ads-agent api create-creative --carousel` |
+| `delete_entity` | `ads_update_entity` with `{"status": "DELETED"}` (described). Prefer pausing anyway. | `meta-ads-agent api delete` |
 
-Everything else - campaigns, ad sets, ads, single-image creatives, previews,
-insights, audiences, datasets, pixel rules, catalogs, experiments, activity
-logs, Ad Library - belongs to the MCP.
+The one real use left is a local file in a terminal host that cannot open
+Meta's upload app and has no public URL for it. Everything else - campaigns,
+ad sets, ads, every creative format, previews, insights, audiences, datasets,
+pixel rules, catalogs, experiments, activity logs, Ad Library - belongs to
+the MCP.
 
 ## What nothing covers
 
@@ -46,34 +52,34 @@ logs, Ad Library - belongs to the MCP.
 | Lead form creation or reading | No MCP tool. A campaign can still use a form id the user supplies. |
 | Catalog (dynamic) ad creative | A template creative, which `ads_create_creative` is not documented to build; catalogs stay MCP-only. Prepare the catalog with `meta-ads-catalog`, build the ad in Ads Manager. |
 | Automated rules | No MCP tool, and out of scope: an autonomous spend optimiser contradicts the approval model. |
-| Partnership / branded-content ads | Out of scope. |
+| Partnership / branded-content ads | Out of scope here. The MCP builds them as of 2026-11-04; these skills do not cover them yet. |
 
 If a user asks for one of these, say it is not supported. Do not improvise a
 Graph call - there is no generic escape hatch, on purpose.
 
-## Mixed pipelines
+## A video ad, end to end
 
-A video ad crosses both layers. Record which layer created each object, and
-tell the user why at the point it happens:
+Every step is the MCP now. Record each id in `state.json` as it exists:
 
 ```
-1. campaign        MCP        ads_create_campaign          (PAUSED)
-2. ad set          MCP        ads_create_ad_set            (PAUSED)
-3. video upload    FALLBACK   api upload-video             ← no MCP upload tool
-4. video creative  FALLBACK   api create-creative --video  ← MCP is single-image only
-5. ad              MCP        ads_create_ad                (PAUSED)
-6. preview         MCP        ads_get_ad_preview
+1. campaign        ads_create_campaign          (PAUSED, or a draft)
+2. ad set          ads_create_ad_set            (PAUSED, or a draft)
+3. video upload    ads_creative_upload_media    then ads_get_ad_videos until `ready`
+4. video creative  ads_create_creative          video_id + a thumbnail
+5. ad              ads_create_ad                (PAUSED, or a draft)
+6. preview         ads_get_ad_preview
 ```
 
-Steps 3 and 4 need the optional `api` extra and a `META_ACCESS_TOKEN`. If the
-user does not have them, the honest answer is: install the extra and set a
-token, or upload the video in Ads Manager first and pass its id. What the
-fallback is and why it is this small: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/getting-started/api-fallback.md>.
+Step 3 needs a public URL for the video, or a host that can open Meta's
+upload app. Without either, the deprecated `api upload-video` still works
+with the `api` extra and a `META_ACCESS_TOKEN` - or the user uploads the video
+in Ads Manager and passes its id. Why the fallback existed, and why it is
+going: <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/getting-started/api-fallback.md>.
 
 ## The fallback is supposed to shrink
 
-Every entry above is a bet that Meta will not ship the feature. We expect to
-lose those bets, and that is the desired outcome.
+Every fallback entry was a bet that Meta would not ship the feature. On
+2026-11-04 the project lost all seven, which was the desired outcome.
 
 If you notice a tool on the connected server that covers one of these gaps:
 

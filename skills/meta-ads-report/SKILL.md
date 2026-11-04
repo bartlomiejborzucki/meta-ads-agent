@@ -39,12 +39,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 For *why* something changed and what to do, use `meta-ads-optimize`. This skill
@@ -144,6 +144,36 @@ Two more caveats worth stating when they apply:
 **Do not derive a metric whose inputs are missing without saying so.** No
 conversion value means no ROAS - report "not available", not a zero. A zero
 reads as a result.
+
+### Cost per follower
+
+A follower goal is common and awkward to read back. As of 2026-11-04,
+`ads_get_ad_entities` lists an `instagram_profile_follow_v2` field, but on
+2026-11-03 `ads_get_field_context` returned nothing for follows or profile
+visits on the account in question. So:
+
+1. **Check the field first.** `ads_get_field_context` for
+   `instagram_profile_follow_v2`. If it is there for this account and level,
+   report it as FACT with its date range - and say it counts follows Meta
+   attributes to the ads, which is not the same number as the profile's
+   growth.
+2. **Otherwise, estimate from the counter.** INTERPRETATION, never FACT:
+
+   ```
+   cost per follower ≈ spend ÷ (follower growth during the campaign
+                                − organic growth expected over the same days)
+   ```
+
+   It needs the follower count on launch day and the organic growth before
+   it, from `.meta-ads/campaigns/<slug>/baseline.yaml` (the
+   `meta-ads-campaign` skill writes it at publish), and today's count from
+   the user. *Heuristic, default 14 days:* take the organic rate from the 14
+   days before launch, scaled to the campaign's length. Organic growth moves
+   on its own - a viral post, a mention - so give a range, not a precise
+   figure.
+
+No baseline recorded means no estimate: say "not available - the launch-day
+follower count was not recorded", and record it for the next campaign.
 
 ## Volume before conclusions
 

@@ -40,12 +40,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ## Before anything else
@@ -66,23 +66,23 @@ by-hand route).
 ```
 Does Meta's official MCP have a tool for this?
   yes -> use it
-  no  -> is it one of the seven gaps below?
-           yes -> the CLI covers it, if the user has the CLI. Name the gap.
-           no  -> say it is not supported; do not improvise
+  no  -> say it is not supported; do not improvise
 ```
 
-The fallback covers exactly seven things today: local image upload, local video
-upload, video creatives, existing-post creatives (a Facebook Page post, or an
-Instagram post built inert rather than boosted), multi-variant and
-placement-specific creatives, carousels, and deletion. Everything else is the MCP's job, and the list is in
+As of 2026-11-04 the MCP covers everything the token-based fallback was built
+for: media upload, video, existing-post, multi-variant, placement-specific and
+carousel creatives, and deletion. The fallback's commands still work for one
+more release, as a deprecated path, and the one real use left is a local file
+in a host without Meta's upload app (give the MCP a public URL instead, if
+there is one). The map is in
 [references/execution-routing.md](references/execution-routing.md) so you do
 not have to run anything to read it. Never reach for the fallback because it
 feels easier. Where the CLI is installed, `meta-ads-agent capabilities <name>`
 gives the same answer with the reasoning attached.
 
-When you do use the fallback, say so plainly: *"Meta's official MCP does not
-currently expose local video upload, so this step used the Business SDK
-fallback."*
+When you do use the fallback, say so plainly and say why: *"This host cannot
+open Meta's upload app, so the video went up through the deprecated Business
+SDK fallback."*
 
 Details: [references/execution-routing.md](references/execution-routing.md).
 
@@ -93,19 +93,26 @@ Details: [references/execution-routing.md](references/execution-routing.md).
 | Operation | What you need first |
 | --- | --- |
 | Read anything | nothing |
-| Create campaigns / ad sets / ads **PAUSED** | the user asked you to build something |
-| Edit a paused entity | the user asked for the edit |
+| Create campaigns / ad sets / ads **PAUSED**, or as **drafts** | the user asked you to build something |
+| Edit a paused entity, or a draft nobody has published | the user asked for the edit |
 | Edit a live entity in a way that changes delivery | explicit approval |
 | Change a budget, up or down | explicit approval, with old and new shown in account currency |
-| Activate anything | explicit approval, after preview and QA |
+| Activate anything, or **publish a draft** | explicit approval, after preview and QA - **publishing is agreeing to spend** |
+| Publish a staged edit to a live entity | the approval that edit needed: `update_active`, or the budget rule |
+| Discard drafts | explicit approval, after showing what would be removed |
 | Delete | explicit approval, plus why pausing is not enough |
 | Anything touching many entities | show the list, then get approval |
 | Upload a customer list | explicit instruction and a lawful basis |
 
-Everything you create is PAUSED. Meta's create tools already do this; never
-override it. Even when the user says "launch it", the order is
-**build → preview → QA → ask → activate**. Approval given while planning is not
-approval to spend. Approval names the entity and the change.
+Everything you create is PAUSED, or a draft where Meta has turned on draft
+mode for the account (`status=DRAFT`; it is rolling out). Meta's create tools
+already do this; never override it. A draft goes live when
+`ads_activate_entity` publishes it, and Meta's own descriptions disagree on
+whether a published campaign starts ACTIVE - so treat **publishing as
+activating**. Even when the user says "launch it", the order is
+**build → preview → QA → check the account's drafts → ask → publish**. Publish
+only the objects you built, by `object_ids`. Approval given while planning is
+not approval to spend. Approval names the entity and the change.
 
 Prefer pausing to deleting: a deleted object loses its optimisation history
 permanently, a paused one keeps it.
@@ -204,6 +211,15 @@ More: [references/workspace-and-state.md](references/workspace-and-state.md).
 
 Known errors and what they actually mean:
 [references/meta-errors.md](references/meta-errors.md).
+
+## Keep responses small
+
+Some Meta reads return more than a conversation can hold. Pass `limit` and
+`filters` to `ads_get_ig_media`; always name the campaign in `object_ids` when
+reading drafts (`ads_get_ad_entities` with `object_state=draft` - without it,
+one account returned about 600,000 characters); ask live reads for named
+`fields` at one `level`. Details in
+[references/mcp-tool-map.md](references/mcp-tool-map.md).
 
 ## Tool names change
 

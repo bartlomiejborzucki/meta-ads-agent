@@ -39,12 +39,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 Four separate things, in order, and do not collapse them:
@@ -55,6 +55,32 @@ RECOMMENDATION what you would do, and why
 PROPOSED       the exact change: entity, field, from, to
 APPLIED        done, after explicit approval, and verified
 ```
+
+## The first days after launch
+
+A campaign published hours ago has no performance to optimise. What it has is
+a delivery question, and the check-ins `meta-ads-campaign` offers at publish
+answer it. *Heuristic, default D+1 and D+3.*
+
+**D+1 - is it running?**
+
+- `ads_get_ad_entities` with the campaign's ids and `effective_status`:
+  `PENDING_REVIEW` or `IN_PROCESS` still in review; `ACTIVE` passed;
+  `DISAPPROVED` or `WITH_ISSUES` is a finding to report verbatim.
+- `ads_get_errors` for the campaign.
+- Impressions and spend so far. Zero after a day in `ACTIVE` is the "delivery
+  blocked" walk below, starting at step 4.
+
+**D+3 - early signal, no changes.**
+
+- Spend against budget (pacing), reach, frequency, and the first results -
+  reported with the volume caveat, because there is not enough yet.
+- For a follower goal, the follower count against the launch baseline
+  (`meta-ads-report` has the recipe).
+- No edits unless something is broken: the learning phase is still running,
+  and an edit now restarts it.
+
+Every finding at D+1 or D+3 is a proposal, never an applied change.
 
 ## "CTR fell" is not a reason to pause an ad
 
@@ -246,8 +272,14 @@ Only after explicit, specific approval. Then:
 1. **Re-read the entity from Meta.** State may have changed since you looked -
    including because Meta changed it.
 2. If local and remote disagree, stop and report the mismatch.
-3. Apply through `ads_update_entity`.
-4. **Verify** by reading it back. Confirm the value Meta stored.
+3. Apply through `ads_update_entity`. Where Meta's draft mode is on, an edit
+   to a live entity comes back `is_draft: true` - it is **not live yet**. Say
+   so, and publish just that edit with `ads_activate_entity` (`object_ids` =
+   that entity, `publish_as_active` false) once the user has approved it. A
+   pause on its own applies live at once (`is_draft: false`); never publish
+   after it.
+4. **Verify** by reading it back. Confirm the value Meta stored - the live
+   value, not the draft.
 5. Record it in `.meta-ads/actions.jsonl` with before and after.
 6. Tell the user what changed, and what to watch.
 

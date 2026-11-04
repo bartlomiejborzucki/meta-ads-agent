@@ -77,6 +77,15 @@ If demographic bounds must actually hold, set `advantage_audience` explicitly.
 Left unset, Meta's default may expand beyond the age and gender you specified -
 which surprises people who thought they had set a floor.
 
+Under Advantage+ audience, age, gender, interests and custom audiences are
+suggestions, and Meta rejects a hard `age_max` below 65 or `age_min` above 25
+(tool description, 2026-11-04). The target range goes in the plan's
+`age_suggestion`, which becomes `targeting.age_range`. Turning Advantage+
+audience off is for a real requirement - people outside the range must not
+see the ad, or the ad set must reach only a custom audience - and goes in
+`deviations` with that reason. Whether genders can be sent as a suggestion
+the same way is not documented; do not invent a field for it.
+
 ## Placements
 
 Automatic placements let Meta distribute across surfaces, and it is usually the
@@ -88,6 +97,17 @@ right default. Manual placements matter when:
 
 A 1:1 image in Stories crops badly. That is a creative problem, not a placement
 problem - previews will show it, which is why the preview step is not optional.
+
+**When one platform is the point, take all of it.** *Heuristic, default on.*
+A Reel promoted for ThruPlay or reach on Instagram needs Instagram, not
+Instagram Reels alone: Feed, Stories, Explore, profile and search are cheap
+inventory the optimisation will use or ignore on its own. Write
+`placements: {mode: manual, platforms: [instagram]}` and no `positions`. A
+hand-picked subset is for a reason you can name - the creative breaks
+elsewhere, a brand-safety rule - recorded in `deviations`. What it protects
+against: a narrower auction, a higher cost per result, and a campaign score
+in Ads Manager that drops for "too few placements" (53/100 on one such
+campaign, 2026-11-04) with nobody remembering why.
 
 ## Advantage / automatic enhancements
 

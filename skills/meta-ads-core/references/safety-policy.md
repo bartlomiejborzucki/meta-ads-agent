@@ -1,12 +1,42 @@
 # Write safety and approval policy
 
-Meta's MCP write tools execute immediately. There is no draft mode, no undo,
-and no confirmation screen. The approval model lives here, in the workflow,
-because that is the only place it can live - the reasoning is recorded in
-[ADR-004](https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/architecture/adr/ADR-004-write-safety.md).
+Meta's MCP write tools execute immediately, with no undo and no confirmation
+screen. The approval model lives here, in the workflow, because that is the
+only place it can live - the reasoning is recorded in
+[ADR-004](https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/architecture/adr/ADR-004-write-safety.md)
+and, for draft mode,
+[ADR-012](https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md).
 
 The failure is asymmetric. A paused campaign the user did not want costs a
 minute of cleanup. An activated one costs their budget.
+
+## Draft mode
+
+*As of 2026-11-04, from the tool descriptions and a build on 2026-11-03.*
+
+Meta is turning on a draft mode account by account. Where it is on:
+
+- `ads_create_campaign`, `ads_create_ad_set` and `ads_create_ad` do not create
+  live objects. They stage them in the account's Ads Manager draft and return
+  `status=DRAFT` with the id. Validation problems come back in `active_errors`.
+- `ads_activate_entity` **publishes**. With `object_ids` it publishes exactly
+  those objects; without them, a draft campaign publishes its whole staged
+  subtree. `publish_as_active` asks for the target to be turned on.
+- An edit to a published object is staged too (`is_draft: true`) and does
+  nothing until that edit is published. The exception is a pause-only update
+  (`{"status": "PAUSED"}`), which applies live at once.
+- Discarding a draft is `ads_update_entity` with `discard_draft_changes`: the
+  first call previews what would go, the second, with its
+  `confirmation_token`, removes it. It cannot be undone.
+
+Meta's descriptions disagree on what publishing a new campaign does:
+`ads_create_campaign` says published objects "go live ACTIVE", and
+`ads_activate_entity` says publication "preserves staged status unless
+publish_as_active". Do not bet the user's budget on either: **publishing is
+the `activate` class.**
+
+Without draft mode, the create tools make PAUSED objects and everything below
+applies as written.
 
 ## Risk classes
 
@@ -17,8 +47,8 @@ help articles. Read freely. Reading is how you avoid guessing.
 
 ### `create_paused` - no approval beyond the original request
 
-Creating campaigns, ad sets, ads, and creatives **as PAUSED**, when the user
-asked you to build something. "Build me a campaign for this offer" is
+Creating campaigns, ad sets, ads, and creatives **as PAUSED**, or as drafts,
+when the user asked you to build something. "Build me a campaign for this offer" is
 sufficient authority to create the structure, because nothing spends.
 
 Do not interpret it as authority to activate.
@@ -57,15 +87,37 @@ the user can check it.
 
 ### `activate` - explicit approval, after preview and QA
 
-`ads_activate_entity` starts spending. Requirements before you ask:
+`ads_activate_entity` starts spending, and it is also the tool that publishes
+drafts. Requirements before you ask:
 
 1. The structure exists and has been verified against the plan.
 2. Previews have been rendered for the placements the campaign targets.
 3. QA passed - identity, copy, destination, crops, truncation.
 4. The user can see what they are approving.
+5. **In draft mode, the account's drafts have been checked.** Read
+   `ads_get_ad_entities` with `object_state=draft` and your campaign in
+   `object_ids`: every staged object under it should be one you built, and
+   `active_errors` should be empty. Then list the other drafts on the account
+   with a small `limit` and show them to the user - an account can carry
+   months-old drafts (one had a campaign, 43 ad sets and 10 ads from August),
+   and a careless publish can take them along.
 
-Activate top-down: campaign, then ad set, then ads. An active ad under a paused
-ad set does not deliver, which is a confusing state to debug.
+Then publish by `object_ids`, naming the campaign, its ad sets and ads -
+nothing else. `allow_partial_publish` and `ignore_validation_errors` each
+need the user to have seen what they skip. `publish_as_active` only when the
+user asked to turn the campaign on.
+
+Publishing a staged edit to an object that is already live is not this
+class: it is the class of the edit (`update_active`, or the budget rule).
+Publish just that object (`object_ids` = its id, `publish_as_active` false).
+
+After a pause, never call `ads_activate_entity` - it is not a "commit" step,
+and it can undo the pause or publish unrelated edits. Verify with
+`ads_get_ad_entities`.
+
+Without draft mode, activate top-down: campaign, then ad set, then ads. An
+active ad under a paused ad set does not deliver, which is a confusing state
+to debug.
 
 ### `delete` - explicit approval, and a reason
 
@@ -73,8 +125,11 @@ ad set does not deliver, which is a confusing state to debug.
 keep it.** Pausing is almost always the better answer, so before proposing a
 deletion, say why pausing is insufficient.
 
-The CLI enforces this: `--approved` and `--reason` are both required, an ACTIVE
-object is refused outright, and `--dry-run` shows what would go.
+Through the MCP, deleting a campaign, ad set or ad is `ads_update_entity` with
+`{"status": "DELETED"}`; `ads_creative_delete` deletes a creative no ad uses.
+Discarding drafts is the same class. The deprecated CLI path enforces this
+too: `--approved` and `--reason` are both required, an ACTIVE object is
+refused outright, and `--dry-run` shows what would go.
 
 ### `bulk` - show the list, then get approval
 
@@ -104,6 +159,7 @@ Approval is **specific**. It names the entity and the change.
 Sufficient:
 
 - "Yes, activate campaign 120210000000001."
+- "Publish the webinar campaign - the one you just built - and turn it on."
 - "Raise the PL ad set to 70 PLN/day."
 - "Pause ads A and B."
 
@@ -136,7 +192,8 @@ starts `meta-ads-agent:`.
 
 ## Never
 
-- Activate anything the user has not seen.
+- Activate or publish anything the user has not seen.
+- Publish without `object_ids`, or sweep someone else's drafts into a publish.
 - Change a budget without showing both values and the currency.
 - Assume a budget number is dollars.
 - Create anything ACTIVE.

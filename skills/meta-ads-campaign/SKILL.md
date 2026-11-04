@@ -40,24 +40,25 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ## The pipeline
 
 ```
 intent → account context → brand/offer context → PLAN → VALIDATE
-       → [approval if consequential] → campaign PAUSED → ad sets PAUSED
-       → assets → creatives → ads PAUSED → preview → QA
-       → report → awaiting approval
+       → [approval if consequential] → campaign PAUSED/draft → ad sets
+       → assets → creatives → ads → preview → QA
+       → report → check drafts → awaiting approval → publish → verify
 ```
 
-Never skip validation. Never activate because creation succeeded.
+Never skip validation. Never activate - or publish a draft - because creation
+succeeded.
 
 ## 1. Gather
 
@@ -98,10 +99,25 @@ Decisions to make explicitly, and record why in the plan's `notes`:
 - **Budget level** - campaign (CBO) or ad set (ABO), never both. Meta rejects
   both, and so does the validator.
 - **Audience** - broad or defined. Both are defensible; this is a media-buying
-  judgement, not a platform rule, so present it as a choice.
-- **Placements** - automatic unless specific creative demands otherwise.
+  judgement, not a platform rule, so present it as a choice. Under Advantage+
+  audience, a narrower age goes in `age_suggestion`: Meta rejects a hard
+  `age_max` below 65 or `age_min` above 25 there. Interests have no search
+  tool in the MCP - see `meta-ads-audiences`.
+- **Placements** - automatic unless specific creative demands otherwise. When
+  the campaign belongs on one platform (a Reel optimised for ThruPlay or
+  reach on Instagram, say), take **every** position on it -
+  `platforms: [instagram]` with no `positions` - and let delivery find the
+  cheap ones. *Heuristic, default on:* a hand-picked subset of positions
+  narrows the auction and lowers Meta's campaign score; use one only for a
+  reason you write into `deviations`.
+- **Spend cap** - optional. Meta rejected a PLN campaign cap below 500 PLN on
+  2026-11-03.
 - **Advantage settings** - state them. Meta may alter a creative
   automatically, and the user should not discover that from a preview.
+- **Deviations** - anything chosen against Meta's recommendation (manual
+  placements, Advantage+ audience off, ...) goes in the plan's `deviations`
+  with its reason. Ads Manager's per-campaign score drops for each, and the
+  user should not mistake a decision for an error.
 
 Background, with the uncertainty marked:
 [references/objectives-and-optimization.md](references/objectives-and-optimization.md).
@@ -148,8 +164,9 @@ a reachable public URL, EU transparency fields are present when the plan
 targets the EU/EEA, special ad categories are consistent with brand config, and
 local assets exist and are the type they claim.
 
-It also reports which layer will perform each step, so you can tell the user in
-advance where the fallback is involved.
+It also reports which layer will perform each step. Since 2026-11-04 every
+creative mode is the MCP's; a `routing.fallback` finding means a token will be
+needed, and the user should hear that before the build.
 
 Pass `--account-file` if you have cached account facts;
 [references/campaign-plan-guide.md](references/campaign-plan-guide.md) explains
@@ -187,7 +204,7 @@ Then offer the routes forward, and say which you recommend:
 Offering no route forward is not an answer, and neither is quietly proceeding.
 <!-- shared:no-cli-writes end -->
 
-## 5. Create, PAUSED, recording as you go
+## 5. Create, PAUSED or as drafts, recording as you go
 
 Record each id **before starting the next call**. This is what makes a failure
 resumable instead of duplicating.
@@ -204,46 +221,70 @@ If a call fails, stop. Do not continue past a failure, and do not retry a write
 without querying Meta first - a timeout does not tell you whether the object
 was created.
 
+Where Meta has turned on draft mode for the account, each create returns
+`status=DRAFT` and any problems in `active_errors`. Fix those with
+`ads_update_entity` as you go - a publish refuses while any staged object has
+a blocking error.
+
 ### Assets
 
-A local file needs the fallback; Meta's MCP lists uploaded media but cannot
-ingest a file. So this step needs the CLI, and there is no MCP route around
-it:
+Upload through the MCP with `ads_creative_upload_media`:
 
-```bash
-meta-ads-agent api upload-image ./creatives/a.jpg --account act_...
-meta-ads-agent api upload-video ./creatives/a.mp4 --account act_...
-```
+- **A public URL** (a direct link to the file, not a share page that needs a
+  sign-in): `upload_source: URL`, `media_type: IMAGE` or `VIDEO`. Works in any
+  host.
+- **A local file**: `upload_source: LOCAL_FILE` opens Meta's upload app, where
+  the user picks the file. Only in hosts that can show interactive MCP Apps
+  (claude.ai, Cowork and the desktop app could on 2026-11-03).
 
-If the CLI is absent, say so and offer the two real alternatives: upload the
-file in Ads Manager and pass the resulting `image_hash` or `video_id`, or
-install the CLI with its `[api]` extra. Do not describe the upload as done.
+A video is usable in a creative once `ads_get_ad_videos` reports it `ready`;
+Meta transcodes asynchronously, and a creative built against an unprocessed
+video is rejected.
 
-Both are deduplicated by content fingerprint, so a rerun costs nothing. Video
-upload waits for Meta to finish transcoding; a creative built against an
-unprocessed video is rejected.
+In a terminal host with a local file and no URL, say so and offer the routes:
+put the file somewhere public and upload by URL; upload it in Ads Manager and
+pass the resulting `image_hash` or `video_id`; or, where the preflight found
+the CLI, the deprecated fallback (`meta-ads-agent api upload-image` /
+`upload-video`, which needs the `[api]` extra and a token). Do not describe
+the upload as done.
 
 If the user already has an `image_hash` or `video_id`, use it and skip the
 upload entirely.
 
 ### Creative
 
-| Mode | Who does it |
-| --- | --- |
-| single image | MCP - `ads_create_creative` |
-| single video | fallback - `api create-creative --video` |
-| existing Instagram post | fallback - `api create-creative --post --instagram-media-id` (see below) |
-| existing Facebook Page post | fallback - `api create-creative --post` |
-| several copy variants | fallback - `api create-creative --variants` |
-| an asset for one placement only | fallback - `api create-creative --variants --placement` |
-| carousel, 2 to 10 cards | fallback - `api create-creative --carousel` |
+All MCP since 2026-11-04 ("live": used in a build on 2026-11-03; the rest per
+the tool descriptions):
 
-**An Instagram post is not boosted.** `ads_boost_ig_post` exists, but Meta does
-not document whether it can create a paused boost, and everything here is
-created paused. So the post becomes an inert creative that a paused ad uses;
-it keeps the post's engagement and spends nothing until activation. If the
-user explicitly wants a boost, that is an activation - the same approval,
-after previews, as any other.
+| Mode | How |
+| --- | --- |
+| single image | `ads_create_creative` - `image_hash` or `image_url` |
+| single video | `ads_create_creative` - `video_id` plus a thumbnail (`image_hash` or `image_url`) |
+| existing Instagram post | inline in `ads_create_ad` - see below (live) |
+| existing Facebook Page post | `ads_create_creative` or inline in `ads_create_ad` - `object_story_id` (`<page>_<post>`) |
+| several copy or asset variants | `ads_create_creative` - `multi_media` (2-10 assets, up to five texts each), then its `creative_id` in `ads_create_ad` |
+| an asset for one placement only | `ads_create_creative` - `placement_customizations` (2-10, exactly one fallback), then its `creative_id` |
+| carousel, 2 to 10 cards | `ads_create_creative` - `cards` |
+
+The CLI's `api create-creative` modes still work, as a deprecated fallback.
+
+**An Instagram post goes inline in the ad.** Give `ads_create_ad` a `creative`
+of `source_instagram_media_id` (the `id` from `ads_get_ig_media`),
+`instagram_user_id` and `call_to_action`. Building a creative from the post
+first with `ads_create_creative` and passing its `creative_id` failed with
+`ObjectStorySpecRedundant` (1443051) on 2026-11-03; inline worked. For a
+"Visit Instagram profile" button the call to action is
+`{"type": "VIEW_INSTAGRAM_PROFILE", "value": {"link": "https://www.instagram.com/<login>/"}}`
+- without the link the preview fails, and without a call to action Meta shows
+a "Learn more" button that goes nowhere (`meta-ads-creative` has the copy
+side).
+
+**`ads_boost_ig_post` is the one-call alternative.** It builds campaign, ad
+set and ad from the post, and documents that all of them are created PAUSED.
+Call it with `confirmed=false` first and show the user its plan: its defaults
+are US targeting, about 5 USD a day for 6 days and `OUTCOME_TRAFFIC`, so set
+every one of them from the plan before `confirmed=true`. Use the step-by-step
+build when the plan has more than one ad set or ad.
 
 Say which one you used and why. Copy and angles come from `meta-ads-creative`.
 
@@ -255,16 +296,53 @@ zones, and truncation before anyone is asked to approve spending.
 
 ## 7. Report, then ask
 
-Tell the user what exists: every object with its id and status, which layer
-created it, the budget in account currency, where the previews are, and what
-QA found.
+Tell the user what exists: every object with its id and status (PAUSED or
+DRAFT), which layer created it, the budget in account currency, where the
+previews are, and what QA found.
 
-Then ask whether to activate. Explicitly. Once. Activation is top-down -
-campaign, then ad set, then ads - and an active ad under a paused ad set does
-not deliver.
+**In draft mode, check the account's drafts first.** Read
+`ads_get_ad_entities` with `object_state=draft` and your campaign in
+`object_ids` - every staged object should be one you built, with no
+`active_errors`. Then list the other drafts on the account with a small
+`limit` (never without `object_ids` or a limit - one account returned 600,000
+characters) and show the user any you did not create. An account carried a
+campaign, 43 ad sets and 10 ads of drafts from August into the 2026-11-03
+build.
 
-If they say no, or say nothing, the campaign stays paused. That is a complete,
-successful outcome.
+Then ask whether to go live. Explicitly. Once. Say what it means: **in draft
+mode, publishing is agreeing to spend** - Meta's own tool descriptions
+disagree on whether a published campaign starts ACTIVE, so assume it does.
+
+- **Draft mode:** `ads_activate_entity` on the campaign with `object_ids` =
+  the campaign, its ad sets and its ads, and nothing else;
+  `publish_as_active: true` only if the user asked to turn it on.
+- **No draft mode:** activation is top-down - campaign, then ad set, then
+  ads - and an active ad under a paused ad set does not deliver.
+
+If they say no, or say nothing, the campaign stays paused or in draft. That
+is a complete, successful outcome.
+
+## 8. After publishing
+
+Publishing returns `PUBLISHING` or `ACTIVE`, which proves nothing about
+delivery. Before calling it live:
+
+1. **Read it back.** `ads_get_ad_entities` with the ids in `object_ids` and
+   `effective_status`. `PENDING_REVIEW` or `IN_PROCESS` means Meta is still
+   reviewing; `ACTIVE` once it passes. A draft that vanished is not proof it
+   was published - the live read-back is.
+2. **`ads_get_errors`** for the campaign. Report anything there verbatim.
+3. **Record it.** Stage `activated` in `state.json` with the ids, and write
+   `baseline.yaml` in the campaign directory: today's date and anything Meta
+   cannot give back later - for a follower goal, the Instagram follower count
+   on launch day and the organic growth before it (`meta-ads-report` explains
+   why).
+4. **Set expectations.** First delivery usually shows within 24 hours of
+   review; zero impressions after that is a question for `meta-ads-optimize`.
+5. **Offer the check-ins.** A look at D+1 (review passed, delivering, no
+   errors) and at D+3 (early signal, no changes during learning), scheduled if
+   the host can run tasks later - see
+   <https://github.com/bartlomiejborzucki/meta-ads-agent/blob/master/docs/reference/scheduled-reporting.md>.
 
 ## Resuming a failed build
 
@@ -305,7 +383,8 @@ the copy goes through the same review, validation and PAUSED build.
 3. Make the change the user asked for in the new plan, then continue at
    step 4 above. The source campaign is never touched.
 
-A multi-variant creative is not duplicated: say so, and plan that ad by hand.
+A multi-variant creative is not duplicated: say so, and plan that ad by hand
+(the MCP can build it again with `multi_media` or `placement_customizations`).
 
 ## Regional and regulatory
 

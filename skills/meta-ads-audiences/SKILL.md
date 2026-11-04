@@ -37,12 +37,12 @@ fails at the user's prompt costs more than the step it saves. Say "that step
 needs the optional CLI, which is not installed here" and carry on.
 
 The MCP alone covers audits, reporting, Ad Library research, previews,
-tracking, creative, optimisation and the changes that follow; `.meta-ads/`
-files can be written directly from the templates in `meta-ads-core`'s
-`assets/`. Only these need the CLI: plan validation (so campaign builds),
-local image and video upload, video / existing-post / multi-variant /
-carousel creatives, deletion, and the `report` arithmetic (which has a
-by-hand route).
+tracking, creative, optimisation and the changes that follow - and, as of
+2026-11-04, media upload and every creative format; `.meta-ads/` files can be
+written directly from the templates in `meta-ads-core`'s `assets/`. Only
+these need the CLI: plan validation (so campaign builds), the `report`
+arithmetic (which has a by-hand route), and uploading a local file in a host
+without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
 ```
@@ -64,6 +64,22 @@ splits nothing and confuses every later report.
 For an audience that exists, read its size and status before relying on it. An
 audience still populating, or too small to deliver, is a finding - say so
 before it goes into a plan.
+
+## Interests: there is no search tool
+
+Meta's MCP has no interest search (as of 2026-11-04), and its tool
+descriptions forbid inventing targeting ids. An interest id cannot be
+recalled, guessed or derived from a name - so do not write one into a plan.
+The routes, in the order to offer them:
+
+1. **Advantage+ audience with suggestions** - the plan's age suggestion, plus
+   the interests by name in the plan's notes for the user. Meta treats
+   suggestions as starting points; this is the default it recommends.
+2. **The user adds the interests in Ads Manager**, on the built draft or
+   paused ad set, before publishing. Say exactly which ad set and which
+   interests.
+3. **Ids the user supplies** from Ads Manager or a tool they trust - then they
+   go in the plan as given.
 
 ## Approval, by what the step changes
 
@@ -138,6 +154,31 @@ nothing to propose. Two checks first:
 - The same audience is not also **included** in that ad set. The validator
   refuses an audience that is both (`targeting.audience_included_and_excluded`)
   because it leaves nobody to reach.
+
+### Excluding current Instagram followers
+
+For a campaign meant to win new followers, paying to reach people who already
+follow is waste. The MCP builds the exclusion (used live 2026-11-03) with
+`ads_create_custom_audience`:
+
+- `subtype`: `ENGAGEMENT`
+- `rule` (a JSON-encoded string): one inclusion rule with
+  `event_sources: [{"type": "ig_business", "id": "<instagram account id>"}]`,
+  the event `INSTAGRAM_PROFILE_FOLLOW`, and `retention_seconds: 0` - which, for
+  a current-state event like a follow, means "follows now", not "followed in
+  the last zero seconds".
+
+It populates on its own. Then put its id in `excluded_custom_audience_ids`
+and add it to the cached account before validating (below). Creating it is
+`update_active` like any engagement audience.
+
+### After creating any audience
+
+The plan validator checks audiences against the account the agent last read
+(`.meta-ads/account.yaml`). A new audience is not in that read: add its id to
+`available_custom_audience_ids` there, or read the account again, before
+`validate-plan`. Until then the validator warns that it cannot see the
+audience - which is true, not a fault in the audience.
 
 ### Reviewing exclusions across a campaign
 
