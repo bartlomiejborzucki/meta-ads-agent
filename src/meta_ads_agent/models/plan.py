@@ -111,6 +111,49 @@ class Budget(StrictModel):
         return str(value) if isinstance(value, float) else value
 
 
+class SpendCap(StrictModel):
+    """A campaign's spending limit, as a human reads it.
+
+    Meta's ``spend_cap``: once the campaign has spent this much, it stops.
+    Converted to minor units at the boundary, like a budget.
+    """
+
+    amount: Decimal = Field(gt=0, description="Display amount, e.g. 500 for 500.00 PLN")
+    currency: CurrencyCode = Field(description="Must match the ad account's currency.")
+
+    @field_validator("amount", mode="before")
+    @classmethod
+    def _no_binary_floats(cls, value: object) -> object:
+        return str(value) if isinstance(value, float) else value
+
+
+class AgeRange(StrictModel):
+    min: int = Field(ge=13, le=65)
+    max: int = Field(ge=13, le=65)
+
+    @model_validator(mode="after")
+    def _ordered(self) -> AgeRange:
+        if self.max < self.min:
+            raise ValueError(f"age max ({self.max}) is below min ({self.min})")
+        return self
+
+
+class Deviation(StrictModel):
+    """A setting chosen against Meta's recommendation, and why.
+
+    Ads Manager scores a campaign against Meta's recommendations (more
+    placements, Advantage+ audience, ...). A deliberate choice the other way
+    lowers that score without being a mistake; recording it here lets a later
+    reader - or an audit - tell the two apart.
+    """
+
+    setting: str = Field(min_length=1, description="e.g. placements, advantage_audience")
+    meta_recommends: str | None = Field(
+        default=None, description="What Meta recommends instead, if known"
+    )
+    reason: str = Field(min_length=1, description="Why this campaign does otherwise")
+
+
 class Schedule(StrictModel):
     start: _dt.datetime | None = Field(
         default=None, description="Ad set start. Interpreted in the account timezone."
@@ -154,6 +197,15 @@ class TargetingPlan(StrictModel):
             "and say so in the plan so the user is not silently enrolled."
         ),
     )
+    age_suggestion: AgeRange | None = Field(
+        default=None,
+        description=(
+            "The age range to suggest under Advantage+ audience, sent as "
+            "targeting.age_range. Meta rejects a hard age_max below 65 or "
+            "age_min above 25 under Advantage+ audience; this is where a "
+            "narrower target age goes instead."
+        ),
+    )
     raw: dict[str, object] = Field(
         default_factory=dict,
         description="Escape hatch merged into the targeting spec. Not validated.",
@@ -175,6 +227,13 @@ class PlacementPlan(StrictModel):
     """
 
     mode: Literal["automatic", "manual"] = "automatic"
+    platforms: list[Annotated[str, Field(pattern=r"^[a-z][a-z_]*$")]] = Field(
+        default_factory=list,
+        description=(
+            "Only with mode=manual: Meta publisher platforms, e.g. instagram. "
+            "Without positions, every position on these platforms."
+        ),
+    )
     positions: list[str] = Field(
         default_factory=list,
         description="Only with mode=manual, e.g. facebook_feed, instagram_reels",
@@ -182,13 +241,31 @@ class PlacementPlan(StrictModel):
 
     @model_validator(mode="after")
     def _manual_needs_positions(self) -> PlacementPlan:
-        if self.mode == "manual" and not self.positions:
-            raise ValueError("mode=manual requires at least one placement position")
-        if self.mode == "automatic" and self.positions:
+        if self.mode == "manual" and not (self.positions or self.platforms):
+            raise ValueError("mode=manual requires at least one platform or placement position")
+        if self.mode == "automatic" and (self.positions or self.platforms):
             raise ValueError(
-                "positions are only meaningful with mode=manual; remove them or set mode=manual"
+                "platforms and positions are only meaningful with mode=manual; "
+                "remove them or set mode=manual"
             )
+        if self.platforms and self.positions:
+            stray = [
+                p for p in self.positions if not any(p.startswith(f"{x}_") for x in self.platforms)
+            ]
+            if stray:
+                raise ValueError(
+                    f"position(s) {stray} are not on the listed platforms {self.platforms}"
+                )
         return self
+
+    def targets(self, placement: str) -> bool:
+        """Whether a named placement (as in ASSET_PLACEMENTS) is in this plan."""
+        if self.mode == "automatic":
+            return True
+        if placement in self.positions:
+            return True
+        platform = ASSET_PLACEMENTS.get(placement, ("", ""))[0]
+        return bool(platform) and platform in self.platforms and not self.positions
 
 
 class TrackingPlan(StrictModel):
@@ -520,6 +597,13 @@ class CampaignPlan(StrictModel):
         ),
     )
     dsa: DsaFields = Field(default_factory=DsaFields)
+    spend_cap: SpendCap | None = Field(
+        default=None, description="Optional campaign spending limit (Meta's spend_cap)"
+    )
+    deviations: list[Deviation] = Field(
+        default_factory=list,
+        description="Settings chosen against a Meta recommendation, each with its reason",
+    )
     ad_sets: list[AdSetPlan] = Field(min_length=1)
     status: Literal["PAUSED"] = "PAUSED"
 
@@ -551,6 +635,8 @@ class CampaignPlan(StrictModel):
     @model_validator(mode="after")
     def _one_currency(self) -> CampaignPlan:
         currencies = {b.currency for b in self._budgets()}
+        if self.spend_cap:
+            currencies.add(self.spend_cap.currency)
         if len(currencies) > 1:
             raise ValueError(
                 f"plan mixes currencies {sorted(currencies)}. An ad account has "

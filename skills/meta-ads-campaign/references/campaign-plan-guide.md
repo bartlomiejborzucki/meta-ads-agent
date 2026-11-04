@@ -86,7 +86,8 @@ because a carousel that tells a story stops telling it when shuffled.
 An existing post is either a Facebook Page post (`post_id: "<page>_<post>"`)
 or an Instagram post (`instagram_media_id`, with `instagram_account_id` and
 the Page's `page_id`) - exactly one. No assets and no variants: the post runs as published, and keeps
-its engagement.
+its engagement. Build an Instagram post inline in the ad, not as a separate
+creative first - see the `meta-ads-campaign` skill's Creative section.
 
 To serve an asset in one placement only, use `mode: multi_variant` and give
 it `placement` - one of `facebook_feed`, `facebook_stories`, `facebook_reels`,
@@ -105,6 +106,50 @@ In any other mode `placement` is refused, because nothing would honour it.
 A multi-variant creative takes images or videos, not both, and an asset pinned
 to a placement the ad set's manual placements leave out is refused too - it
 would never serve.
+
+### Age under Advantage+ audience
+
+With `advantage_audience: true`, Meta rejects a hard `age_max` below 65 or
+`age_min` above 25 (tool description, 2026-11-04). Put the ages you are aiming
+at in `age_suggestion` - it becomes `targeting.age_range`, a suggestion Meta
+can go beyond:
+
+```yaml
+targeting:
+  countries: [PL]
+  advantage_audience: true
+  age_suggestion: {min: 30, max: 50}
+```
+
+If people outside the range must not see the ad, that is the case for
+`advantage_audience: false` with `age_min` / `age_max`, and a `deviations`
+entry saying why. The validator warns on either mismatch.
+
+### Spend cap, placements by platform, and deviations
+
+```yaml
+campaign:
+  spend_cap: {amount: 500, currency: PLN}   # Meta's spend_cap; same currency as budgets
+  deviations:
+    - setting: placements
+      meta_recommends: Advantage+ placements
+      reason: the creative is a 9:16 Reel, and nothing else fits it
+  ad_sets:
+    - placements:
+        mode: manual
+        platforms: [instagram]              # every Instagram position
+```
+
+- **`spend_cap`** stops the campaign at that total. Meta rejected a PLN cap
+  below 500 on 2026-11-03 (error 2446307); the validator warns below that.
+  Other currencies have no recorded minimum.
+- **`platforms`** without `positions` means every position on that platform -
+  Feed, Stories, Reels, Explore, profile, search. A hand-picked subset of
+  `positions` is for a recorded reason only.
+- **`deviations`** lists what the plan does against Meta's advice, and why.
+  Ads Manager scores each campaign against Meta's recommendations; a manual
+  placement or Advantage+ audience turned off lowers that score on purpose,
+  and the entry is what tells a later reader it was a decision.
 
 ### `angle` is the concept, not the wording
 
@@ -186,12 +231,13 @@ Findings carry a stable `code` so you can reference one precisely.
 ERROR    dsa.missing_fields    targeting PL requires beneficiary, payor
 WARNING  currency.unverified   plan budgets are in PLN, not verified against the account
 INFO     budget.resolved       daily budget at ad_set level: 70.00 PLN (7000 minor units)
-INFO     routing.fallback      creative mode single_video will use the Business SDK fallback
+INFO     plan.deviation        placements differs from Meta's recommendation (Advantage+ placements): ...
 ```
 
-The `Execution routing` section names which layer performs each step, so you
-can tell the user where the fallback is involved **before** they need a token
-halfway through a build.
+The `Execution routing` section names which layer performs each step. Since
+2026-11-04 every creative mode routes to Meta's MCP; a `routing.fallback`
+finding would mean the plan needs the token-based fallback, so tell the user
+**before** they need a token halfway through a build.
 
 ## Changing a plan after objects exist
 

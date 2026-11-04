@@ -31,7 +31,11 @@ from meta_ads_agent.validation.checks_adset import (
     check_names_rendered,
     check_names_unique,
 )
-from meta_ads_agent.validation.checks_budget import check_budgets, check_campaign_schedule
+from meta_ads_agent.validation.checks_budget import (
+    check_budgets,
+    check_campaign_schedule,
+    check_spend_cap,
+)
 from meta_ads_agent.validation.checks_creative import (
     check_creative_routing,
     check_local_assets,
@@ -64,6 +68,7 @@ def validate_plan(
     check_currency(doc, account, report)
     check_objective(doc, account, report)
     check_budgets(plan.budget, "campaign.budget", account, report)
+    check_spend_cap(plan.spend_cap, account, report)
     check_campaign_schedule(plan, report)
     check_special_categories(doc, brand, report)
     check_dsa(doc, brand, report)
@@ -73,6 +78,17 @@ def validate_plan(
     for index, ad_set in enumerate(plan.ad_sets):
         prefix = f"campaign.ad_sets[{index}]"
         check_ad_set(ad_set, prefix, doc, account, report)
+
+    for index, deviation in enumerate(plan.deviations):
+        # Not a problem: a record, surfaced so the review shows it.
+        report.add(
+            Severity.INFO,
+            "plan.deviation",
+            f"{deviation.setting} differs from Meta's recommendation"
+            + (f" ({deviation.meta_recommends})" if deviation.meta_recommends else "")
+            + f": {deviation.reason}",
+            f"campaign.deviations[{index}]",
+        )
 
     check_creative_routing(doc, reg, report)
     if check_assets:

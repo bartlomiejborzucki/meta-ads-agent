@@ -59,7 +59,7 @@ def _digest(payload: object) -> str:
 # must leave these out when they are at their default, or every 0.2 campaign
 # stops resuming the day a field is added - the v1 flaw, repeated. The
 # example-state test fails when a new field needs adding here.
-_ADDED_SINCE_V1: dict[str, object] = {"cards": []}
+_ADDED_SINCE_V1: dict[str, object] = {"cards": [], "deviations": [], "platforms": []}
 
 
 def _as_v1(value: object) -> object:

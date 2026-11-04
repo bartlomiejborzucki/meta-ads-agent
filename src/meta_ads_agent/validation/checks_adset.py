@@ -62,17 +62,18 @@ def check_utm_applied(ad_set: AdSetPlan, prefix: str, report: ValidationReport) 
 
 def check_pinned_placements(ad_set: AdSetPlan, prefix: str, report: ValidationReport) -> None:
     """An asset pinned to a placement the ad set does not use never serves."""
-    if ad_set.placements.mode != "manual":
+    placements = ad_set.placements
+    if placements.mode != "manual":
         return
-    positions = set(ad_set.placements.positions)
+    targeted = sorted(placements.positions) or [f"all of {p}" for p in placements.platforms]
     for ad_index, ad in enumerate(ad_set.ads):
         for asset_index, asset in enumerate(ad.creative.assets):
-            if asset.placement and asset.placement not in positions:
+            if asset.placement and not placements.targets(asset.placement):
                 report.add(
                     Severity.ERROR,
                     "asset.placement_not_targeted",
                     f"this asset is pinned to {asset.placement}, but the ad set's manual "
-                    f"placements are {sorted(positions)}, so it would never serve",
+                    f"placements are {targeted}, so it would never serve",
                     f"{prefix}.ads[{ad_index}].creative.assets[{asset_index}].placement",
                 )
 
@@ -222,12 +223,51 @@ def check_audiences(
             set(targeting.custom_audience_ids + targeting.excluded_custom_audience_ids) - known
         )
         if unknown:
+            # A warning, not an error: the list is the account read the agent
+            # cached, and an audience created since then is real but absent.
             report.add(
-                Severity.ERROR,
+                Severity.WARNING,
                 "targeting.audience_unknown",
-                f"custom audience(s) {unknown} were not found on this account",
+                f"custom audience(s) {unknown} are not in the account context this "
+                "plan was validated with. If one was created after that read, add "
+                "its id to available_custom_audience_ids in the cached account "
+                "(.meta-ads/account.yaml) or read the account again; otherwise "
+                "Meta will reject the ad set.",
                 f"{prefix}.targeting",
             )
+
+    hard_age = [
+        bound
+        for bound, breaks in (
+            (
+                f"age_max {targeting.age_max}",
+                targeting.age_max is not None and targeting.age_max < 65,
+            ),
+            (
+                f"age_min {targeting.age_min}",
+                targeting.age_min is not None and targeting.age_min > 25,
+            ),
+        )
+        if breaks
+    ]
+    if targeting.advantage_audience is True and hard_age:
+        report.add(
+            Severity.WARNING,
+            "targeting.hard_age_under_advantage_audience",
+            f"{' and '.join(hard_age)} with advantage_audience on: Meta rejects a hard "
+            "age_max below 65 or age_min above 25 under Advantage+ audience "
+            "(tool description, 2026-11-04). Move the range to age_suggestion, or "
+            "turn advantage_audience off and record why in deviations.",
+            f"{prefix}.targeting",
+        )
+    if targeting.age_suggestion and targeting.advantage_audience is False:
+        report.add(
+            Severity.WARNING,
+            "targeting.age_suggestion_without_advantage_audience",
+            "age_suggestion only means something under Advantage+ audience; with "
+            "advantage_audience off, set age_min and age_max instead.",
+            f"{prefix}.targeting.age_suggestion",
+        )
 
     if targeting.advantage_audience is None and (
         targeting.age_min or targeting.age_max or targeting.interests

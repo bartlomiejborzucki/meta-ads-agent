@@ -252,7 +252,58 @@ class TestTargeting:
         def mutate(raw):  # type: ignore[no-untyped-def]
             raw["campaign"]["ad_sets"][0]["placements"] = {"mode": "manual"}
 
-        with pytest.raises(ValidationError, match="at least one placement"):
+        with pytest.raises(ValidationError, match="at least one platform or placement"):
+            build(mutate)
+
+    def test_a_platform_alone_means_all_of_its_positions(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["placements"] = {
+                "mode": "manual",
+                "platforms": ["instagram"],
+            }
+
+        placements = build(mutate).campaign.ad_sets[0].placements
+        assert placements.targets("instagram_reels")
+        assert placements.targets("instagram_stories")
+        assert not placements.targets("facebook_feed")
+
+    def test_a_position_off_the_listed_platforms_is_rejected(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["placements"] = {
+                "mode": "manual",
+                "platforms": ["instagram"],
+                "positions": ["facebook_feed"],
+            }
+
+        with pytest.raises(ValidationError, match="not on the listed platforms"):
+            build(mutate)
+
+    def test_platforms_need_manual_mode(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["placements"] = {"platforms": ["instagram"]}
+
+        with pytest.raises(ValidationError, match="only meaningful with mode=manual"):
+            build(mutate)
+
+    def test_an_age_suggestion_must_be_ordered(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["targeting"]["age_suggestion"] = {"min": 50, "max": 30}
+
+        with pytest.raises(ValidationError, match="below min"):
+            build(mutate)
+
+    def test_a_spend_cap_in_another_currency_is_rejected(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["spend_cap"] = {"amount": "500", "currency": "EUR"}
+
+        with pytest.raises(ValidationError, match="mixes currencies"):
+            build(mutate)
+
+    def test_a_deviation_needs_its_reason(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["deviations"] = [{"setting": "placements"}]
+
+        with pytest.raises(ValidationError, match="reason"):
             build(mutate)
 
     def test_positions_without_manual_mode_are_rejected(self) -> None:

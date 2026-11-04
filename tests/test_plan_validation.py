@@ -391,14 +391,18 @@ class TestNamingAndAudiences:
             validate_plan(build(mutate), check_assets=False), Severity.ERROR
         )
 
-    def test_unknown_audience_blocks(self, account) -> None:  # type: ignore[no-untyped-def]
+    def test_an_audience_missing_from_the_cached_account_warns(self, account) -> None:  # type: ignore[no-untyped-def]
+        # The cache can predate an audience created minutes ago (2026-11-03),
+        # so this cannot be an error: the audience may be real.
         def mutate(raw):  # type: ignore[no-untyped-def]
             raw["campaign"]["ad_sets"][0]["targeting"]["custom_audience_ids"] = ["555"]
 
         account.available_custom_audience_ids = ["666"]
-        assert "targeting.audience_unknown" in codes(
-            validate_plan(build(mutate), account=account, check_assets=False), Severity.ERROR
-        )
+        report = validate_plan(build(mutate), account=account, check_assets=False)
+        assert "targeting.audience_unknown" in codes(report, Severity.WARNING)
+        assert "targeting.audience_unknown" not in codes(report, Severity.ERROR)
+        finding = next(f for f in report.findings if f.code == "targeting.audience_unknown")
+        assert "available_custom_audience_ids" in finding.message
 
     def test_advantage_audience_left_unset_with_hard_bounds_is_noted(self, plan) -> None:  # type: ignore[no-untyped-def]
         assert "targeting.advantage_audience_unset" in codes(
@@ -661,3 +665,97 @@ class TestAssetChecks:
         # The plan model rejects this first: a .png cannot satisfy single_video.
         with pytest.raises(Exception, match="video asset"):
             validate_plan(build(mutate), asset_base=tmp_path)
+
+
+class TestAdvantageAudienceAge:
+    def _targeting(self, **fields):  # type: ignore[no-untyped-def]
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            targeting = raw["campaign"]["ad_sets"][0]["targeting"]
+            targeting.pop("age_min", None)
+            targeting.pop("age_max", None)
+            targeting.update(fields)
+
+        return validate_plan(build(mutate), check_assets=False)
+
+    @pytest.mark.parametrize(("bound", "value"), [("age_max", 45), ("age_min", 30)])
+    def test_a_hard_bound_under_advantage_audience_warns(self, bound: str, value: int) -> None:
+        report = self._targeting(advantage_audience=True, **{bound: value})
+        assert "targeting.hard_age_under_advantage_audience" in codes(report, Severity.WARNING)
+
+    def test_bounds_meta_accepts_under_advantage_audience_pass(self) -> None:
+        report = self._targeting(advantage_audience=True, age_min=18, age_max=65)
+        assert "targeting.hard_age_under_advantage_audience" not in codes(report)
+
+    def test_an_age_suggestion_is_the_way_to_narrow_it(self) -> None:
+        report = self._targeting(advantage_audience=True, age_suggestion={"min": 30, "max": 50})
+        assert not codes(report, Severity.WARNING) & {
+            "targeting.hard_age_under_advantage_audience",
+            "targeting.age_suggestion_without_advantage_audience",
+        }
+
+    def test_an_age_suggestion_without_advantage_audience_warns(self) -> None:
+        report = self._targeting(advantage_audience=False, age_suggestion={"min": 30, "max": 50})
+        assert "targeting.age_suggestion_without_advantage_audience" in codes(
+            report, Severity.WARNING
+        )
+
+
+class TestSpendCap:
+    def _with_cap(self, amount: str, currency: str = "PLN"):  # type: ignore[no-untyped-def]
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["spend_cap"] = {"amount": amount, "currency": currency}
+
+        return build(mutate)
+
+    def test_a_pln_cap_below_500_warns(self, account) -> None:  # type: ignore[no-untyped-def]
+        report = validate_plan(self._with_cap("300"), account=account, check_assets=False)
+        assert "budget.spend_cap_below_minimum" in codes(report, Severity.WARNING)
+        assert report.ok
+
+    def test_a_pln_cap_of_500_passes_and_is_resolved(self, account) -> None:  # type: ignore[no-untyped-def]
+        report = validate_plan(self._with_cap("500"), account=account, check_assets=False)
+        assert "budget.spend_cap_below_minimum" not in codes(report)
+        finding = next(f for f in report.findings if f.code == "budget.spend_cap_resolved")
+        assert "50000 minor units" in finding.message
+
+    def test_a_cap_in_the_wrong_currency_for_the_account_blocks(self, account) -> None:  # type: ignore[no-untyped-def]
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["ad_sets"][0]["budget"]["currency"] = "EUR"
+            raw["campaign"]["spend_cap"] = {"amount": "500", "currency": "EUR"}
+
+        report = validate_plan(build(mutate), account=account, check_assets=False)
+        assert "currency.mismatch" in codes(report, Severity.ERROR)
+
+
+class TestDeviations:
+    def test_each_deviation_is_shown_in_the_report(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            raw["campaign"]["deviations"] = [
+                {
+                    "setting": "placements",
+                    "meta_recommends": "Advantage+ placements",
+                    "reason": "the creative is a 9:16 Reel only",
+                }
+            ]
+
+        report = validate_plan(build(mutate), check_assets=False)
+        finding = next(f for f in report.findings if f.code == "plan.deviation")
+        assert finding.severity is Severity.INFO
+        assert "9:16 Reel only" in finding.message
+        assert report.ok
+
+
+class TestPlatformPlacements:
+    def test_a_pin_inside_a_whole_platform_is_targeted(self) -> None:
+        def mutate(raw):  # type: ignore[no-untyped-def]
+            ad_set = raw["campaign"]["ad_sets"][0]
+            ad_set["placements"] = {"mode": "manual", "platforms": ["instagram"]}
+            creative = ad_set["ads"][0]["creative"]
+            creative["mode"] = "multi_variant"
+            creative["assets"] = [
+                {"image_hash": "a"},
+                {"image_hash": "b", "placement": "instagram_reels"},
+            ]
+
+        report = validate_plan(build(mutate), check_assets=False)
+        assert "asset.placement_not_targeted" not in codes(report)

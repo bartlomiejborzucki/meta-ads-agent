@@ -5,7 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from meta_ads_agent.errors import CurrencyError
-from meta_ads_agent.models.plan import AdSetPlan, Budget, BudgetType, CampaignPlan
+from meta_ads_agent.models.plan import AdSetPlan, Budget, BudgetType, CampaignPlan, SpendCap
 from meta_ads_agent.money import Money
 from meta_ads_agent.validation.account import AccountContext
 from meta_ads_agent.validation.report import Severity, ValidationReport
@@ -58,6 +58,48 @@ def check_budgets(
         "budget.resolved",
         f"{budget.type.value} budget at {budget.level.value} level: "
         f"{money.format()} ({money.minor} minor units)",
+        path,
+    )
+
+
+# The lowest campaign spend cap Meta has accepted, per currency, where it was
+# seen rejecting a lower one. Meta does not publish these; each entry is an
+# observation, with its date, not a documented rule - hence a warning.
+SPEND_CAP_MINIMUM_SEEN: dict[str, tuple[Decimal, str]] = {
+    "PLN": (Decimal("500"), "error 2446307, seen 2026-11-03"),
+}
+
+
+def check_spend_cap(
+    spend_cap: SpendCap | None, account: AccountContext | None, report: ValidationReport
+) -> None:
+    if spend_cap is None:
+        return
+    path = "campaign.spend_cap"
+    try:
+        money = Money.from_display(
+            spend_cap.amount,
+            spend_cap.currency,
+            offset=_account_offset(account, spend_cap.currency),
+        )
+    except CurrencyError as exc:
+        report.add(Severity.ERROR, "budget.not_representable", str(exc), path)
+        return
+
+    seen = SPEND_CAP_MINIMUM_SEEN.get(spend_cap.currency)
+    if seen and spend_cap.amount < seen[0]:
+        report.add(
+            Severity.WARNING,
+            "budget.spend_cap_below_minimum",
+            f"spend cap {money.format()} is below the {seen[0]} {spend_cap.currency} "
+            f"Meta has required for a campaign spend cap ({seen[1]}). Expect the "
+            "campaign write to be rejected.",
+            path,
+        )
+    report.add(
+        Severity.INFO,
+        "budget.spend_cap_resolved",
+        f"campaign spend cap: {money.format()} ({money.minor} minor units)",
         path,
     )
 

@@ -62,6 +62,18 @@ campaign:
     beneficiary: null
     payor: null
 
+  # Optional ceiling on what the whole campaign may spend (Meta's spend_cap).
+  # Display amount, same currency as the budgets. Meta rejected a PLN cap
+  # below 500 on 2026-11-03.
+  spend_cap: null                  # e.g. {amount: 500, currency: PLN}
+
+  # Every setting chosen against a Meta recommendation, with the reason, so a
+  # low campaign score in Ads Manager reads as a decision, not a mistake.
+  deviations: []
+  #  - setting: placements
+  #    meta_recommends: Advantage+ placements
+  #    reason: the creative is a 9:16 Reel and nothing else fits it
+
   ad_sets:
     - name: "PL - broad 25-55"
 
@@ -92,12 +104,16 @@ campaign:
         custom_audience_ids: []
         excluded_custom_audience_ids: []
         # null leaves Meta's default, which may expand beyond the bounds above.
-        # Set false when a demographic bound must actually hold.
+        # Set false when a demographic bound must actually hold. Under
+        # Advantage+ audience (true) Meta rejects a hard age_max below 65 or
+        # age_min above 25: put the target ages in age_suggestion instead.
         advantage_audience: null
+        age_suggestion: null       # e.g. {min: 30, max: 50}, sent as age_range
         raw: {}                    # escape hatch, merged in unvalidated
 
       placements:
         mode: automatic            # automatic | manual
+        platforms: []              # only with mode: manual; alone = every position
         positions: []              # only with mode: manual
 
       tracking:

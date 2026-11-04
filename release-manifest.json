@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.3.1",
   "payload_root": "skills",
-  "digest": "b1b528115ff11e40e0937a6da4300c598f212897b82464b598def7c4eb2b9e17",
+  "digest": "c170a5e9bc6db0686708a830d1cbaef9df1d9c7bf4523c0efdf56b57d20cfc46",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -52,13 +52,13 @@
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
-      "sha256": "945dad0c7003fb5d13058c934592cdfb885da9f027f1e5c8886e0edd13059686",
-      "size": 6001
+      "sha256": "355b4ad1e8c21afe33ac064f311c84975226b4a829dbe7d36b7b580dff1cd529",
+      "size": 6887
     },
     {
       "path": "meta-ads-campaign/references/campaign-plan-guide.md",
-      "sha256": "8ad46ad942712b1d52f2662b1b25aeaf47d64d62755957e4ae82fa54bacd7b43",
-      "size": 7562
+      "sha256": "3b529c226b0e1dc8baa62fd95736183edf32122f16a91f6a11ce06850cba44fa",
+      "size": 9526
     },
     {
       "path": "meta-ads-campaign/references/duplicate-input.md",
