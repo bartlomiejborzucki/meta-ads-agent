@@ -26,7 +26,7 @@
 # ---------------------------------------------------------------------------
 
 version: 1
-reviewed: 2026-09-16
+reviewed: 2026-11-04
 graph_api_version: v26.0
 mcp_endpoint: https://mcp.facebook.com/ads
 
@@ -34,8 +34,12 @@ mcp_endpoint: https://mcp.facebook.com/ads
 # rename them. The core skill instructs the agent to introspect the connected
 # server and to trust a platform validation error over anything written here.
 notes: |
-  Sourced from Meta's published Ads MCP tool reference on 2026-09-16. No live
-  introspection was available on the authoring machine. Re-verify with
+  Sourced from Meta's published Ads MCP tool reference on 2026-09-16, and
+  refreshed on 2026-11-04 from the tool list and tool descriptions a connected
+  session exposed (read, not called). A campaign built on 2026-11-03 confirmed
+  the Instagram-post creative and media upload live. Every former fallback gap
+  is covered by the MCP as of 2026-11-04 (ADR-012); the `api` commands stay as
+  deprecated fallbacks for one release. Re-verify with
   docs/reference/capability-refresh.md before relying on any single tool name.
 
 capabilities:
@@ -103,8 +107,12 @@ capabilities:
     mcp_tools: [ads_create_campaign]
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
-    notes: Documented as created paused. Never override that.
+    last_reviewed: 2026-11-04
+    notes: >
+      Created PAUSED, or staged as a draft where Meta has enabled draft mode
+      for the account (status=DRAFT). Never override either. An optional
+      campaign_spend_cap is in minor units; Meta rejected a PLN cap below
+      500 PLN with error 2446307 (seen 2026-11-03).
 
   - name: create_ad_set
     area: ad_sets
@@ -167,8 +175,14 @@ capabilities:
     mcp_tools: [ads_activate_entity]
     risk_level: activate
     requires_confirmation: true
-    last_reviewed: 2026-09-16
-    notes: Starts spending. Only after preview and QA, and only top-down.
+    last_reviewed: 2026-11-04
+    notes: >
+      Starts spending. Also publishes staged drafts: treat a publish exactly
+      like an activation - only after preview and QA, with explicit approval,
+      and only for the exact objects named in object_ids. The tool
+      descriptions disagree on whether a published new campaign comes up
+      ACTIVE or keeps its staged status (2026-11-04); assume it can spend.
+      publish_as_active only when the user asked to turn it on.
 
   - name: pause_entity
     area: campaigns
@@ -177,147 +191,231 @@ capabilities:
     mcp_tools: [ads_update_entity]
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
       Stops spending rather than starting it, so it is the safe direction. Still
-      confirm the entity list first: pausing the wrong ad is a real loss.
+      confirm the entity list first: pausing the wrong ad is a real loss. In
+      draft mode a pause-only update of a published entity applies live
+      (is_draft=false); never call ads_activate_entity after it.
 
   - name: delete_entity
     area: campaigns
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: []
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_update_entity]
     cli: meta-ads-agent api delete
     risk_level: delete
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      GAP. Meta's MCP has no delete tool for campaigns, ad sets, or ads.
+      ads_update_entity with fields {"status":"DELETED"} deletes a campaign,
+      ad set or ad (tool description, 2026-11-04; not yet run live here).
+      Permanent. Discarding a never-published draft is ads_update_entity with
+      discard_draft_changes, previewed first, then confirmed with a token.
       Prefer pausing: deleted objects lose optimisation history permanently.
-      Requires a stated reason why pause is insufficient.
+      Requires a stated reason why pause is insufficient. The CLI command is
+      a DEPRECATED fallback, kept for one release (ADR-012).
+
+  - name: delete_creative
+    area: creatives
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_creative_delete]
+    risk_level: delete
+    requires_confirmation: true
+    last_reviewed: 2026-11-04
+    notes: Only a creative no ad uses - check ads_get_creative_ads first.
 
   # -- Creatives and media -------------------------------------------------
   - name: create_single_image_creative
     area: creatives
     preferred_provider: official_mcp
-    fallback_provider: api_fallback
+    fallback_provider: none
     mcp_tools: [ads_create_creative]
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      MCP covers this. Community-reported to take flat params (page_id,
-      image_hash, link_url, message, headline, call_to_action_type) rather than
-      a nested object_story_spec. Fallback exists only for fields the MCP
-      rejects; check first and say why.
+      Flat parameters (page_id, image_hash or image_url, link_url, message,
+      headline, call_to_action_type), as the tool description shows. Set
+      instagram_user_id when the ad will deliver on Instagram.
 
   - name: local_image_upload
     area: images
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: [ads_get_ad_images]
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools:
+      - ads_creative_upload_media
+      - ads_creative_upload_local_image
+      - ads_finalize_local_ad_image_upload
     cli: meta-ads-agent api upload-image
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      GAP. ads_get_ad_images only lists what is already uploaded. A community
-      source reports an ads_creative_upload_image tool that accepts URLs only,
-      which still leaves local files unsolved. Deduplicated by SHA-256 through
-      the asset manifest so a retry never re-uploads.
+      ads_creative_upload_media uploads from a public URL anywhere, and a
+      local file through Meta's upload app in hosts with interactive MCP Apps
+      (used live 2026-11-03). In a terminal host without MCP Apps, give it a
+      public URL, or use the CLI - a DEPRECATED fallback kept for one release
+      (ADR-012), deduplicated by SHA-256 through the asset manifest.
 
   - name: local_video_upload
     area: videos
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: [ads_get_ad_videos]
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_creative_upload_media]
     cli: meta-ads-agent api upload-video
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      GAP. No MCP upload tool. Uses the SDK's chunked upload and polls
-      processing status before the video is usable in a creative.
+      Same tool and the same host limit as images. Meta transcodes
+      asynchronously: a video is usable in a creative once ads_get_ad_videos
+      reports it ready. The CLI is a DEPRECATED fallback (ADR-012).
 
   - name: create_video_creative
     area: creatives
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: []
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_create_creative]
     cli: meta-ads-agent api create-creative --video
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      GAP. ads_create_creative is documented as single-image link creatives
-      only. Needs a thumbnail, which we derive from the uploaded video.
+      ads_create_creative with video_id plus one of image_hash or image_url as
+      the thumbnail (tool description, 2026-11-04). A description on a video
+      needs link_url. The CLI is a DEPRECATED fallback (ADR-012).
 
   - name: create_existing_post_creative
     area: creatives
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: [ads_boost_ig_post]
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_create_ad, ads_create_creative]
     cli: meta-ads-agent api create-creative --post
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      GAP. A Facebook Page post has no MCP equivalent (object_story_id). An
-      Instagram post has ads_boost_ig_post, but Meta does not document whether
-      a boost can be created PAUSED, and the safety model requires it; until a
-      live session shows it can, an Instagram post is built as an inert
-      creative from source_instagram_media_id (ADR-010). Either way the
-      existing post's engagement is preserved.
+      A Facebook Page post is object_story_id; an Instagram post is
+      source_instagram_media_id with instagram_user_id. Live on 2026-11-03:
+      a creative_id made by ads_create_creative from an Instagram post failed
+      at ads_create_ad with ObjectStorySpecRedundant (1443051); passing the
+      post inline in ads_create_ad's creative worked. A profile button needs
+      call_to_action VIEW_INSTAGRAM_PROFILE with value.link set to the
+      profile URL. The CLI is a DEPRECATED fallback (ADR-012).
+
+  - name: boost_instagram_post
+    area: creatives
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_boost_ig_post]
+    risk_level: create_paused
+    requires_confirmation: true
+    last_reviewed: 2026-11-04
+    notes: >
+      Campaign, ad set and ad from one Instagram post in one call. The tool
+      documents that everything is created PAUSED, and plans first with
+      confirmed=false. Its defaults are not this project's: US targeting,
+      roughly 5 USD a day for 6 days, OUTCOME_TRAFFIC. Show the plan, set
+      every one of those from the user's plan, then confirm.
 
   - name: create_multi_variant_creative
     area: creatives
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: []
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_create_creative]
     cli: meta-ads-agent api create-creative --variants
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
-      GAP. Multiple copy variants and placement-specific assets need
-      asset_feed_spec (with asset_customization_rules for placements), which
-      the MCP does not expose.
+      multi_media (2-10 images or videos, up to five primary texts,
+      headlines and descriptions; Meta chooses at delivery) or
+      placement_customizations (2-10 assets pinned to placements, exactly one
+      fallback), per the tool description 2026-11-04. Then pass the
+      creative_id to ads_create_ad. The CLI is a DEPRECATED fallback
+      (ADR-012).
 
   - name: create_carousel_creative
     area: creatives
-    preferred_provider: api_fallback
-    fallback_provider: none
-    mcp_tools: []
+    preferred_provider: official_mcp
+    fallback_provider: api_fallback
+    mcp_tools: [ads_create_creative]
     cli: meta-ads-agent api create-creative --carousel
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-04
     notes: >
-      GAP, added in 0.6 (ADR-010). ads_create_creative is documented as
-      single-image link creatives; a carousel needs link_data.child_attachments,
-      which no MCP tool exposes. Built inert, like every fallback creative.
+      ads_create_creative with cards (2-10, image or video, each with its own
+      link, headline and description), per the tool description 2026-11-04.
+      The CLI is a DEPRECATED fallback (ADR-012).
 
   - name: list_creatives
     area: creatives
     preferred_provider: official_mcp
     fallback_provider: none
-    mcp_tools: [ads_get_creatives, ads_get_creative_ads]
+    mcp_tools:
+      - ads_get_creatives
+      - ads_get_creative_ads
+      - ads_get_ad_images
+      - ads_get_ad_videos
+      - ads_get_async_result
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
+    notes: >
+      ads_get_creatives returns effective_object_story_id and
+      effective_instagram_media_id - read them after building a post ad.
+      ads_get_ad_videos reports whether an uploaded video is ready.
+
+  - name: update_creative_metadata
+    area: creatives
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_creative_update]
+    risk_level: update_inactive
+    requires_confirmation: false
+    last_reviewed: 2026-11-04
+    notes: Name, labels, ACTIVE status. A creative's content is immutable.
+
+  - name: generate_image_variants
+    area: images
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_creative_create_image_variations, ads_creative_update_image_elements]
+    risk_level: create_paused
+    requires_confirmation: false
+    last_reviewed: 2026-11-04
+    notes: >
+      Meta's generative edits and variations of an existing ad image. Each
+      result is a new image on the account, attached to nothing. Never invent
+      text, prices or claims for them; protect brand elements.
+
+  - name: delete_uploaded_image
+    area: images
+    preferred_provider: official_mcp
+    fallback_provider: none
+    mcp_tools: [ads_delete_local_ad_image]
+    risk_level: delete
+    requires_confirmation: true
+    last_reviewed: 2026-11-04
+    notes: The upload app's own delete for an image it uploaded.
 
   # -- Preview -------------------------------------------------------------
   - name: ad_preview
     area: previews
     preferred_provider: official_mcp
     fallback_provider: none
-    mcp_tools: [ads_get_ad_preview]
+    mcp_tools: [ads_get_ad_preview, ads_get_ad_preview_screenshot]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
     notes: >
       Covers our needs, so there is no preview fallback. Render the placements
-      the campaign actually targets, not just Feed.
+      the campaign actually targets, not just Feed. ads_get_ad_preview_screenshot
+      is documented as app-only: do not call it; open preview_url in a browser
+      tool instead when one is available.
 
   # -- Insights and diagnosis ---------------------------------------------
   - name: insights
@@ -331,10 +429,14 @@ capabilities:
       - ads_insights_auction_ranking_benchmarks
       - ads_insights_industry_benchmark
       - ads_insights_advertiser_context
+      - ads_insights_performance_vs_peers
       - ads_get_opportunity_score
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-04
+    notes: >
+      ads_get_opportunity_score scores the account. It is not the per-campaign
+      score Ads Manager shows, which can differ (100 vs 53 on 2026-11-04).
 
   - name: activity_log
     area: diagnostics
@@ -472,23 +574,21 @@ capabilities:
       - ads_catalog_event_source_get_catalogs
       - ads_catalog_event_source_get_health
       - ads_catalog_event_source_get_recommendations
-      - ads_catalog_get_catalogs
+      - ads_catalog_get_businesses
       - ads_catalog_get_data_sources
-      - ads_catalog_get_details
       - ads_catalog_get_diagnostics
       - ads_catalog_get_dynamic_ads_health
       - ads_catalog_get_feed_rules
-      - ads_catalog_get_product_details
-      - ads_catalog_get_product_feed_details
       - ads_catalog_get_product_feed_upload_sessions
-      - ads_catalog_get_product_product_sets
-      - ads_catalog_get_product_set_details
-      - ads_catalog_get_product_set_products
-      - ads_catalog_get_product_sets
-      - ads_catalog_search_product
+      - ads_catalog_list_catalogs
+      - ads_catalog_list_dpa_eligible_catalogs
+      - ads_catalog_list_partner_integrations
+      - ads_catalog_list_product_feeds
+      - ads_catalog_list_product_sets
+      - ads_catalog_list_products
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-04
     notes: >
       Catalog, product, set, feed and event-source reads, including the
       diagnostics and dynamic-ads health that should come before any change.
@@ -508,12 +608,13 @@ capabilities:
       - ads_catalog_event_source_disconnect
       - ads_catalog_product_create
       - ads_catalog_update_catalog
+      - ads_catalog_update_feed_rule
       - ads_catalog_update_product
       - ads_catalog_update_product_feed
       - ads_catalog_update_product_set
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-04
     notes: >
       A product's price or availability, a product set's filter, a feed's
       schedule, or an event-source connection is read by every live catalog
@@ -632,8 +733,12 @@ capabilities:
     mcp_tools: []
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-10-14
+    last_reviewed: 2026-11-04
     notes: >
       NOT SUPPORTED, and out of scope. Partnership and branded-content ads
-      need a creator's permission on their own identity, which no MCP tool
-      reads or grants. Build them in Ads Manager.
+      need a creator's permission on their own identity. As of 2026-11-04 the
+      MCP builds them (facebook_partnership_ad, instagram_partnership_ad, a
+      partner ads_boost_ig_post) and manages permissions
+      (ads_fb_partner_permission_manager,
+      ads_ig_partnership_permission_manager); these skills do not cover them
+      yet. Build them in Ads Manager, or with the MCP directly.

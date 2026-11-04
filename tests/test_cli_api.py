@@ -44,7 +44,7 @@ class TestUploadImage:
         assert code == 0
         assert "fake_image_hash_1" in out
         # The reason is printed, so the architecture is visible in the transcript.
-        assert "does not currently expose" in out
+        assert "now covers this" in out
         assert sdk.image_uploads == [str(image)]
 
     def test_json_output_names_the_capability_and_the_reason(
@@ -632,27 +632,37 @@ class TestCapabilityGuard:
         capsys: pytest.CaptureFixture[str],
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """The CLI must not become a second path to MCP-owned work."""
+        """The CLI must not become a second path to MCP-owned work.
+
+        Once a deprecated fallback is deleted from the registry, its command
+        has to refuse rather than keep working quietly.
+        """
+        import dataclasses
+
         from meta_ads_agent.capabilities import Provider
         from meta_ads_agent.cli import api_cmd
 
-        real_route = api_cmd.load_registry().route
-
-        def pretend_mcp_owns_it(name: str, **kwargs: object):  # type: ignore[no-untyped-def]
-            route = real_route(name, **kwargs)  # type: ignore[arg-type]
-            return route.__class__(
-                capability=route.capability,
-                provider=Provider.OFFICIAL_MCP,
-                risk_level=route.risk_level,
-                requires_approval=route.requires_approval,
-                reason="pretend the MCP covers this now",
-            )
-
-        monkeypatch.setattr(
-            api_cmd.load_registry().__class__, "route", staticmethod(pretend_mcp_owns_it)
+        real = api_cmd.load_registry()
+        cap = dataclasses.replace(
+            real.capabilities["local_image_upload"], fallback_provider=Provider.NONE
         )
+        registry = dataclasses.replace(
+            real, capabilities={**real.capabilities, "local_image_upload": cap}
+        )
+        monkeypatch.setattr(api_cmd, "load_registry", lambda: registry)
         image = write_png(project / "hero.png", 600, 600)
         code, _, err = run(["api", "upload-image", str(image)], capsys)
         assert code == 1
-        assert "Use the official MCP" in err
+        assert "has no API fallback" in err
+        assert "ads_creative_upload_media" in err
         assert sdk.image_uploads == []
+
+    def test_a_deprecated_fallback_still_runs_and_says_so(
+        self, sdk: Recorder, project: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        image = write_png(project / "hero.png", 600, 600)
+        code, _, err = run(["api", "upload-image", str(image)], capsys)
+        assert code == 0
+        assert "DEPRECATED" in err
+        assert "ads_creative_upload_media" in err
+        assert sdk.image_uploads == [str(image)]

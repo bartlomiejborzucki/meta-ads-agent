@@ -1,6 +1,7 @@
 # ADR-004: PAUSED by default, and explicit approval for anything that moves money
 
-- **Status:** accepted
+- **Status:** accepted; amended by [ADR-012](ADR-012-mcp-coverage-and-draft-mode.md)
+  (Meta's draft mode: publishing a draft is the `activate` class)
 - **Date:** 2026-09-16
 
 ## Context

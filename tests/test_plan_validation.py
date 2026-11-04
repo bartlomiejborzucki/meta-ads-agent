@@ -505,17 +505,38 @@ class TestRoutingReport:
         assert report.providers_used["create_single_image_creative"] == "official_mcp"
         assert not report.uses_fallback
 
-    def test_video_creative_routes_to_the_fallback_and_says_why(self) -> None:
+    @pytest.mark.parametrize("mode", ["single_video", "existing_post", "carousel"])
+    def test_every_creative_mode_routes_to_the_mcp(self, mode: str) -> None:
+        # Since 2026-11-04 (ADR-012) no creative mode needs the fallback.
         def mutate(raw):  # type: ignore[no-untyped-def]
             creative = raw["campaign"]["ad_sets"][0]["ads"][0]["creative"]
-            creative["mode"] = "single_video"
-            creative["assets"] = [{"video_id": "999"}]
+            creative["mode"] = mode
+            if mode == "single_video":
+                creative["assets"] = [{"video_id": "999"}]
+            elif mode == "existing_post":
+                creative.pop("assets", None)
+                creative.pop("variants", None)
+                creative["post_id"] = "111_222"
+            else:
+                creative.pop("assets", None)
+                creative["variants"] = creative["variants"][:1]
+                creative["cards"] = [
+                    {
+                        "asset": {"image_hash": "a"},
+                        "headline": "One",
+                        "link": "https://example.com/1",
+                    },
+                    {
+                        "asset": {"image_hash": "b"},
+                        "headline": "Two",
+                        "link": "https://example.com/2",
+                    },
+                ]
 
         report = validate_plan(build(mutate), check_assets=False)
-        assert report.providers_used["create_video_creative"] == "api_fallback"
-        assert report.uses_fallback
-        finding = next(f for f in report.findings if f.code == "routing.fallback")
-        assert "does not currently expose" in finding.message
+        assert set(report.providers_used.values()) == {"official_mcp"}
+        assert not report.uses_fallback
+        assert not [f for f in report.findings if f.code == "routing.fallback"]
 
     def test_local_image_routes_only_image_upload(self, tmp_path: Path) -> None:
         image = write_png(tmp_path / "a.png", 1200, 628)
@@ -541,7 +562,7 @@ class TestRoutingReport:
 
 
 class TestCarouselValidation:
-    def test_a_carousel_routes_to_the_fallback_and_probes_card_files(self, tmp_path: Path) -> None:
+    def test_a_carousel_routes_to_the_mcp_and_probes_card_files(self, tmp_path: Path) -> None:
         write_png(tmp_path / "a.png", 1080, 1080)
         write_png(tmp_path / "b.png", 1080, 1080)
 
@@ -555,7 +576,7 @@ class TestCarouselValidation:
             ]
 
         report = validate_plan(build(mutate), asset_base=tmp_path)
-        assert report.providers_used["create_carousel_creative"] == "api_fallback"
+        assert report.providers_used["create_carousel_creative"] == "official_mcp"
         assert "local_image_upload" in report.providers_used
         paths = {f.path for f in report.findings if f.code == "asset.ok"}
         assert any("cards[1].asset" in p for p in paths)

@@ -48,7 +48,7 @@ _DELIVERING_CREATES = {"ads_create_campaign", "ads_create_ad_set", "ads_create_a
 _WHY = {
     "update_active": "it changes something live: delivery, or what live ads read",
     "budget_increase": "it can change a budget, which moves money",
-    "activate": "it starts delivery, which spends money",
+    "activate": "it starts delivery or publishes staged drafts, which can spend money",
     "bulk": "it changes many objects at once",
     "delete": "it deletes, which cannot be undone; pausing keeps the history",
     "pii_upload": "it uploads customer data",
@@ -122,13 +122,21 @@ def _budget_fields(tool_input: Any) -> list[str]:
     ]
 
 
+def _truthy(value: Any) -> bool:
+    return value is True or (isinstance(value, str) and value.strip().lower() == "true")
+
+
 def _update_reason(tool: str, tool_input: Any) -> str:
     parts = [f"{tool} can pause, edit live objects, or change budgets"]
     statuses = _statuses(tool_input)
     if any(s.upper() == "ACTIVE" for s in statuses):
         parts = [f"{tool} sets status ACTIVE, which starts delivery"]
+    elif any(s.upper() == "DELETED" for s in statuses):
+        parts = [f"{tool} sets status DELETED, which is permanent; pausing keeps the history"]
     elif statuses:
         parts.append(f"this call sets status {', '.join(statuses)}")
+    if isinstance(tool_input, dict) and tool_input.get("discard_draft_changes"):
+        parts = [f"{tool} discards staged draft changes, which cannot be undone"]
     budgets = _budget_fields(tool_input)
     if budgets:
         parts.append(
@@ -158,6 +166,19 @@ def decide(payload: dict[str, Any], classes: dict[str, Any] | None) -> dict[str,
 
     if tool == "ads_update_entity":
         return _decision("ask", _update_reason(tool, tool_input))
+
+    if tool == "ads_boost_ig_post" and _truthy(
+        tool_input.get("confirmed") if isinstance(tool_input, dict) else None
+    ):
+        # The plan step (confirmed=false) creates nothing. The confirmed call
+        # creates a PAUSED campaign, ad set and ad, with Meta's defaults - US
+        # targeting, a small daily budget - for anything the plan left unset.
+        return _decision(
+            "ask",
+            f"{tool} with confirmed=true creates a campaign, ad set and ad (PAUSED) "
+            "from the plan it showed; Meta fills anything unset with its defaults, "
+            "including US targeting. Approve only if you reviewed that plan.",
+        )
 
     known = (classes or {}).get("tools", {})
     level = known.get(tool)

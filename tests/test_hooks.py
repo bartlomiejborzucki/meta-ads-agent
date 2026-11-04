@@ -108,6 +108,42 @@ class TestDeny:
         assert decision(answer) == "deny"
 
 
+class TestDraftsDeletesAndBoosts:
+    """Draft mode, MCP deletion and the one-call boost (ADR-012)."""
+
+    def test_publishing_a_draft_asks_and_says_so(self) -> None:
+        answer = run_hook("ads_activate_entity", {"object_ids": ["1"], "entity_id": "1"})
+        assert decision(answer) == "ask"
+        assert "publishes staged drafts" in reason(answer)
+
+    def test_a_delete_by_status_says_it_is_permanent(self) -> None:
+        answer = run_hook("ads_update_entity", {"fields": '{"status":"DELETED"}'})
+        assert decision(answer) == "ask"
+        assert "DELETED, which is permanent" in reason(answer)
+
+    def test_discarding_drafts_asks(self) -> None:
+        answer = run_hook("ads_update_entity", {"discard_draft_changes": True})
+        assert decision(answer) == "ask"
+        assert "discards staged draft changes" in reason(answer)
+
+    def test_a_boost_plan_is_silent(self) -> None:
+        assert run_hook("ads_boost_ig_post", {"confirmed": False}) is None
+        assert run_hook("ads_boost_ig_post", {}) is None
+
+    @pytest.mark.parametrize("confirmed", [True, "true"])
+    def test_a_confirmed_boost_asks(self, confirmed: object) -> None:
+        answer = run_hook("ads_boost_ig_post", {"confirmed": confirmed})
+        assert decision(answer) == "ask"
+        assert "US targeting" in reason(answer)
+
+    @pytest.mark.parametrize(
+        "tool",
+        ["ads_creative_upload_media", "ads_create_creative", "ads_creative_update"],
+    )
+    def test_building_blocks_stay_silent(self, tool: str) -> None:
+        assert run_hook(tool) is None
+
+
 class TestAsk:
     @pytest.mark.parametrize(
         ("tool", "word"),
@@ -118,7 +154,8 @@ class TestAsk:
             ("ads_catalog_update_product_set", "`update_active`"),
             ("ads_experiment_abtest_create_test", "`update_active`"),
             ("ads_pixel_event_delete", "`delete`"),
-            ("ads_boost_ig_post", "`activate`"),
+            ("ads_creative_delete", "`delete`"),
+            ("ads_delete_local_ad_image", "`delete`"),
         ],
     )
     def test_approval_classes_ask(self, tool: str, word: str) -> None:

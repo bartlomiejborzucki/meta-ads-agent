@@ -8,6 +8,7 @@ the direction that matters.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
 import subprocess
@@ -70,15 +71,31 @@ class TestDrift:
         assert not drift.clean
 
     def test_a_new_delete_tool_is_flagged_against_the_delete_gap(self, registry, inventory) -> None:  # type: ignore[no-untyped-def]
-        drift = compare(session(inventory, add={"ads_delete_campaign"}), registry, inventory)
+        gapped = _with_gap(registry, "delete_entity")
+        drift = compare(session(inventory, add={"ads_delete_campaign"}), gapped, inventory)
         assert drift.new == ["ads_delete_campaign"]
         assert drift.gap_candidates == {"delete_entity": ["ads_delete_campaign"]}
 
     def test_a_confirmed_community_name_is_reported_and_weighed(self, registry, inventory) -> None:  # type: ignore[no-untyped-def]
-        drift = compare(session(inventory, add={"ads_creative_upload_image"}), registry, inventory)
+        gapped = _with_gap(registry, "local_image_upload")
+        drift = compare(session(inventory, add={"ads_creative_upload_image"}), gapped, inventory)
         assert drift.unverified_confirmed == ["ads_creative_upload_image"]
         assert drift.gap_candidates == {"local_image_upload": ["ads_creative_upload_image"]}
         assert drift.new == []
+
+    def test_a_closed_gap_attracts_no_candidates(self, registry, inventory) -> None:  # type: ignore[no-untyped-def]
+        # Every gap closed on 2026-11-04 (ADR-012); a new name is just new.
+        drift = compare(session(inventory, add={"ads_delete_campaign"}), registry, inventory)
+        assert drift.new == ["ads_delete_campaign"]
+        assert drift.gap_candidates == {}
+
+
+def _with_gap(registry, name: str):  # type: ignore[no-untyped-def]
+    """The registry as it stood while *name* was still a fallback gap."""
+    from meta_ads_agent.capabilities import Provider
+
+    cap = dataclasses.replace(registry.capabilities[name], preferred_provider=Provider.API_FALLBACK)
+    return dataclasses.replace(registry, capabilities={**registry.capabilities, name: cap})
 
 
 class TestCommand:

@@ -55,7 +55,8 @@ def _as_payload(registry: Registry, *, area: str | None, gaps_only: bool) -> dic
     selected = [
         cap
         for cap in registry.capabilities.values()
-        if (not area or cap.area == area) and (not gaps_only or cap.is_gap)
+        if (not area or cap.area == area)
+        and (not gaps_only or cap.is_gap or cap.has_deprecated_fallback)
     ]
     return {
         "registry_version": registry.version,
@@ -80,6 +81,7 @@ def _as_payload(registry: Registry, *, area: str | None, gaps_only: bool) -> dic
                 "cli": cap.cli,
                 "last_reviewed": str(cap.last_reviewed) if cap.last_reviewed else None,
                 "is_gap": cap.is_gap,
+                "deprecated_fallback": cap.has_deprecated_fallback,
                 "notes": cap.notes.strip() or None,
             }
             for cap in sorted(selected, key=lambda c: (c.area, c.name))
@@ -134,16 +136,25 @@ def _render_gaps(registry: Registry) -> None:
     heading(f"Fallback gaps ({len(gaps)})")
     if not gaps:
         echo("  None. Everything routes through the official MCP.")
-        return
-    echo("  These need the optional [api] extra and a Meta access token.")
-    echo("")
-    for cap in gaps:
-        echo(f"  {cap.name}", "bold")
-        if cap.cli:
-            echo(f"    command: {cap.cli}")
-        if cap.notes.strip():
-            for line in cap.notes.strip().splitlines():
-                echo(f"    {line.strip()}", "dim")
+    else:
+        echo("  These need the optional [api] extra and a Meta access token.")
+        echo("")
+        for cap in gaps:
+            echo(f"  {cap.name}", "bold")
+            if cap.cli:
+                echo(f"    command: {cap.cli}")
+            if cap.notes.strip():
+                for line in cap.notes.strip().splitlines():
+                    echo(f"    {line.strip()}", "dim")
+
+    deprecated = registry.deprecated_fallbacks()
+    if deprecated:
+        heading(f"Deprecated fallbacks ({len(deprecated)})")
+        echo("  The official MCP covers these now. The commands still work, need")
+        echo("  the [api] extra and a token, and will be removed in a later release.")
+        echo("")
+        for cap in deprecated:
+            echo(f"  {cap.name:<34} {cap.cli}")
 
 
 def _show_one(registry: Registry, name: str, *, as_json: bool) -> int:
@@ -165,6 +176,7 @@ def _show_one(registry: Registry, name: str, *, as_json: bool) -> int:
                 "requires_approval": route.requires_approval,
                 "mcp_tools": list(route.mcp_tools),
                 "cli": route.cli,
+                "deprecated_fallback": cap.cli if cap.has_deprecated_fallback else None,
                 "last_reviewed": str(cap.last_reviewed) if cap.last_reviewed else None,
                 "notes": cap.notes.strip() or None,
             }
@@ -181,6 +193,8 @@ def _show_one(registry: Registry, name: str, *, as_json: bool) -> int:
         echo(f"  MCP tool hints    {', '.join(route.mcp_tools)}")
     if route.cli:
         echo(f"  command           {route.cli}")
+    if cap.has_deprecated_fallback:
+        echo(f"  deprecated        {cap.cli} (still works; prefer the MCP)")
     echo(f"  last reviewed     {cap.last_reviewed or 'never'}")
     if cap.notes.strip():
         echo("")
@@ -192,7 +206,11 @@ def _show_one(registry: Registry, name: str, *, as_json: bool) -> int:
 def _validate(registry: Registry) -> int:
     heading("Validating capability registry")
     echo(f"  parsed {len(registry.capabilities)} capabilities")
-    echo(f"  {len(registry.gaps())} fallback gap(s), {len(registry.unsupported())} unsupported")
+    echo(
+        f"  {len(registry.gaps())} fallback gap(s), "
+        f"{len(registry.deprecated_fallbacks())} deprecated fallback(s), "
+        f"{len(registry.unsupported())} unsupported"
+    )
 
     problems = 0
     for cap in registry.capabilities.values():

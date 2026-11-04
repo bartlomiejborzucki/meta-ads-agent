@@ -38,12 +38,15 @@ OUTPUT = REPO / "hooks" / "tool-classes.json"
 # Inventory tools no official-MCP capability routes to, classed by what they
 # do rather than left to the hook's guess.
 UNROUTED: dict[str, tuple[RiskLevel, str]] = {
-    "ads_boost_ig_post": (
-        RiskLevel.ACTIVATE,
-        "a boost starts delivery; Meta does not document a paused boost (ADR-010)",
+    "ads_fb_partner_permission_manager": (
+        RiskLevel.UPDATE_ACTIVE,
+        "manages Partnership Ads permissions, which these skills do not use",
     ),
-    "ads_get_ad_images": (RiskLevel.READ, "lists images already uploaded"),
-    "ads_get_ad_videos": (RiskLevel.READ, "lists videos already uploaded"),
+    "ads_ig_partnership_permission_manager": (
+        RiskLevel.UPDATE_ACTIVE,
+        "manages Partnership Ads permissions, which these skills do not use",
+    ),
+    "ads_log_ui_interaction": (RiskLevel.READ, "telemetry for Meta's in-host app"),
     "ads_creative_upload_image": (
         RiskLevel.CREATE_PAUSED,
         "unverified; uploads an image from a URL, which spends nothing",

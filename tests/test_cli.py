@@ -180,14 +180,17 @@ class TestCapabilities:
 
     def test_gaps_only(self, capsys: pytest.CaptureFixture[str]) -> None:
         _, out, _ = run(["capabilities", "--gaps"], capsys)
+        assert "Fallback gaps (0)" in out
+        assert "Deprecated fallbacks (7)" in out
         assert "local_video_upload" in out
         assert "list_ad_accounts" not in out
 
     def test_one_capability_in_detail(self, capsys: pytest.CaptureFixture[str]) -> None:
         code, out, _ = run(["capabilities", "local_video_upload"], capsys)
         assert code == 0
-        assert "api_fallback" in out
-        assert "meta-ads-agent api upload-video" in out
+        assert "official_mcp" in out
+        assert "ads_creative_upload_media" in out
+        assert "deprecated        meta-ads-agent api upload-video" in out
 
     def test_an_unknown_capability_fails(self, capsys: pytest.CaptureFixture[str]) -> None:
         code, _, err = run(["capabilities", "teleport_budget"], capsys)
@@ -198,7 +201,8 @@ class TestCapabilities:
         _, out, _ = run(["capabilities", "--json"], capsys)
         payload = json.loads(out)
         assert payload["mcp_endpoint"] == "https://mcp.facebook.com/ads"
-        assert any(c["is_gap"] for c in payload["capabilities"])
+        assert not any(c["is_gap"] for c in payload["capabilities"])
+        assert any(c["deprecated_fallback"] for c in payload["capabilities"])
 
     def test_validate_passes_on_the_shipped_registry(
         self, capsys: pytest.CaptureFixture[str]

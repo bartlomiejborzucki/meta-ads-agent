@@ -1,6 +1,8 @@
 # ADR-010: Carousels and Instagram posts join the fallback
 
-- **Status:** accepted
+- **Status:** accepted; superseded in part by
+  [ADR-012](ADR-012-mcp-coverage-and-draft-mode.md) (the MCP builds carousels and
+  Instagram posts, and documents a PAUSED boost, as of 2026-11-04)
 - **Date:** 2026-09-24
 
 ## Context

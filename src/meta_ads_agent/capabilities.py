@@ -120,6 +120,15 @@ class Capability:
         """True when the official MCP cannot do this and we fall back."""
         return self.preferred_provider is Provider.API_FALLBACK
 
+    @property
+    def has_deprecated_fallback(self) -> bool:
+        """True when the MCP owns this but the fallback command still exists."""
+        return (
+            self.preferred_provider is Provider.OFFICIAL_MCP
+            and self.fallback_provider is Provider.API_FALLBACK
+            and bool(self.cli)
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class Route:
@@ -199,9 +208,50 @@ class Registry:
             cli=cap.cli,
         )
 
+    def fallback_route(self, name: str) -> Route:
+        """Route *name* to the API fallback, for the ``api`` commands themselves.
+
+        A gap routes here as :meth:`route` would. A capability the MCP has
+        since taken over, but whose fallback is kept for a release while it is
+        deprecated (ADR-002's shrinking-fallback rule), routes here too, with a
+        reason that says the MCP covers it now. Anything else has no fallback.
+        """
+        cap = self.get(name)
+        if cap.is_gap:
+            return self.route(name)
+        if not cap.has_deprecated_fallback:
+            raise CapabilityError(
+                f"{name!r} has no API fallback. "
+                + (
+                    f"Use Meta's official Ads MCP ({', '.join(cap.mcp_tools)})."
+                    if cap.preferred_provider is Provider.OFFICIAL_MCP
+                    else cap.notes.strip()
+                )
+            )
+        return Route(
+            capability=cap.name,
+            provider=Provider.API_FALLBACK,
+            risk_level=cap.risk_level,
+            requires_approval=cap.requires_approval,
+            reason=(
+                "DEPRECATED: Meta's official Ads MCP now covers this "
+                f"({', '.join(cap.mcp_tools)}). The Business SDK fallback is "
+                "kept for one release and will be removed - prefer the MCP."
+            ),
+            mcp_tools=cap.mcp_tools,
+            cli=cap.cli,
+        )
+
     def gaps(self) -> list[Capability]:
         """Capabilities the fallback exists for. This list should shrink."""
         return sorted((c for c in self.capabilities.values() if c.is_gap), key=lambda c: c.name)
+
+    def deprecated_fallbacks(self) -> list[Capability]:
+        """Capabilities the MCP now covers whose fallback has not been deleted yet."""
+        return sorted(
+            (c for c in self.capabilities.values() if c.has_deprecated_fallback),
+            key=lambda c: c.name,
+        )
 
     def unsupported(self) -> list[Capability]:
         return sorted(

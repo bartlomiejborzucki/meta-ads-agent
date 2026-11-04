@@ -40,7 +40,7 @@ class TestShippedRegistry:
         assert registry.graph_api_version == DEFAULT_GRAPH_API_VERSION
 
     def test_every_fallback_capability_names_a_command(self, registry) -> None:  # type: ignore[no-untyped-def]
-        for cap in registry.gaps():
+        for cap in registry.gaps() + registry.deprecated_fallbacks():
             assert cap.cli, f"{cap.name} routes to the fallback but names no command"
 
     def test_every_mcp_capability_names_tool_hints(self, registry) -> None:  # type: ignore[no-untyped-def]
@@ -66,21 +66,30 @@ class TestRouting:
         assert not route.uses_fallback
         assert "ads_create_campaign" in route.mcp_tools
 
-    def test_gap_capability_routes_to_fallback_and_explains_why(self, registry) -> None:  # type: ignore[no-untyped-def]
+    def test_a_capability_the_mcp_took_over_routes_to_the_mcp(self, registry) -> None:  # type: ignore[no-untyped-def]
         route = registry.route("local_video_upload")
+        assert route.provider is Provider.OFFICIAL_MCP
+        assert not route.uses_fallback
+        assert "ads_creative_upload_media" in route.mcp_tools
+
+    def test_its_deprecated_fallback_still_routes_and_explains_why(self, registry) -> None:  # type: ignore[no-untyped-def]
+        route = registry.fallback_route("local_video_upload")
         assert route.provider is Provider.API_FALLBACK
         assert route.uses_fallback
-        assert "does not currently expose" in route.reason
+        assert "DEPRECATED" in route.reason
+        assert "ads_creative_upload_media" in route.reason
         assert route.cli == "meta-ads-agent api upload-video"
+
+    def test_a_capability_with_no_fallback_has_no_fallback_route(self, registry) -> None:  # type: ignore[no-untyped-def]
+        with pytest.raises(CapabilityError, match="has no API fallback"):
+            registry.fallback_route("create_campaign")
 
     def test_fallback_does_not_take_over_mcp_work_when_mcp_is_absent(self, registry) -> None:  # type: ignore[no-untyped-def]
         # Rerouting here would turn a setup problem into a credential request.
         with pytest.raises(CapabilityError, match="not connected"):
             registry.route("create_campaign", mcp_available=False)
-
-    def test_fallback_still_works_without_the_mcp(self, registry) -> None:  # type: ignore[no-untyped-def]
-        route = registry.route("local_image_upload", mcp_available=False)
-        assert route.provider is Provider.API_FALLBACK
+        with pytest.raises(CapabilityError, match="not connected"):
+            registry.route("local_image_upload", mcp_available=False)
 
     def test_unsupported_capability_raises_with_its_note(self, registry) -> None:  # type: ignore[no-untyped-def]
         with pytest.raises(CapabilityError, match="not supported"):
@@ -91,17 +100,23 @@ class TestRouting:
             registry.route("make_me_money")
 
     def test_the_known_gaps_are_the_documented_ones(self, registry) -> None:  # type: ignore[no-untyped-def]
-        # If this list grows, ADR-002 requires a stated reason. If it shrinks,
-        # something good happened and the test should be updated deliberately.
-        assert {c.name for c in registry.gaps()} == {
+        # If this list grows, ADR-002 requires a stated reason. It emptied on
+        # 2026-11-04, when Meta's MCP covered every one of them (ADR-012).
+        assert registry.gaps() == []
+
+    def test_the_deprecated_fallbacks_are_the_former_gaps(self, registry) -> None:  # type: ignore[no-untyped-def]
+        # Each keeps its command for one release, then is deleted (ADR-002).
+        assert {c.name for c in registry.deprecated_fallbacks()} == {
             "local_image_upload",
             "local_video_upload",
             "create_video_creative",
             "create_existing_post_creative",
             "create_multi_variant_creative",
-            "create_carousel_creative",  # ADR-010: ads_create_creative is single-image
+            "create_carousel_creative",
             "delete_entity",
         }
+        for cap in registry.deprecated_fallbacks():
+            assert "DEPRECATED" in cap.notes, cap.name
 
 
 class TestApprovalClassification:

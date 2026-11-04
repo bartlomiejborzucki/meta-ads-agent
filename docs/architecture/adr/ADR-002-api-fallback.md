@@ -1,7 +1,8 @@
 # ADR-002: The fallback uses the official Business SDK, and is meant to shrink
 
 - **Status:** accepted; amended by [ADR-010](ADR-010-carousel-and-instagram-posts.md)
-  (carousels, Instagram posts)
+  (carousels, Instagram posts) and [ADR-012](ADR-012-mcp-coverage-and-draft-mode.md)
+  (every gap below covered by the MCP as of 2026-11-04; the fallback is deprecated)
 - **Date:** 2026-09-16
 
 ## Context

@@ -47,16 +47,21 @@ by-hand route).
 <!-- shared:preflight end -->
 
 ```
-ads_catalog_get_catalogs                 → catalogs the business owns
+ads_catalog_get_businesses               → businesses whose catalogs you can reach
+ads_catalog_list_catalogs                → catalogs the business owns
+ads_catalog_list_dpa_eligible_catalogs   → catalogs that can feed dynamic ads
 ads_catalog_get_diagnostics              → what is wrong with a catalog, by issue
 ads_catalog_get_dynamic_ads_health       → whether it can feed dynamic ads at all
-ads_catalog_get_product_feed_details     → a feed: schedule, last upload, errors
-ads_catalog_get_product_sets             → product sets, and their filters
-ads_catalog_get_product_set_products     → what a set actually contains
+ads_catalog_list_product_feeds           → feeds: schedule, last upload, errors
+ads_catalog_list_product_sets            → product sets, and their filters
+ads_catalog_list_products                → products, to find one or see a set's contents
+ads_catalog_list_partner_integrations    → partner platforms feeding the catalog
 ads_catalog_event_source_get_health      → whether pixel events match products
-ads_catalog_search_product               → find products by id, name or field
-ads_catalog_get_product_product_sets     → which sets a product falls into
 ```
+
+Tool names as a connected session listed them on 2026-11-04; several earlier
+`ads_catalog_get_*` reads became `ads_catalog_list_*`. Read each tool's own
+description for its filters before relying on one.
 
 Changes are named tool by tool in the approval table below.
 
@@ -115,10 +120,10 @@ today, and whether any live ad set already uses a set with the same purpose.
 
 | Step | Tools | Class | Why |
 | --- | --- | --- | --- |
-| Any read, diagnostic or health check | `ads_catalog_get_*`, `ads_catalog_event_source_get*`, `ads_catalog_search_product` | `read` | changes nothing |
+| Any read, diagnostic or health check | `ads_catalog_get_*`, `ads_catalog_list_*`, `ads_catalog_event_source_get*` | `read` | changes nothing |
 | Product sets | `ads_catalog_create_product_set`, `ads_catalog_update_product_set` | `update_active` - explicit approval | every live catalog ad that reads the set changes, without any campaign being touched |
 | Products | `ads_catalog_product_create`, `ads_catalog_update_product` | `update_active` - explicit approval | the same |
-| Feeds and feed rules | `ads_catalog_create_product_feed`, `ads_catalog_update_product_feed`, `ads_catalog_create_product_feed_upload_session`, `ads_catalog_create_feed_rule` | `update_active` - explicit approval | the next upload rewrites what live ads show |
+| Feeds and feed rules | `ads_catalog_create_product_feed`, `ads_catalog_update_product_feed`, `ads_catalog_create_product_feed_upload_session`, `ads_catalog_create_feed_rule`, `ads_catalog_update_feed_rule` | `update_active` - explicit approval | the next upload rewrites what live ads show |
 | Catalogs | `ads_catalog_create`, `ads_catalog_update_catalog` | `update_active` - explicit approval | the same |
 | Event sources | `ads_catalog_event_source_connect`, `ads_catalog_event_source_disconnect` | `update_active` - explicit approval | retargeting audiences depend on the match |
 | Deleting | `ads_catalog_delete_product`, `ads_catalog_product_set_delete`, `ads_catalog_product_feed_delete`, `ads_catalog_product_feed_delete_rule` | `delete` | breaks every ad set that uses it; check first |

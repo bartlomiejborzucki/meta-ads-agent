@@ -1,22 +1,33 @@
 # Current Meta Ads capabilities (official MCP vs. Marketing API)
 
-**Reviewed:** 2026-09-16
-**Method:** read Meta's official `Ads MCP Server` documentation tree under
-`developers.facebook.com/documentation/ads-commerce/ads-ai-connectors/ads-mcp-server/`,
-one page per tool category, plus the Marketing API changelog and the
-`facebook-business` PyPI release history.
-**Not verified by live introspection.** No Meta MCP session was connected to the machine
-this document was written on (`claude mcp list` showed no Meta server). Everything below is
-sourced from Meta's own published tool reference, which is authoritative for tool *names*
-but does not publish full JSON schemas. Parameter columns are therefore intentionally coarse.
+**Reviewed:** 2026-11-04
+**Method (2026-11-04):** the tool list and tool descriptions exposed by Meta's official Ads
+MCP to a connected session (a claude.ai account connector), read without calling any tool.
+A campaign built against the same server on 2026-11-03 confirmed the Instagram-post creative
+and media upload paths live; the rest of what this file says about creatives, upload, draft
+mode and deletion is what the tool descriptions say, dated 2026-11-04.
+**Method (2026-09-16, superseded):** Meta's published `Ads MCP Server` documentation tree
+under `developers.facebook.com/documentation/ads-commerce/ads-ai-connectors/ads-mcp-server/`,
+plus the Marketing API changelog and the `facebook-business` PyPI release history. No live
+session was available then.
 
-**Spot-checked 2026-09-18.** Meta's `Ad creation and management` page was
-re-read: all 28 tool names in that category are unchanged, none of them closes
-any of the six fallback gaps then listed (no local upload, no video creative, no Page-post
-creative, no `asset_feed_spec`, no delete for campaigns / ad sets / ads), and
-the server is now documented as generally available rather than gradually
-rolling out. The other categories were not re-read, so their `last_reviewed`
-dates stand.
+**What changed since 2026-09-16.** `ads_create_creative` now builds single-video,
+static-carousel, multi-media (`multi_media`), placement-customised
+(`placement_customizations`), Facebook Page post (`object_story_id`) and Instagram post
+(`source_instagram_media_id`) creatives. `ads_creative_upload_media` uploads images and
+videos from a public URL, or a local file through Meta's upload app in hosts that support
+interactive MCP Apps. `ads_boost_ig_post` documents that it creates everything PAUSED, behind
+a plan-then-confirm step. `ads_update_entity` accepts `status: DELETED`, and
+`ads_creative_delete` deletes a creative. Every fallback gap this project listed is covered
+by the MCP as of this date - see [ADR-012](../architecture/adr/ADR-012-mcp-coverage-and-draft-mode.md).
+Several catalog tools were renamed (`ads_catalog_list_*`).
+
+**Draft mode.** For accounts where Meta has enabled it, `ads_create_*` stage objects in the
+account's Ads Manager draft (`status=DRAFT`) and `ads_activate_entity` publishes them. The
+descriptions disagree on the status a published object takes: `ads_create_campaign` says
+published objects "go live ACTIVE", `ads_activate_entity` says publication "preserves staged
+status unless publish_as_active requests activation". This project treats publication as
+the moment spending can start.
 
 > Re-verify before trusting this file. See
 > [docs/reference/capability-refresh.md](../reference/capability-refresh.md) for the
@@ -40,8 +51,8 @@ The OAuth client id is the reason this project does **not** bundle a Meta MCP se
 its plugin manifests: a hardcoded `client_id` would be wrong for every user. See
 [ADR-006](../architecture/adr/ADR-006-mcp-connection-is-user-owned.md).
 
-Third-party write-ups circulating in 2026 claim the server exposes "29 tools". Meta's own
-documentation tree lists substantially more (~90 distinct names, below). Prefer the docs.
+Third-party write-ups circulating in 2026 claim the server exposes "29 tools". A connected
+session on 2026-11-04 exposed about 110 distinct `ads_*` names, listed below.
 
 ## Marketing API / SDK versions
 
@@ -63,7 +74,7 @@ documentation tree lists substantially more (~90 distinct names, below). Prefer 
 | `ads_get_pages_for_business` | Pages owned by a business |
 | `ads_get_user_pages` | All Pages the user can advertise with |
 | `ads_get_ig_accounts` | Instagram Business/Creator accounts linked to an ad account |
-| `ads_get_ig_media` | Recent IG media filtered to boost-eligible items |
+| `ads_get_ig_media` | Advertisable IG posts, reels and stories; pages of up to 25 (`limit`), with `filters` on date, media type and product type |
 | `ads_get_field_context` | Field metadata: type, filterability, enum values, supported levels |
 
 `ads_get_field_context` matters a lot for this project: it is the supported way to discover
@@ -73,29 +84,38 @@ documentation tree lists substantially more (~90 distinct names, below). Prefer 
 
 | Tool | Purpose | Notes |
 | --- | --- | --- |
-| `ads_create_campaign` | Create a campaign | Documented as created **paused** |
-| `ads_create_ad_set` | Create an ad set (targeting, budget, optimization goal) | Documented as created **paused** |
-| `ads_create_ad` | Create an ad from a creative | Documented as created **paused** |
-| `ads_update_entity` | Update fields on a campaign / ad set / ad | Spend-affecting; gate it |
-| `ads_activate_entity` | Paused -> active | Starts spending; gate it |
-| `ads_get_ad_entities` | Search/retrieve campaigns, ad sets, ads — and the primary insights tool | |
+| `ads_create_campaign` | Create a campaign | **Paused**, or a **draft** where draft mode is on. Takes `campaign_spend_cap` |
+| `ads_create_ad_set` | Create an ad set (targeting, budget, optimization goal) | Paused, or a draft |
+| `ads_create_ad` | Create an ad from a creative | Paused, or a draft. `creative` may name an existing post inline |
+| `ads_update_entity` | Update fields on a campaign / ad set / ad | Spend-affecting; gate it. `status: DELETED` deletes. In draft mode most edits are staged (`is_draft`); `discard_draft_changes` previews, then discards with a token |
+| `ads_activate_entity` | Paused -> active, or **publish** staged drafts (`object_ids`, `publish_as_active`, `allow_partial_publish`) | Starts spending; gate it |
+| `ads_get_ad_entities` | Search/retrieve campaigns, ad sets, ads — and the primary insights tool. `object_state=draft` lists staged drafts | |
 | `ads_get_errors` | Delivery-blocking errors for an account or entity | |
 
-There is **no delete tool** for campaigns, ad sets, or ads.
+Deleting a campaign, ad set or ad is `ads_update_entity` with `status: DELETED`. Permanent.
 
 ### Creatives and media
 
 | Tool | Purpose | Notes |
 | --- | --- | --- |
-| `ads_create_creative` | Create a **single-image link** ad creative | Documented scope is single image only |
-| `ads_get_creatives` | List creatives on an account | |
+| `ads_create_creative` | Create a creative: single image, single video (`video_id` plus a thumbnail), static carousel (`cards`, 2-10), multi-media (`multi_media`, 2-10 assets, up to 5 text variants), placement-customised (`placement_customizations`, 2-10 with one fallback), Facebook Page post (`object_story_id`), Instagram post (`source_instagram_media_id`), catalog carousel, Partnership Ads | Inert until an ad uses it |
+| `ads_creative_update` | Rename a creative, set it ACTIVE, change its labels | Content is immutable |
+| `ads_creative_delete` | Delete a creative not attached to an ad | Destructive |
+| `ads_creative_upload_media` | Upload an image or video from a public URL, or a local file through Meta's upload app (hosts with interactive MCP Apps only) | Video is usable once its status is `ready` |
+| `ads_creative_upload_local_image` / `ads_finalize_local_ad_image_upload` / `ads_delete_local_ad_image` | The upload app's own steps | App-driven |
+| `ads_creative_update_image_elements` | AI edit of an existing ad image into a new image | Writes a new image; attaches nothing |
+| `ads_creative_create_image_variations` | AI variations of a seed image | May return a job for `ads_get_async_result` |
+| `ads_get_async_result` | Collect a long-running job | |
+| `ads_get_creatives` | List creatives on an account, including `effective_object_story_id` and `effective_instagram_media_id` | |
 | `ads_get_creative_ads` | Ads using a given creative | |
-| `ads_get_ad_images` | List images **already uploaded** to the account | No upload tool |
-| `ads_get_ad_videos` | List videos **already uploaded** to the account | No upload tool |
-| `ads_get_ad_preview` | Render a placement preview (Feed, Story, Reels) | Covers our preview needs |
-| `ads_boost_ig_post` | Promote an existing organic Instagram post | No Facebook Page-post equivalent |
+| `ads_get_ad_images` | List images already uploaded to the account | |
+| `ads_get_ad_videos` | List videos already uploaded, with processing status | |
+| `ads_get_ad_preview` | Render a placement preview (Feed, Story, Reels) and a `preview_url` | Covers our preview needs |
+| `ads_get_ad_preview_screenshot` | Screenshot sink for the preview card | Documented as app-only, not for model use |
+| `ads_boost_ig_post` | Campaign, ad set and ad from an existing Instagram post, in one call | Plan with `confirmed=false` first; everything created PAUSED |
 
-Media **upload** is the single largest gap. Listing tools exist; ingestion tools do not.
+Media upload was the largest gap on 2026-09-16; `ads_creative_upload_media` closes it for
+URLs everywhere and for local files in hosts with MCP Apps.
 
 ### Insights and diagnostics
 
@@ -106,6 +126,7 @@ Media **upload** is the single largest gap. Listing tools exist; ingestion tools
 | `ads_insights_anomaly_signal` | Flags unusual deviations worth investigating |
 | `ads_insights_auction_ranking_benchmarks` | Auction/quality ranking signals |
 | `ads_insights_industry_benchmark` | Ad set performance vs. similar advertisers |
+| `ads_insights_performance_vs_peers` | Performance against peer advertisers |
 | `ads_insights_advertiser_context` | Business/funnel summary to guide optimization-goal choice |
 | `ads_get_opportunity_score` | Account optimization score 0-100 plus recommendations |
 | `ads_account_get_activity_logs` | Activity log entries, scopable by object, window, category, user |
@@ -142,20 +163,20 @@ exists" and "events are actually arriving". The tracking skill requires both.
 
 ### Catalogs and commerce
 
-34 tools under the `ads_catalog_*` prefix covering catalogs, products, product sets, product
-feeds, feed rules, and event-source connections: `ads_catalog_create`,
-`ads_catalog_update_catalog`, `ads_catalog_get_catalogs`, `ads_catalog_get_details`,
-`ads_catalog_get_diagnostics`, `ads_catalog_get_dynamic_ads_health`,
-`ads_catalog_get_data_sources`, `ads_catalog_get_product_details`,
+34 tools under the `ads_catalog_*` prefix in the 2026-11-04 session, covering businesses,
+catalogs, products, product sets, product feeds, feed rules, partner integrations and
+event-source connections: `ads_catalog_get_businesses`, `ads_catalog_list_catalogs`,
+`ads_catalog_list_dpa_eligible_catalogs`, `ads_catalog_create`,
+`ads_catalog_update_catalog`, `ads_catalog_get_diagnostics`,
+`ads_catalog_get_dynamic_ads_health`, `ads_catalog_get_data_sources`,
+`ads_catalog_list_partner_integrations`, `ads_catalog_list_products`,
 `ads_catalog_product_create`, `ads_catalog_update_product`, `ads_catalog_delete_product`,
-`ads_catalog_get_product_product_sets`, `ads_catalog_search_product`,
-`ads_catalog_create_product_set`, `ads_catalog_update_product_set`,
-`ads_catalog_get_product_sets`, `ads_catalog_get_product_set_details`,
-`ads_catalog_get_product_set_products`, `ads_catalog_product_set_delete`,
-`ads_catalog_create_product_feed`, `ads_catalog_update_product_feed`,
-`ads_catalog_get_product_feed_details`, `ads_catalog_create_product_feed_upload_session`,
+`ads_catalog_list_product_sets`, `ads_catalog_create_product_set`,
+`ads_catalog_update_product_set`, `ads_catalog_product_set_delete`,
+`ads_catalog_list_product_feeds`, `ads_catalog_create_product_feed`,
+`ads_catalog_update_product_feed`, `ads_catalog_create_product_feed_upload_session`,
 `ads_catalog_get_product_feed_upload_sessions`, `ads_catalog_product_feed_delete`,
-`ads_catalog_create_feed_rule`, `ads_catalog_get_feed_rules`,
+`ads_catalog_create_feed_rule`, `ads_catalog_update_feed_rule`, `ads_catalog_get_feed_rules`,
 `ads_catalog_product_feed_delete_rule`, `ads_catalog_event_source_get`,
 `ads_catalog_event_source_get_catalogs`, `ads_catalog_event_source_get_health`,
 `ads_catalog_event_source_get_recommendations`, `ads_catalog_event_source_connect`,
@@ -176,6 +197,12 @@ fallback for it — see the shrinking-fallback philosophy in
 
 `ads_library_search` (public Meta Ad Library), `ads_get_help_article` (Business Help Center).
 
+### Partnerships and the host app
+
+`ads_fb_partner_permission_manager` and `ads_ig_partnership_permission_manager` manage
+partner permissions for Partnership Ads, which this project does not build.
+`ads_log_ui_interaction` is telemetry for Meta's in-host app.
+
 ## Classification
 
 `OFFICIAL_MCP` = use the MCP, no local code. `API_FALLBACK` = MCP has no tool, use the
@@ -189,13 +216,12 @@ Business SDK. `BOTH` = MCP can do it but a narrow local path is still justified.
 | Entity search + insights | `OFFICIAL_MCP` | `ads_get_ad_entities` is the reporting workhorse |
 | Ad preview | `OFFICIAL_MCP` | `ads_get_ad_preview` |
 | Single-image link creative | `OFFICIAL_MCP` | `ads_create_creative` |
-| **Local image upload** | `API_FALLBACK` | No MCP upload tool; only `ads_get_ad_images` |
-| **Local video upload** | `API_FALLBACK` | No MCP upload tool; needs processing polling |
-| **Video ad creative** | `API_FALLBACK` | `ads_create_creative` documents single-image only |
-| **Existing-post creative** | `API_FALLBACK` | Facebook Page posts have no MCP tool; `ads_boost_ig_post` exists for Instagram, but a paused boost is undocumented, so IG posts are built inert too (ADR-010, 2026-09-24) |
-| **Multi-variant / placement-specific creative (`asset_feed_spec`)** | `API_FALLBACK` | Not exposed |
-| **Carousel creative** | `API_FALLBACK` | Not exposed; built through the fallback since 0.6.0 (ADR-010) |
-| **Delete campaign / ad set / ad** | `API_FALLBACK` | No MCP delete tool. Pause is almost always the better answer |
+| Image / video upload | `OFFICIAL_MCP` | `ads_creative_upload_media` (2026-11-04). A local file needs a host with MCP Apps; elsewhere a public URL, or the deprecated `api upload-*` fallback |
+| Video ad creative | `OFFICIAL_MCP` | `ads_create_creative` with `video_id` and a thumbnail (tool description, 2026-11-04) |
+| Existing-post creative | `OFFICIAL_MCP` | `object_story_id` / `source_instagram_media_id`. The Instagram post was built live on 2026-11-03 inline in `ads_create_ad` (a `creative_id` made from the post failed with 1443051); `ads_boost_ig_post` creates PAUSED |
+| Multi-variant / placement-specific creative | `OFFICIAL_MCP` | `multi_media`, `placement_customizations` (tool description, 2026-11-04) |
+| Carousel creative | `OFFICIAL_MCP` | `cards` (tool description, 2026-11-04) |
+| Delete campaign / ad set / ad | `OFFICIAL_MCP` | `ads_update_entity` with `status: DELETED` (tool description, 2026-11-04). Pause is almost always the better answer |
 | Custom audiences | `OFFICIAL_MCP` | Full coverage including PII upload. We add no fallback here on purpose |
 | Datasets / pixels / custom conversions | `OFFICIAL_MCP` | Full coverage |
 | Catalogs | `OFFICIAL_MCP` | 34 tools |
@@ -205,7 +231,16 @@ Business SDK. `BOTH` = MCP can do it but a narrow local path is still justified.
 | Activity logs | `OFFICIAL_MCP` | `ads_account_get_activity_logs` |
 | Lead forms (`leadgen_forms`) | `UNSUPPORTED` | No MCP tool; no fallback |
 | Automated rules | `UNSUPPORTED` | No MCP tool; out of scope |
-| Partnership / branded-content ads | `UNSUPPORTED` | Out of scope |
+| Partnership / branded-content ads | `UNSUPPORTED` | Out of scope here, although the MCP now builds them (`facebook_partnership_ad`, `instagram_partnership_ad`, partner `ads_boost_ig_post`) |
+
+## Names absent from the 2026-11-04 session
+
+Listed in Meta's reference on 2026-09-16, not exposed to the connected session on
+2026-11-04 - renamed, as far as the names show, to the `ads_catalog_list_*` tools above:
+`ads_catalog_get_catalogs`, `ads_catalog_get_details`, `ads_catalog_get_product_details`,
+`ads_catalog_get_product_product_sets`, `ads_catalog_search_product`,
+`ads_catalog_get_product_sets`, `ads_catalog_get_product_set_details`,
+`ads_catalog_get_product_set_products`, `ads_catalog_get_product_feed_details`.
 
 ## Community-reported tools absent from Meta's published reference
 
@@ -215,24 +250,23 @@ Meta's documentation pages:
 
 | Tool | Reported behaviour | Status |
 | --- | --- | --- |
-| `ads_creative_upload_image` | Uploads an ad image **from a URL only**; reportedly cannot read a local file path | Unverified |
-| `ads_entity_get_report` | Fetch a report | Unverified |
-| `ads_entity_schedule_report` | Schedule a recurring report | Unverified |
+| `ads_creative_upload_image` | Uploads an ad image **from a URL only**; reportedly cannot read a local file path | Absent 2026-11-04; `ads_creative_upload_media` does this and more |
+| `ads_entity_get_report` | Fetch a report | Absent 2026-11-04 |
+| `ads_entity_schedule_report` | Schedule a recurring report | Absent 2026-11-04 |
 
-If `ads_creative_upload_image` exists and is URL-only, the gap this project fills narrows from
-"image upload" to "*local-file* image upload" — which is still a real gap, and still the
-common case for an agent working from a user's filesystem. `config/capabilities.yaml`
-records the capability as `local_image_upload` for exactly this reason.
+None of the three appeared in the 2026-11-04 session. URL upload is now
+`ads_creative_upload_media`.
 
 Other unverified observations from the same source, recorded so a live session can confirm
 or refute them rather than being treated as fact:
 
 - Budgets passed to `ads_create_campaign` / `ads_create_ad_set` are in **minor currency
-  units** of the account currency.
+  units** of the account currency. *(Confirmed by the tool descriptions, 2026-11-04.)*
 - `ads_create_ad_set` expects `targeting` as a **JSON-encoded string**, not an object.
 - `ads_create_creative` takes **flat** parameters (`page_id`, `image_hash`, `link_url`,
   `message`, `headline`, `call_to_action_type`) rather than a nested `object_story_spec`.
 - `ads_create_ad` expects `creative` as a JSON-encoded string and names the ad `ad_name`.
+  *(Confirmed by the tool description, 2026-11-04.)*
 - `entity_type` for an ad set is spelled `ad_set`, with an underscore.
 - `ads_get_ad_accounts` returns eligibility fields worth checking before any write:
   `is_ads_mcp_enabled`, `is_queryable`, `has_payment_method`.

@@ -31,8 +31,14 @@ from meta_ads_agent.api.creatives import (
 from meta_ads_agent.api.deletion import DeletableType, delete_object
 from meta_ads_agent.api.media import upload_image, upload_video
 from meta_ads_agent.capabilities import Provider, RiskLevel, load_registry
-from meta_ads_agent.cli.output import echo, emit_json, fail, heading
-from meta_ads_agent.errors import ApiFallbackUnavailable, ConfigError, DryRun, MetaAdsAgentError
+from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
+from meta_ads_agent.errors import (
+    ApiFallbackUnavailable,
+    CapabilityError,
+    ConfigError,
+    DryRun,
+    MetaAdsAgentError,
+)
 from meta_ads_agent.models.plan import CopyVariant
 from meta_ads_agent.redaction import redact
 from meta_ads_agent.state.actionlog import ActionLog, ActionRecord
@@ -135,15 +141,20 @@ def _parse_placements(pairs: list[str]) -> dict[str, str]:
 
 
 def _context(capability: str) -> tuple[Workspace, AssetStore, ActionLog, str]:
-    """Resolve workspace, stores, and the reason this fallback is being used."""
+    """Resolve workspace, stores, and the reason this fallback is being used.
+
+    A capability Meta's MCP has taken over still runs here while its fallback
+    is deprecated, with a warning on stderr; one that never had a fallback is
+    refused.
+    """
     workspace = Workspace.locate()
     registry = load_registry()
-    route = registry.route(capability)
-    if route.provider is not Provider.API_FALLBACK:
-        raise MetaAdsAgentError(
-            f"{capability} routes to {route.provider.value}, not the API "
-            "fallback. Use the official MCP for it."
-        )
+    try:
+        route = registry.fallback_route(capability)
+    except CapabilityError as exc:
+        raise MetaAdsAgentError(str(exc)) from None
+    if not registry.get(capability).is_gap:
+        warn(route.reason)
     return workspace, AssetStore(workspace), ActionLog(workspace), route.reason
 
 

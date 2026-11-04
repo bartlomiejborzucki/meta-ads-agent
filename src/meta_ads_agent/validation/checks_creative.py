@@ -14,9 +14,9 @@ from meta_ads_agent.state.assets import AssetKind, probe_asset
 from meta_ads_agent.validation.account import AccountContext
 from meta_ads_agent.validation.report import Severity, ValidationReport
 
-# Creative modes that need the API fallback. Derived from the capability
-# registry at validation time, but mapped here because the plan speaks in modes
-# and the registry speaks in capabilities.
+# The capability each creative mode needs. Which layer provides it comes from
+# the capability registry at validation time; the mapping lives here because
+# the plan speaks in modes and the registry speaks in capabilities.
 _MODE_CAPABILITY: dict[CreativeMode, str] = {
     CreativeMode.SINGLE_IMAGE: "create_single_image_creative",
     CreativeMode.SINGLE_VIDEO: "create_video_creative",
@@ -178,8 +178,7 @@ def check_creative_routing(
                     Severity.INFO,
                     "routing.fallback",
                     f"creative mode {ad.creative.mode.value} will use the Meta "
-                    f"Business SDK fallback ({route.cli}) because Meta's "
-                    "official Ads MCP does not currently expose it.",
+                    f"Business SDK fallback ({route.cli}): {route.reason}",
                     path,
                 )
 
@@ -198,17 +197,24 @@ def check_creative_routing(
             needed.add(
                 "local_video_upload" if looks_like_video(local_path) else "local_image_upload"
             )
-        for capability in sorted(needed):
-            route = registry.route(capability)
-            report.providers_used[capability] = route.provider.value
-        report.add(
-            Severity.INFO,
-            "routing.local_upload",
-            "the plan references local files, so upload runs through the Meta "
-            "Business SDK fallback - Meta's official Ads MCP lists uploaded "
-            "media but has no local-file ingestion tool. Uploads are "
-            "deduplicated by content fingerprint.",
-        )
+        routes = [registry.route(capability) for capability in sorted(needed)]
+        for route in routes:
+            report.providers_used[route.capability] = route.provider.value
+        if any(route.uses_fallback for route in routes):
+            message = (
+                "the plan references local files, so upload runs through the Meta "
+                "Business SDK fallback. Uploads are deduplicated by content "
+                "fingerprint."
+            )
+        else:
+            message = (
+                "the plan references local files. Meta's MCP uploads them with "
+                "ads_creative_upload_media: a local file through Meta's upload app "
+                "in hosts with interactive MCP Apps, otherwise from a public URL. "
+                "In a terminal host without either, `meta-ads-agent api "
+                "upload-image` / `upload-video` still work as a deprecated fallback."
+            )
+        report.add(Severity.INFO, "routing.local_upload", message)
 
 
 def check_local_assets(
