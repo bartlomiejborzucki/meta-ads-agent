@@ -28,7 +28,7 @@ default. Malformed values are rejected rather than passed through -
 
 ## The SDK major has to agree
 
-`facebook-business` majors track Graph API versions. `26.0.1` corresponds to
+`facebook-business` majors track Graph API versions. `26.x` corresponds to
 `v26.0`. Setting `META_GRAPH_API_VERSION=v27.0` while running the 26.x SDK will
 mostly work and will fail in whichever specific place the shapes diverged -
 which is a worse failure than a clean one, because it surfaces late.

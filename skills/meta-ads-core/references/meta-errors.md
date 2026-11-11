@@ -28,8 +28,12 @@ marks a recorded failure `retry_safe: false` for exactly this reason.
 | 2 | Service temporarily unavailable | Back off |
 | 4 | Application-level rate limit | Stop, wait, reduce request volume |
 | 17 | User-level rate limit | Same, and batch more aggressively |
+| 17 / subcode 2446079 | Too many calls from this ad account - reported after about 60 calls in a few minutes | Same; spread the calls out |
 | 341 | Application limit reached | Wait; do not loop |
 | 613 | Custom-level throttling | Slow down; reduce concurrency |
+| 80000 | Business Use Case rate limit: Ads Insights, per ad account | Wait; the `X-Business-Use-Case-Usage` header says how long |
+| 80003 | Business Use Case rate limit: Custom Audience | Same |
+| 80004 | Business Use Case rate limit: Ads Management | Same |
 
 Rate limiting means your query pattern is wrong. One aggregated query with
 breakdowns beats a loop over entities.
@@ -62,7 +66,7 @@ temporary block becomes a longer one.
 | 100 / subcode 1487036 | Invalid targeting spec | Often `targeting` sent as an object where a JSON string is expected. |
 | 400 | Malformed request | Usually a shape problem, not a value problem. |
 | 1443051 `ObjectStorySpecRedundant` | "Only one of image_url and image_hash ... video_data" - seen 2026-11-03 when `ads_create_ad` used a `creative_id` that `ads_create_creative` had made from an Instagram post (`source_instagram_media_id`) | Pass the post **inline** in `ads_create_ad`'s `creative`: `source_instagram_media_id`, `instagram_user_id`, `call_to_action`. That worked on the same post. |
-| 2446307 | Campaign spend cap below the minimum - seen 2026-11-03 for a PLN cap under 500 PLN | Raise `spend_cap` to at least 500 PLN, or leave it out. Other currencies' minimums are not recorded here. |
+| 2446307 | Campaign spend cap below the minimum - seen 2026-11-03 for a PLN cap under 500 PLN; reported elsewhere for a USD cap under 100.00 | Raise `spend_cap` to at least 500 PLN (USD: 100.00, i.e. `10000` in minor units), or leave it out. Other currencies' minimums are not recorded here. |
 
 ### Account and delivery
 

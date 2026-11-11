@@ -18,7 +18,7 @@ import re
 from meta_ads_agent.errors import ConfigError
 
 # Graph/Marketing API version current when this release was tested (2026-09-16).
-# facebook-business 26.0.1 is the matching SDK major.
+# facebook-business 26.x is the matching SDK major.
 DEFAULT_GRAPH_API_VERSION = "v26.0"
 
 # Oldest version Meta still supported at that date. Below this, calls fail.

@@ -32,7 +32,9 @@ from meta_ads_agent.redaction import fingerprint, redact
 # error reference. 368 is not one of them although it is "temporary" - it is a
 # block for policy violations, and the reference says stop and investigate.
 # Retrying it is how a temporary block becomes a longer one.
-TRANSIENT_CODES = frozenset({1, 2, 4, 17, 341, 613})
+# 80000, 80003 and 80004 are Business Use Case rate limits (Ads Insights,
+# Custom Audience, Ads Management) - per ad account, not per app.
+TRANSIENT_CODES = frozenset({1, 2, 4, 17, 341, 613, 80000, 80003, 80004})
 
 TOKEN_ENV = "META_ACCESS_TOKEN"  # noqa: S105 - a variable name, not a value
 APP_ID_ENV = "META_APP_ID"

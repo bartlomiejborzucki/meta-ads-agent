@@ -20,12 +20,12 @@
 # ---------------------------------------------------------------------------
 
 version: 1
-reviewed: 2026-09-16
+reviewed: 2026-11-11
 
 upstreams:
 
   # -- Runtime dependency --------------------------------------------------
-  - repo: facebook/facebook-python-business-sdk
+  - repo: meta/facebook-python-business-sdk
     package: facebook-business
     purpose: >
       The official Meta Business SDK. Powers every API fallback call. Handles
@@ -33,9 +33,9 @@ upstreams:
       with processing polling - all of which we deliberately do not
       reimplement.
     license: Facebook Platform License (NOASSERTION on GitHub; not OSI-approved)
-    reviewed_version: 26.0.1
-    reviewed_release_date: 2026-08-25
-    review_date: 2026-09-16
+    reviewed_version: 26.0.4
+    reviewed_release_date: 2026-11-05
+    review_date: 2026-11-11
     integration_type: dependency
     vendored: false
     affected_areas:
@@ -47,7 +47,8 @@ upstreams:
       Majors track Graph API versions: 26.x corresponds to v26.0. An upgrade is
       an API migration, so Dependabot must not auto-merge it. Never vendor the
       source - the license permits use in connection with Meta's platform, not
-      redistribution.
+      redistribution. The repository moved from facebook/ to meta/ in 2026;
+      GitHub redirects the old name.
 
   # -- Host plugin formats -------------------------------------------------
   - repo: openai/plugins
@@ -56,8 +57,8 @@ upstreams:
       .codex-plugin/plugin.json is validated structurally against the spec in
       .agents/skills/plugin-creator/references/plugin-json-spec.md.
     license: none declared at the repository root
-    reviewed_sha: 1dc1958
-    review_date: 2026-09-16
+    reviewed_sha: d420d13
+    review_date: 2026-11-11
     integration_type: format
     affected_areas:
       - .codex-plugin/plugin.json
@@ -76,8 +77,8 @@ upstreams:
       Claude Code itself, and the plugin and marketplace schemas.
       `claude plugin validate` is our manifest check in CI.
     license: Apache-2.0 (documentation and examples)
-    reviewed_version: 2.1.273
-    review_date: 2026-09-16
+    reviewed_version: 2.1.322
+    review_date: 2026-11-11
     integration_type: format
     affected_areas:
       - .claude-plugin/plugin.json
@@ -87,14 +88,15 @@ upstreams:
     watch: releases
     notes: >
       The `skills` manifest field requires a "./"-prefixed path; "skills" and
-      ["skills"] both fail validation. Found by testing against 2.1.273, not
-      from documentation - worth re-testing after an upgrade.
+      ["skills"] both fail validation ("Invalid string: must start with
+      "./""). Found by testing against 2.1.273 and re-tested on 2.1.322
+      (2026-11-11); not from documentation - worth re-testing after an upgrade.
 
   - repo: anthropics/claude-plugins-official
     purpose: Marketplace schema and plugin-entry conventions.
     license: Apache-2.0
-    reviewed_sha: 76c85b7
-    review_date: 2026-09-16
+    reviewed_sha: 43fd1f9
+    review_date: 2026-11-11
     integration_type: format
     affected_areas:
       - .claude-plugin/marketplace.json
@@ -110,8 +112,8 @@ upstreams:
       tools absent from Meta's documentation and reported several contract
       details. Most likely place to see a Meta MCP change reported early.
     license: MIT
-    reviewed_sha: ab583c5
-    review_date: 2026-09-16
+    reviewed_sha: 15f61cf
+    review_date: 2026-11-11
     integration_type: reference
     affected_areas:
       - docs/research/current-meta-capabilities.md
@@ -124,8 +126,8 @@ upstreams:
       module, the write-vs-read pacing distinction, and the pinned secret
       scanner - all reimplemented.
     license: MIT
-    reviewed_sha: 139421a
-    review_date: 2026-09-16
+    reviewed_sha: 39a194b
+    review_date: 2026-11-11
     integration_type: reference
     affected_areas:
       - src/meta_ads_agent/api/version.py

@@ -78,7 +78,7 @@ estimated, and an honest line between what Meta enforces and what a
 practitioner believes.
 
 **The fallback is being retired.** An optional layer built on Meta's official
-[`facebook-business`](https://github.com/facebook/facebook-python-business-sdk)
+[`facebook-business`](https://github.com/meta/facebook-python-business-sdk)
 SDK covered seven things the MCP could not do: local image and video upload,
 video, existing-post, multi-variant / placement-specific and carousel
 creatives, and deletion. As of **2026-11-04 the MCP does all seven** -

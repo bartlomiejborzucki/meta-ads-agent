@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.5.0",
   "payload_root": "skills",
-  "digest": "ec3d9bd427ef860481c9fadbf3d4caca426053a380a6b8a2c0dcd7f0d26425a3",
+  "digest": "bad8442e8c10e5b2150f45122aeb3944d713d34209a33068063ee342ade705e7",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -127,8 +127,8 @@
     },
     {
       "path": "meta-ads-core/references/meta-errors.md",
-      "sha256": "2658f1b99c59545df2561af97aabc57903abe80b5d2ad727f6871815a5e73d8d",
-      "size": 5798
+      "sha256": "a1152bb422da5f7d3dc77a5ec6124ada1885865ea9ab82ec681fccff6016fbbf",
+      "size": 6290
     },
     {
       "path": "meta-ads-core/references/safety-policy.md",
