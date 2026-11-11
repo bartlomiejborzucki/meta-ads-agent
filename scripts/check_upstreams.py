@@ -83,6 +83,18 @@ def github_latest_release(repo: str) -> str | None:
     return None
 
 
+def release_moved(reviewed: str, latest: str, compare: str = "exact") -> bool:
+    """Whether ``latest`` counts as drift from ``reviewed``.
+
+    ``compare: minor`` ignores patch releases - for an upstream that ships
+    almost daily, where format changes land on a minor bump, not a patch.
+    """
+    a, b = reviewed.lstrip("v"), latest.lstrip("v")
+    if compare == "minor":
+        return a.split(".")[:2] != b.split(".")[:2]
+    return a != b
+
+
 def capability_entries_due(today: dt.date) -> list[str]:
     """Capability entries whose manual review is older than the refresh window."""
     sys.path.insert(0, str(REPO / "src"))
@@ -136,7 +148,7 @@ def main() -> int:
             reviewed = str(entry.get("reviewed_version", ""))
             if latest is None:
                 failed.append(f"`{repo}` — release lookup failed")
-            elif reviewed and reviewed.lstrip("v") != latest.lstrip("v"):
+            elif reviewed and release_moved(reviewed, latest, entry.get("compare", "exact")):
                 drifted.append(
                     f"### `{repo}`\n\n"
                     f"- reviewed: **{reviewed}**\n"
