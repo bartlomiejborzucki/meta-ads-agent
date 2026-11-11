@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-11
+
 **A review, and the build done in code.** `MIGRATION: none required`. A review
 on 2026-11-11 compared the capability map with a connected session again
 (tool names, and the descriptions of the tools named below - read, not
@@ -109,6 +111,8 @@ live account.
 - `report fatigue --level` is deprecated: it was accepted and ignored, and
   now says so. `report` with no analysis exits 2, not 0. A missing `--brand-file` exits 2 for
   `render-plan` and `report`, as it did for `validate-plan`.
+- `tzdata` is a dependency on Windows, which has no timezone database for
+  `{date}` in the account's timezone to be read from.
 - Capability entries whose tool names were confirmed against the session are
   dated 2026-11-11. That is a check of names, not a re-reading of each tool.
 - `--approved` on `api delete` is described as what it is: a flag the agent
@@ -1085,7 +1089,8 @@ through `ads_experiment_*`. Multi-account workflows. Scheduled reporting.
 **Ongoing.** Shrinking the fallback. Every capability Meta adds to its official
 MCP is one we delete.
 
-[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/bartlomiejborzucki/meta-ads-agent/compare/v1.2.0...v1.3.0
