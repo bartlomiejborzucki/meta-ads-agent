@@ -12,6 +12,7 @@ Layout of ``.meta-ads/`` in the user's project:
       campaigns/<slug>/
         plan.yaml             intent
         state.json            what exists on Meta
+        copy.yaml             the copy variants chosen, read by new-plan
         creatives.json        creative detail as built
         qa.md                 preview QA notes
         report.md             latest report
@@ -255,6 +256,15 @@ class Workspace:
 
     def creatives_file(self, slug: str) -> Path:
         return self.campaign_dir(slug) / "creatives.json"
+
+    def copy_file(self, slug: str) -> Path:
+        """The copy variants chosen for a campaign, as ``new-plan`` reads them."""
+        return self.campaign_dir(slug) / "copy.yaml"
+
+    @property
+    def research_dir(self) -> Path:
+        """Ad Library research notes, kept so creative work reads a file."""
+        return self.root / "research"
 
     def qa_file(self, slug: str) -> Path:
         return self.campaign_dir(slug) / "qa.md"

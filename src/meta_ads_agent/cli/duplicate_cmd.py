@@ -8,7 +8,7 @@ through render-plan, validate-plan and a normal build.
 Exit codes:
   0  the plan was built (and written, with --write)
   1  a plan already exists at that slug
-  2  the source could not be read or mapped
+  2  the source could not be read or mapped, or --write found no workspace
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ import yaml
 
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
 from meta_ads_agent.duplicate import duplicate_plan
-from meta_ads_agent.errors import MetaAdsAgentError
+from meta_ads_agent.errors import MetaAdsAgentError, WorkspaceError
 from meta_ads_agent.models._common import dump_yaml_ready
 from meta_ads_agent.workspace import Workspace
 
@@ -58,7 +58,11 @@ def run_duplicate_plan(
     data = dump_yaml_ready(doc)
     target: Path | None = None
     if write:
-        workspace = Workspace.locate()
+        try:
+            workspace = Workspace.locate()
+        except WorkspaceError as exc:
+            fail(str(exc))
+            return 2
         target = workspace.plan_file(doc.slug)
         if target.exists():
             fail(f"{target} already exists; choose another --slug")

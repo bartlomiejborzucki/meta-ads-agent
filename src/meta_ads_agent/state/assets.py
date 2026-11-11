@@ -35,7 +35,7 @@ from pydantic import ValidationError as PydanticValidationError
 from meta_ads_agent.errors import StateError, ValidationError
 from meta_ads_agent.locking import file_lock
 from meta_ads_agent.models._common import VIDEO_EXTENSIONS
-from meta_ads_agent.models.state import AssetManifest, AssetRecord, ObjectType
+from meta_ads_agent.models.state import AssetManifest, AssetRecord, ObjectType, Provider
 from meta_ads_agent.workspace import Workspace
 
 # Chunked so a large video does not have to fit in memory.
@@ -60,6 +60,13 @@ _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"GIF87a", "image/gif"),
     (b"GIF89a", "image/gif"),
     (b"BM", "image/bmp"),
+)
+
+
+# ISO-BMFF major brands of still images (HEIC/HEIF, AVIF). Same container as
+# MP4, so the 'ftyp' box alone does not make a file a video.
+_STILL_IMAGE_BRANDS = frozenset(
+    {b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"mif1", b"msf1", b"avif", b"avis"}
 )
 
 
@@ -132,6 +139,11 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
         except OSError as exc:
             raise ValidationError(f"asset could not be read: {target}: {exc}") from exc
     detected = _detect_kind(target, header)
+    if detected is None and len(header) >= 12 and header[8:12] in _STILL_IMAGE_BRANDS:
+        raise ValidationError(
+            f"{target} is a HEIC/HEIF or AVIF image. This project checks JPEG, PNG, "
+            "GIF, BMP and WebP before an upload; export it as JPEG or PNG."
+        )
 
     # Unrecognised container with a video extension: ask ffprobe rather than
     # trusting the filename. An unusual-but-real container should work, and a
@@ -156,8 +168,8 @@ def probe_asset(path: Path | str, *, kind: AssetKind | None = None) -> AssetProb
                 f"WebP images and {sorted(VIDEO_EXTENSIONS)} video."
             )
         raise ValidationError(
-            f"{target} looks like a {detected.value} but was used as a "
-            f"{kind.value}. Check the plan's creative mode."
+            f"{target} looks like {_article(detected.value)} but was used as "
+            f"{_article(kind.value)}. Check the plan's creative mode."
         )
 
     resolved = kind or detected
@@ -234,9 +246,10 @@ def _article(word: str) -> str:
 
 def _video_container(header: bytes) -> bool:
     """Recognise the common video container headers."""
-    # ISO base media (mp4, m4v, mov) carries 'ftyp' at offset 4.
+    # ISO base media (mp4, m4v, mov) carries 'ftyp' at offset 4 - and so do
+    # HEIC and AVIF stills, which share the container. Those are not video.
     if len(header) >= 12 and header[4:8] == b"ftyp":
-        return True
+        return header[8:12] not in _STILL_IMAGE_BRANDS
     # Matroska and WebM share the EBML magic.
     if header[:4] == b"\x1a\x45\xdf\xa3":
         return True
@@ -419,6 +432,7 @@ class AssetStore:
         *,
         image_hash: str | None = None,
         video_id: str | None = None,
+        provider: Provider = Provider.API_FALLBACK,
     ) -> AssetRecord:
         """Record a successful upload and flush.
 
@@ -438,6 +452,7 @@ class AssetStore:
                 kind=probe.object_type,
                 image_hash=image_hash,
                 video_id=video_id,
+                provider=provider,
                 width=probe.width,
                 height=probe.height,
                 duration_seconds=probe.duration_seconds,

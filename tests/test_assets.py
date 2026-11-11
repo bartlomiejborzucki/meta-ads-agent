@@ -87,7 +87,7 @@ class TestProbeImages:
             probe_asset(fake)
 
     def test_declaring_an_image_as_a_video_is_rejected(self, png_file: Path) -> None:
-        with pytest.raises(ValidationError, match="looks like a image"):
+        with pytest.raises(ValidationError, match="looks like an image"):
             probe_asset(png_file, kind=AssetKind.VIDEO)
 
     def test_a_gif_is_detected(self, tmp_path: Path) -> None:
@@ -338,5 +338,5 @@ class TestKindIsConfirmedNotAsserted:
 
     def test_an_image_claimed_as_a_video_names_both_kinds(self, tmp_path: Path) -> None:
         image = write_png(tmp_path / "still.png", 400, 400)
-        with pytest.raises(ValidationError, match="looks like a image"):
+        with pytest.raises(ValidationError, match="looks like an image"):
             probe_asset(image, kind=AssetKind.VIDEO)

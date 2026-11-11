@@ -1,8 +1,14 @@
 {
+  "cache-account": [
+    "account",
+    "fields",
+    "written"
+  ],
   "capabilities": [
     "capabilities",
     "capabilities[].area",
     "capabilities[].cli",
+    "capabilities[].deprecated_fallback",
     "capabilities[].fallback_provider",
     "capabilities[].is_gap",
     "capabilities[].last_reviewed",
@@ -27,6 +33,55 @@
     "plan",
     "slug",
     "written"
+  ],
+  "new-plan": [
+    "ad_sets",
+    "ads",
+    "campaign",
+    "notes",
+    "plan",
+    "slug",
+    "sources",
+    "sources.ad_account_id",
+    "sources.campaign.objective",
+    "sources.creative.destination_url",
+    "sources.creative.page_id",
+    "sources.currency",
+    "sources.targeting.countries",
+    "written"
+  ],
+  "plan-calls": [
+    "ad_account_id",
+    "calls",
+    "calls[].args",
+    "calls[].args.ad_account_id",
+    "calls[].args.buying_type",
+    "calls[].args.campaign_name",
+    "calls[].args.objective",
+    "calls[].id",
+    "calls[].needs",
+    "calls[].notes",
+    "calls[].plan_ref",
+    "calls[].record",
+    "calls[].refs",
+    "calls[].status",
+    "calls[].step",
+    "calls[].tool",
+    "complete",
+    "notes",
+    "pending",
+    "plan",
+    "schema_read",
+    "slug"
+  ],
+  "record object": [
+    "objects",
+    "recorded",
+    "recorded.id",
+    "recorded.type",
+    "resume_from",
+    "slug",
+    "stage"
   ],
   "render-plan": [
     "brand_config",

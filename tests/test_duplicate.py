@@ -252,3 +252,105 @@ class TestCommand:
         saved.write_text(json.dumps(broken))
         assert main(["duplicate-plan", str(saved), "--slug", "x"]) == 2
         assert "no ad_sets" in capsys.readouterr().err
+
+
+class TestReviewFixes:
+    """What the 2026-11-11 review found in the mapping."""
+
+    def test_whole_platforms_become_platforms_not_positions(self) -> None:
+        src = source()
+        targeting = src["ad_sets"][0]["targeting"]
+        targeting["publisher_platforms"] = ["facebook", "instagram"]
+        del targeting["facebook_positions"], targeting["instagram_positions"]
+        placements = build(src).document.campaign.ad_sets[0].placements
+        assert placements.platforms == ["facebook", "instagram"]
+        assert placements.positions == []
+        # "facebook" used to land in positions, so nothing on it was targeted.
+        assert placements.targets("facebook_feed")
+
+    def test_mapped_placements_leave_raw(self) -> None:
+        raw = build().document.campaign.ad_sets[0].targeting.raw
+        assert not {"publisher_platforms", "facebook_positions", "instagram_positions"} & set(raw)
+        assert "flexible_spec" in raw
+
+    def test_a_mix_of_platforms_and_positions_stays_in_raw_with_a_note(self) -> None:
+        src = source()
+        del src["ad_sets"][0]["targeting"]["facebook_positions"]
+        result = build(src)
+        ad_set = result.document.campaign.ad_sets[0]
+        assert ad_set.placements.mode == "automatic"
+        assert ad_set.targeting.raw["publisher_platforms"] == ["facebook", "instagram"]
+        assert any("placements mix whole platforms" in note for note in result.notes)
+
+    def test_a_spend_cap_is_copied_as_a_display_amount(self) -> None:
+        src = source()
+        src["campaign"]["spend_cap"] = "500000"
+        cap = build(src).document.campaign.spend_cap
+        assert (str(cap.amount), cap.currency) == ("5000.00", "PLN")
+
+    def test_a_video_keeps_its_thumbnail(self) -> None:
+        src = source()
+        src["ad_sets"][0]["ads"] = [
+            {
+                "name": "Video",
+                "creative": {
+                    "object_story_spec": {
+                        "page_id": "1111111111",
+                        "video_data": {
+                            "video_id": "700000000000031",
+                            "image_hash": "cafe1234",
+                            "message": "Watch",
+                            "call_to_action": {"type": "LEARN_MORE", "value": {"link": LINK}},
+                        },
+                    }
+                },
+            }
+        ]
+        creative = build(src).document.campaign.ad_sets[0].ads[0].creative
+        assert creative.thumbnail is not None
+        assert creative.thumbnail.image_hash == "cafe1234"
+
+    @pytest.mark.parametrize("budget", ["7000.0", 7000.0, " 7000 "])
+    def test_a_whole_amount_written_another_way_is_read(self, budget: object) -> None:
+        src = source()
+        src["ad_sets"][0]["daily_budget"] = budget
+        assert str(build(src).document.campaign.ad_sets[0].budget.amount) == "70.00"
+
+    @pytest.mark.parametrize(
+        ("mutate", "message"),
+        [
+            (lambda s: s["ad_sets"][0].update(daily_budget="70.5"), "whole minor units"),
+            (lambda s: s["ad_sets"][0].update(daily_budget="seventy"), "not an amount"),
+            (lambda s: s["ad_sets"].append("120210000000045"), "is not an object"),
+            (lambda s: s["ad_sets"][0].update(ads=["120210000000099"]), "is not an object"),
+            (
+                lambda s: s["ad_sets"][0]["ads"][0].update(creative="120210000000089"),
+                "not only its id",
+            ),
+            (lambda s: s["ad_sets"][0].update(targeting="broad"), "targeting is not an object"),
+            (
+                lambda s: s["ad_sets"][0]["targeting"].update(custom_audiences=[{"name": "x"}]),
+                "has no id",
+            ),
+        ],
+    )
+    def test_a_malformed_source_is_an_error_not_a_crash(self, mutate, message: str) -> None:  # type: ignore[no-untyped-def]
+        src = source()
+        mutate(src)
+        with pytest.raises(ValidationError, match=message):
+            build(src)
+
+    def test_audiences_may_be_bare_ids(self) -> None:
+        src = source()
+        src["ad_sets"][0]["targeting"]["custom_audiences"] = ["4444444444", 5555555555]
+        targeting = build(src).document.campaign.ad_sets[0].targeting
+        assert targeting.custom_audience_ids == ["4444444444", "5555555555"]
+
+    def test_write_with_no_workspace_is_not_reported_as_an_existing_plan(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:  # type: ignore[no-untyped-def]
+        monkeypatch.chdir(tmp_path)
+        path = tmp_path / "source.json"
+        path.write_text(json.dumps(source()), encoding="utf-8")
+        assert main(["duplicate-plan", str(path), "--slug", "copy", "--write"]) == 2
+        assert "already exists" not in capsys.readouterr().err

@@ -62,8 +62,12 @@ def run_state(
     if store.plan_exists(slug):
         try:
             plan = store.load_plan(slug)
+            # Only once something exists on Meta: before that an edited plan
+            # is just the plan, and the next step re-fingerprints it.
             plan_drift = bool(
-                state.plan_fingerprint and not fingerprint_matches(state.plan_fingerprint, plan)
+                state.objects
+                and state.plan_fingerprint
+                and not fingerprint_matches(state.plan_fingerprint, plan)
             )
         except MetaAdsAgentError as exc:
             warn(f"plan could not be read: {exc}")

@@ -73,6 +73,11 @@ def sample_size_per_cell(inputs: PowerInputs, lift: float) -> int:
     p2 = p1 * (1 + lift)
     if not 0 < p2 < 1:
         raise ValidationError(f"a {lift:+.0%} lift on {p1:.2%} is not a possible rate")
+    if p2 == p1:
+        # A lift too small for a float to register: the sample is unbounded.
+        raise ValidationError(
+            f"a lift of {lift:g} on {p1:.2%} is too small to tell from no lift at all"
+        )
     z = _Z.inv_cdf(1 - inputs.adjusted_alpha / 2) + _Z.inv_cdf(inputs.power)
     return math.ceil(z**2 * (p1 * (1 - p1) + p2 * (1 - p2)) / (p2 - p1) ** 2)
 

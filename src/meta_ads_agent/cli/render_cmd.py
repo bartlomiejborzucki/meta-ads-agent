@@ -7,16 +7,18 @@ like any other plan. Without it, nothing is written.
 Exit codes:
   0  rendered (or nothing to render)
   1  a template could not be rendered - an unknown token, or one with no value
-  2  the plan file itself could not be read or parsed
+  2  the plan file, or a --brand-file, could not be read or parsed
 """
 
 from __future__ import annotations
 
+import datetime as _dt
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading
-from meta_ads_agent.cli.validate_cmd import load_brand, read_plan
-from meta_ads_agent.errors import MetaAdsAgentError
+from meta_ads_agent.cli.validate_cmd import load_account, load_brand, read_plan
+from meta_ads_agent.errors import ConfigError, MetaAdsAgentError
 from meta_ads_agent.naming import render_plan
 from meta_ads_agent.workspace import Workspace
 
@@ -28,6 +30,20 @@ _HEADER = (
 )
 
 
+def account_timezone(workspace: Workspace, ad_account_id: str) -> _dt.tzinfo | None:
+    """The cached account's timezone, for ``{date}``. None when it is not known."""
+    try:
+        account = load_account(None, workspace, ad_account_id)
+    except ConfigError:
+        return None
+    if account is None or not account.timezone_name:
+        return None
+    try:
+        return ZoneInfo(account.timezone_name)
+    except (KeyError, ValueError, OSError):  # an unknown zone name, or no tz database
+        return None
+
+
 def run_render_plan(
     plan_path: str, *, brand_path: str | None = None, write: bool = False, as_json: bool = False
 ) -> int:
@@ -37,9 +53,13 @@ def run_render_plan(
         return 2
 
     workspace = Workspace.locate(required=False)
-    brand = load_brand(brand_path, workspace)
     try:
-        result = render_plan(doc, brand)
+        brand = load_brand(brand_path, workspace)
+    except ConfigError as exc:
+        fail(str(exc))
+        return 2
+    try:
+        result = render_plan(doc, brand, tz=account_timezone(workspace, doc.ad_account_id))
     except MetaAdsAgentError as exc:
         fail(str(exc))
         return 1

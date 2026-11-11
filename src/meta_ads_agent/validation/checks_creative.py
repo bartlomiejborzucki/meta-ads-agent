@@ -8,9 +8,15 @@ from urllib.parse import urlsplit
 from meta_ads_agent.capabilities import Registry
 from meta_ads_agent.errors import CapabilityError
 from meta_ads_agent.models._common import looks_like_video
-from meta_ads_agent.models.plan import CampaignPlanDocument, CreativeMode, CreativePlan
-from meta_ads_agent.naming import has_placeholders
-from meta_ads_agent.state.assets import AssetKind, probe_asset
+from meta_ads_agent.models.plan import (
+    AssetRef,
+    CampaignPlanDocument,
+    CreativeMode,
+    CreativePlan,
+    PlacementPlan,
+)
+from meta_ads_agent.naming import has_placeholders, strip_meta_macros
+from meta_ads_agent.state.assets import AssetKind, AssetProbe, probe_asset
 from meta_ads_agent.validation.account import AccountContext
 from meta_ads_agent.validation.report import Severity, ValidationReport
 
@@ -33,8 +39,9 @@ def check_creative(
         report.add(
             Severity.ERROR,
             "creative.page_missing",
-            "every ad needs a Facebook Page identity and none is set here or "
-            "resolvable from brand config",
+            "every ad needs a Facebook Page identity and none is set here. "
+            "`meta-ads-agent new-plan` fills it from brand.yaml's account.page_id; "
+            "in a hand-written plan, set it on the creative.",
             f"{path}.page_id",
         )
     elif (
@@ -111,7 +118,8 @@ def check_creative(
             "creative.advantage_default",
             "no automatic-enhancement preferences declared, so Meta's defaults "
             "apply and the delivered creative may differ from the preview. "
-            "Declare them in brand config to make this explicit.",
+            "Declare them under the creative's `advantage.enhancements` "
+            "(`new-plan` copies brand.yaml's advantage_defaults there).",
             f"{path}.advantage",
         )
 
@@ -140,7 +148,11 @@ def check_destination(url: str, path: str, report: ValidationReport) -> None:
             f"{url} has no public hostname",
             path,
         )
-    if any(token in url for token in ("{{", "}}", "<", ">")) or has_placeholders(url):
+    # Meta's own delivery-time macros ({{ad.name}}, {{placement}}) belong in a
+    # finished URL; anything else in braces or angle brackets is a template
+    # nobody filled in.
+    bare = strip_meta_macros(url)
+    if any(token in bare for token in ("{{", "}}", "<", ">")) or has_placeholders(bare):
         report.add(
             Severity.ERROR,
             "destination.unresolved_template",
@@ -217,6 +229,87 @@ def check_creative_routing(
         report.add(Severity.INFO, "routing.local_upload", message)
 
 
+# How a placement frames what it shows, by the end of its name. Stories and
+# Reels are full-screen vertical; a feed crops anything taller than 4:5. These
+# are what the surfaces look like, not rules Meta enforces - hence a warning,
+# and only when the plan itself says where the asset will appear.
+_VERTICAL_SUFFIXES = ("_stories", "_reels")
+_FEED_SUFFIX = "_feed"
+_VERTICAL_MAX_RATIO = 0.6  # 9:16 is 0.5625
+_FEED_MIN_RATIO = 0.75  # 4:5 is 0.8
+
+
+def _frames(placements: list[str]) -> str | None:
+    """ "vertical" or "feed" when every placement frames alike, else None."""
+    if placements and all(p.endswith(_VERTICAL_SUFFIXES) for p in placements):
+        return "vertical"
+    if placements and all(p.endswith(_FEED_SUFFIX) for p in placements):
+        return "feed"
+    return None
+
+
+def _check_aspect(
+    probe: AssetProbe,
+    asset: AssetRef,
+    placements: PlacementPlan,
+    path: str,
+    report: ValidationReport,
+) -> None:
+    """Warn when the plan names where an asset appears and its shape does not fit.
+
+    Only for an asset pinned to a placement, or an ad set whose manual
+    placements all frame the same way. With automatic placements Meta picks
+    the surface and crops per placement, and the preview is the evidence.
+    """
+    ratio = probe.aspect_ratio
+    if ratio is None:
+        return
+    if asset.placement:
+        shown = [asset.placement]
+    elif placements.mode == "manual" and placements.positions:
+        shown = sorted(placements.positions)
+    else:
+        return
+    frame = _frames(shown)
+    size = f"{probe.width}x{probe.height}"
+    where = ", ".join(shown)
+    if frame == "vertical" and ratio > _VERTICAL_MAX_RATIO:
+        report.add(
+            Severity.WARNING,
+            "asset.aspect_placement",
+            f"{probe.path.name} is {size}, and {where} is full-screen vertical (9:16). "
+            "Expect bars or a crop; check the preview, or use a 9:16 version.",
+            path,
+        )
+    elif frame == "feed" and ratio < _FEED_MIN_RATIO:
+        report.add(
+            Severity.WARNING,
+            "asset.aspect_placement",
+            f"{probe.path.name} is {size}, taller than the 4:5 a feed shows in full, and "
+            f"this serves in {where} only. Expect the top and bottom cropped; check the "
+            "preview, or use a 4:5 or 1:1 version.",
+            path,
+        )
+
+
+def _expected_kind(creative: CreativePlan, where: str, asset: AssetRef) -> AssetKind:
+    """What the plan uses this file as, to be confirmed against its contents.
+
+    The plan decides image or video from the mode, and for modes that take
+    either, from the file's name - which is exactly what cannot be trusted, so
+    the probe checks the header against it.
+    """
+    if where == "thumbnail" or creative.mode is CreativeMode.SINGLE_IMAGE:
+        return AssetKind.IMAGE
+    if creative.mode is CreativeMode.SINGLE_VIDEO:
+        return AssetKind.VIDEO
+    return (
+        AssetKind.VIDEO
+        if asset.local_path and looks_like_video(asset.local_path)
+        else AssetKind.IMAGE
+    )
+
+
 def check_local_assets(
     doc: CampaignPlanDocument, asset_base: Path | str | None, report: ValidationReport
 ) -> None:
@@ -228,7 +321,7 @@ def check_local_assets(
                 path = f"campaign.ad_sets[{index}].ads[{ad_index}].creative.{where}"
                 if not asset.local_path:
                     continue
-                expected = AssetKind.VIDEO if creative.mode is CreativeMode.SINGLE_VIDEO else None
+                expected = _expected_kind(creative, where, asset)
                 resolved = Path(asset.local_path).expanduser()
                 if not resolved.is_absolute():
                     resolved = base / resolved
@@ -248,3 +341,5 @@ def check_local_assets(
                 )
                 for warning in probe.warnings:
                     report.add(Severity.WARNING, "asset.warning", warning, path)
+                if where != "thumbnail":
+                    _check_aspect(probe, asset, ad_set.placements, path, report)

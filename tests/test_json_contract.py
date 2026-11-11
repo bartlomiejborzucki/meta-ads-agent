@@ -72,6 +72,12 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     from test_duplicate import source
 
     (tmp_path / "source.json").write_text(json.dumps(source()))
+    (tmp_path / "copy.yaml").write_text(
+        yaml.safe_dump([{"angle": "time saved", "primary_text": "Fridays, returned."}])
+    )
+    (tmp_path / "account.json").write_text(
+        json.dumps({"account_id": "1234567890", "currency": "PLN", "currency_offset": 100})
+    )
     return tmp_path
 
 
@@ -94,6 +100,42 @@ COMMANDS: dict[str, list[str]] = {
         "lead",
     ],
     "duplicate-plan": ["duplicate-plan", "source.json", "--slug", "acme-copy"],
+    "new-plan": [
+        "new-plan",
+        "--slug",
+        "acme-new",
+        "--budget",
+        "70",
+        "--objective",
+        "OUTCOME_LEADS",
+        "--countries",
+        "PL",
+        "--currency",
+        "PLN",
+        "--account",
+        "act_1234567890",
+        "--page-id",
+        "1111111111",
+        "--url",
+        "https://acme.example.com/webinar",
+        "--image-hash",
+        "abc123def456",
+        "--copy",
+        "copy.yaml",
+    ],
+    "plan-calls": ["plan-calls", ".meta-ads/campaigns/acme-webinar/plan.yaml", "--skip-assets"],
+    "record object": [
+        "record",
+        "object",
+        "acme-webinar",
+        "--type",
+        "campaign",
+        "--id",
+        "120210000000001",
+        "--plan-ref",
+        "campaign",
+    ],
+    "cache-account": ["cache-account", "account.json"],
     "report breakdown": ["report", "breakdown", "placements.json", "--result-event", "lead"],
     "report fatigue": ["report", "fatigue", "insights.json"],
     "report pacing": ["report", "pacing", "insights.json", "--daily-budget", "100"],

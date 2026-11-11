@@ -27,6 +27,7 @@ rendering is idempotent, and names without tokens are left exactly as written.
 
 from __future__ import annotations
 
+import datetime as _dt
 import re
 import string
 from dataclasses import dataclass, field
@@ -44,12 +45,37 @@ _PLACEHOLDER = re.compile(r"\{[a-z_]+\}")
 _UTM_FIELDS = ("source", "medium", "campaign", "content", "term")
 
 
+# Meta's own dynamic URL parameters, e.g. ``utm_content={{ad.name}}``. Meta
+# fills them when the ad is delivered. They are not this project's templates:
+# rendering leaves them exactly as written, and a URL carrying one is finished.
+META_MACRO = re.compile(
+    r"\{\{(?:(?:campaign|adset|ad)\.(?:id|name)|placement|site_source_name)\}\}"
+)
+
+
+def strip_meta_macros(text: str) -> str:
+    """*text* without Meta's delivery-time macros."""
+    return META_MACRO.sub("", text)
+
+
 def has_placeholders(text: str | None) -> bool:
-    return bool(text and _PLACEHOLDER.search(text))
+    return bool(text and _PLACEHOLDER.search(strip_meta_macros(text)))
 
 
 def render(template: str, tokens: dict[str, str | None], *, where: str) -> str:
-    """Substitute *tokens* into *template*, refusing anything unresolved."""
+    """Substitute *tokens* into *template*, refusing anything unresolved.
+
+    Meta's delivery-time macros (``{{ad.name}}``) pass through untouched.
+    """
+    macros = META_MACRO.findall(template)
+    pieces = [_render(piece, tokens, where=where) for piece in META_MACRO.split(template)]
+    out = pieces[0]
+    for macro, piece in zip(macros, pieces[1:], strict=True):
+        out += macro + piece
+    return out
+
+
+def _render(template: str, tokens: dict[str, str | None], *, where: str) -> str:
     try:
         parsed = list(string.Formatter().parse(template))
     except ValueError as exc:
@@ -79,7 +105,17 @@ def render(template: str, tokens: dict[str, str | None], *, where: str) -> str:
             f"(template {template!r}). Set it in the plan or brand.yaml, or write the "
             "name out in full."
         )
-    return template.format(**{n: tokens[n] for n in names})
+    out = template.format(**{n: tokens[n] for n in names})
+    # Escaped braces around a token name ({{brand}}) come out as {brand}: text
+    # now, a template the next time the plan is rendered. Rendering has to be
+    # repeatable, so that is refused rather than left to change later.
+    leftover = sorted(set(_PLACEHOLDER.findall(out)) & {"{" + t + "}" for t in TOKENS})
+    if leftover:
+        raise ValidationError(
+            f"{where}: {template!r} renders to text containing {', '.join(leftover)}, "
+            "which the next render would expand. Write the token once, or reword it."
+        )
+    return out
 
 
 def audience_label(targeting: TargetingPlan) -> str:
@@ -103,7 +139,9 @@ def with_utm(url: str, params: dict[str, str]) -> str:
     missing = [(k, v) for k, v in params.items() if k not in present]
     if not missing:
         return url
-    query = f"{parts.query}&{urlencode(missing)}" if parts.query else urlencode(missing)
+    # Braces stay literal: Meta only fills {{ad.name}} when it sees it written so.
+    added = urlencode(missing, safe="{}")
+    query = f"{parts.query}&{added}" if parts.query else added
     return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
 
 
@@ -113,12 +151,17 @@ def utm_params(
     tokens: dict[str, str | None],
     *,
     where: str,
+    skip: frozenset[str] | set[str] = frozenset(),
 ) -> dict[str, str]:
     """``utm_*`` parameters: brand defaults, then the ad set's own ``tracking.utm``.
 
     Override keys may be written ``source`` or ``utm_source``. An override set
     to an empty string removes that parameter. With no brand config there are
     no defaults: a UTM convention is the user's to choose, not ours.
+
+    *skip* names parameters the URL already carries. Their templates are not
+    rendered at all, so a token with no value cannot fail a parameter that
+    would never have been added.
     """
     templates: dict[str, str | None] = (
         {f"utm_{name}": getattr(convention, name) for name in _UTM_FIELDS} if convention else {}
@@ -128,8 +171,12 @@ def utm_params(
     return {
         key: render(value, tokens, where=f"{where} {key}")
         for key, value in templates.items()
-        if value
+        if value and key not in skip
     }
+
+
+def _query_keys(url: str) -> set[str]:
+    return {key for key, _ in parse_qsl(urlsplit(url).query, keep_blank_values=True)}
 
 
 @dataclass(slots=True)
@@ -144,8 +191,15 @@ class RenderResult:
         return bool(self.changes)
 
 
-def render_plan(doc: CampaignPlanDocument, brand: BrandConfig | None) -> RenderResult:
-    """Render every templated name and apply UTMs to every destination URL."""
+def render_plan(
+    doc: CampaignPlanDocument, brand: BrandConfig | None, *, tz: _dt.tzinfo | None = None
+) -> RenderResult:
+    """Render every templated name and apply UTMs to every destination URL.
+
+    ``{date}`` is the plan's ``created_at`` as a calendar date in *tz* - the
+    ad account's timezone when the caller knows it. A plan stores the moment
+    in UTC, and half an hour past midnight in Warsaw is still yesterday there.
+    """
     rendered = doc.model_copy(deep=True)
     result = RenderResult(rendered)
     naming = brand.naming if brand else NamingConvention()
@@ -154,7 +208,7 @@ def render_plan(doc: CampaignPlanDocument, brand: BrandConfig | None) -> RenderR
         "brand": (brand.name if brand else None) or doc.brand,
         "objective": doc.campaign.objective,
         "offer": doc.offer,
-        "date": doc.created_at.strftime(naming.date_format),
+        "date": _plan_date(doc.created_at, tz).strftime(naming.date_format),
     }
 
     campaign = rendered.campaign
@@ -172,6 +226,14 @@ def render_plan(doc: CampaignPlanDocument, brand: BrandConfig | None) -> RenderR
     # constraint (an empty name, a URL no longer valid) fails here, not later.
     result.document = CampaignPlanDocument.model_validate(rendered.model_dump(mode="json"))
     return result
+
+
+def _plan_date(created_at: _dt.datetime, tz: _dt.tzinfo | None) -> _dt.datetime:
+    if tz is None:
+        return created_at
+    if created_at.tzinfo is None:  # a hand-written timestamp with no offset is UTC
+        created_at = created_at.replace(tzinfo=_dt.UTC)
+    return created_at.astimezone(tz)
 
 
 def _rename(result: RenderResult, where: str, name: str, tokens: dict[str, str | None]) -> str:
@@ -194,7 +256,10 @@ def _apply_utm(
     creative = ad.creative
     if not creative.destination_url:
         return  # an existing-post creative keeps the post's own link
-    params = utm_params(convention, ad_set.tracking.utm, tokens, where=where)
+    overrides = ad_set.tracking.utm
+    params = utm_params(
+        convention, overrides, tokens, where=where, skip=_query_keys(creative.destination_url)
+    )
     new = with_utm(creative.destination_url, params)
     if new != creative.destination_url:
         result.changes.append((where, creative.destination_url, new))
@@ -205,7 +270,10 @@ def _apply_utm(
     for index, card in enumerate(creative.cards):
         if not card.link:
             continue
-        linked = with_utm(card.link, params)
+        linked = with_utm(
+            card.link,
+            utm_params(convention, overrides, tokens, where=where, skip=_query_keys(card.link)),
+        )
         if linked != card.link:
             result.changes.append((f"{base}.cards[{index}].link", card.link, linked))
             card.link = linked

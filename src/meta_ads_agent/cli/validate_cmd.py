@@ -20,7 +20,7 @@ from meta_ads_agent.cli.output import echo, emit_json, fail, heading, warn
 from meta_ads_agent.errors import ConfigError, MetaAdsAgentError
 from meta_ads_agent.models.brand import BrandConfig
 from meta_ads_agent.models.plan import CampaignPlanDocument
-from meta_ads_agent.validation import AccountContext, validate_plan
+from meta_ads_agent.validation import AccountContext, Severity, validate_plan
 from meta_ads_agent.workspace import Workspace
 
 
@@ -39,9 +39,10 @@ def run_validate_plan(
         return 2
 
     workspace = Workspace.locate(required=False)
+    brand_problems: list[str] = []
     try:
-        brand = load_brand(brand_path, workspace)
-        account = _load_account(account_path, workspace, doc.ad_account_id)
+        brand = load_brand(brand_path, workspace, problems=brand_problems)
+        account = load_account(account_path, workspace, doc.ad_account_id)
     except ConfigError as exc:
         # A file named on the command line that cannot be used is a usage
         # error, like an unreadable plan - not a plan that passed.
@@ -61,6 +62,17 @@ def run_validate_plan(
     except MetaAdsAgentError as exc:
         fail(str(exc))
         return 2
+    for problem in brand_problems:
+        # Not a warning: with no brand, the checks that read it - declared
+        # special ad categories, EU transparency defaults, banned phrases -
+        # did not run, and a plan that passed without them did not pass.
+        report.add(
+            Severity.ERROR,
+            "brand.unreadable",
+            f"{problem}\nThe checks that read brand.yaml did not run. Fix the file "
+            "(`meta-ads-agent init --check` says what is wrong), or pass --brand-file.",
+            "brand.yaml",
+        )
 
     if as_json:
         emit_json(
@@ -120,8 +132,20 @@ def read_plan(target: Path) -> CampaignPlanDocument | None:
     except FileNotFoundError:
         fail(f"{target} not found")
         return None
+    except UnicodeDecodeError:
+        fail(
+            f"{target} is not UTF-8 text. A file redirected from PowerShell 5 is "
+            "UTF-16; save it as UTF-8."
+        )
+        return None
+    except OSError as exc:
+        fail(f"{target} could not be read: {exc.strerror or exc}")
+        return None
     except yaml.YAMLError as exc:
         fail(f"{target} is not valid YAML: {exc}")
+        return None
+    if not isinstance(raw, dict):
+        fail(f"{target} is not a campaign plan: expected a mapping at the top level")
         return None
 
     try:
@@ -136,7 +160,17 @@ def read_plan(target: Path) -> CampaignPlanDocument | None:
         return None
 
 
-def load_brand(explicit: str | None, workspace: Workspace) -> BrandConfig | None:
+def load_brand(
+    explicit: str | None, workspace: Workspace, *, problems: list[str] | None = None
+) -> BrandConfig | None:
+    """The brand config, or None when there is none.
+
+    A workspace ``brand.yaml`` that exists but cannot be used is not "no
+    brand". With *problems* the reason is appended there for the caller to
+    report - ``validate-plan`` turns it into an error, because the
+    special-category and EU-transparency checks read this file. Without it
+    the reason goes to stderr and the command carries on without a brand.
+    """
     path = Path(explicit).expanduser() if explicit else workspace.brand_file
     if not path.is_file():
         if explicit:
@@ -146,14 +180,17 @@ def load_brand(explicit: str | None, workspace: Workspace) -> BrandConfig | None
         return None
     try:
         return BrandConfig.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
-    except (PydanticValidationError, yaml.YAMLError) as exc:
+    except (PydanticValidationError, yaml.YAMLError, UnicodeDecodeError, OSError) as exc:
         if explicit:
             raise ConfigError(f"brand file {path} is not valid: {exc}") from exc
-        fail(f"ignoring {path}: {exc}")
+        if problems is not None:
+            problems.append(f"{path} could not be used: {exc}")
+        else:
+            fail(f"ignoring {path}: {exc}")
         return None
 
 
-def _load_account(
+def load_account(
     explicit: str | None, workspace: Workspace, ad_account_id: str
 ) -> AccountContext | None:
     """Load cached account facts for the plan's own account.

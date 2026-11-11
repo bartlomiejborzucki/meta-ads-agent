@@ -1,8 +1,9 @@
 """Validate a campaign plan before any mutation begins.
 
 Scope discipline (ADR-007): this validator enforces **platform constraints**
-only - things Meta rejects, or that make an ad undeliverable. It does not
-enforce media-buying opinions. A plan that is unusual but valid produces
+- things Meta rejects, or that make an ad undeliverable - and the rules the
+advertiser wrote down themselves (``banned_phrases`` in brand.yaml). It does
+not enforce media-buying opinions. A plan that is unusual but valid produces
 warnings at most, and still executes.
 
 Everything that could make a write fail halfway is checked here, because a
@@ -36,6 +37,7 @@ from meta_ads_agent.validation.checks_budget import (
     check_campaign_schedule,
     check_spend_cap,
 )
+from meta_ads_agent.validation.checks_copy import check_copy
 from meta_ads_agent.validation.checks_creative import (
     check_creative_routing,
     check_local_assets,
@@ -90,6 +92,7 @@ def validate_plan(
             f"campaign.deviations[{index}]",
         )
 
+    check_copy(doc, brand, report)
     check_creative_routing(doc, reg, report)
     if check_assets:
         check_local_assets(doc, asset_base, report)

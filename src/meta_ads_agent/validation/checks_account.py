@@ -112,11 +112,26 @@ def check_currency(
     if plan_currency is None:
         return  # the plan model already guarantees a budget exists somewhere
 
+    # Meta's own offset for the account's currency outranks the built-in table
+    # (meta_ads_agent.money), so a currency the table lacks is only unknown
+    # when the account did not supply one either.
+    account_offset = (
+        account.currency_offset if account and account.currency == plan_currency else None
+    )
+    table_offset: int | None = None
     try:
-        offset_for(plan_currency)
+        table_offset = offset_for(plan_currency)
     except CurrencyError as exc:
-        report.add(Severity.ERROR, "currency.unknown_scale", str(exc), "budget.currency")
-        return
+        if account_offset is None:
+            report.add(Severity.ERROR, "currency.unknown_scale", str(exc), "budget.currency")
+            return
+        report.add(
+            Severity.INFO,
+            "currency.scale_from_account",
+            f"{plan_currency} is not in the built-in currency table; using the "
+            f"offset Meta reported for the account ({account_offset}).",
+            "budget.currency",
+        )
 
     if account is None or account.currency is None:
         report.add(
@@ -138,32 +153,57 @@ def check_currency(
             "budget.currency",
         )
 
-    if account.currency_offset is not None and account.currency_offset != offset_for(plan_currency):
+    # Only when the two are the same currency: comparing the account's offset
+    # with another currency's scale says nothing, and the mismatch is already
+    # an error above.
+    if account_offset is not None and table_offset is not None and account_offset != table_offset:
         report.add(
             Severity.WARNING,
             "currency.offset_differs",
-            f"Meta reports a currency offset of {account.currency_offset} for "
+            f"Meta reports a currency offset of {account_offset} for "
             f"{account.currency}, but the built-in scale for it is "
-            f"{offset_for(plan_currency)}. Meta's value wins - pass it through "
+            f"{table_offset}. Meta's value wins - pass it through "
             "when converting budgets.",
             "budget.currency",
         )
+
+
+# Special ad category names Meta's ads_create_campaign no longer takes, and what
+# its description says to use instead (read 2026-11-11).
+RETIRED_SPECIAL_CATEGORIES = {"CREDIT": "FINANCIAL_PRODUCTS_SERVICES"}
 
 
 def check_special_categories(
     doc: CampaignPlanDocument, brand: BrandConfig | None, report: ValidationReport
 ) -> None:
     declared = doc.campaign.special_ad_categories
-    if brand and brand.special_ad_category and not declared:
+    missing = [c for c in (brand.special_ad_category if brand else []) if c not in declared]
+    if missing:
         report.add(
             Severity.ERROR,
             "special_category.not_declared",
             f"brand config declares special ad categories "
-            f"{brand.special_ad_category} but this plan declares none. "
+            f"{brand.special_ad_category if brand else []} but this plan "
+            + (f"declares only {declared}" if declared else "declares none")
+            + f" - missing {missing}. "
             "Misdeclaring a special category risks account suspension.",
             "campaign.special_ad_categories",
         )
-    elif not declared:
+    retired = sorted(set(declared) & RETIRED_SPECIAL_CATEGORIES.keys())
+    if retired:
+        report.add(
+            Severity.WARNING,
+            "special_category.retired",
+            "; ".join(
+                f"{name} is retired - use {RETIRED_SPECIAL_CATEGORIES[name]}" for name in retired
+            )
+            + ". From ads_create_campaign's description, read 2026-11-11; Meta's "
+            "current list is in ads_get_field_context.",
+            "campaign.special_ad_categories",
+        )
+    if missing:
+        return
+    if not declared:
         report.add(
             Severity.INFO,
             "special_category.none_declared",

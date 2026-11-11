@@ -152,18 +152,24 @@ class StateStore:
                     f"{state.ad_account_id} but the plan targets "
                     f"{doc.ad_account_id}. Use a different slug."
                 )
-            if (
-                state.plan_fingerprint
-                and not fingerprint_matches(state.plan_fingerprint, doc)
-                and state.objects
-            ):
-                raise ReconciliationError(
-                    f"the plan for {doc.slug!r} changed after "
-                    f"{len(state.objects)} object(s) were created on Meta.\n"
-                    "Continuing would apply a different plan to existing "
-                    "structure. Either restore the plan that produced them, or "
-                    "start a new campaign slug for the new plan."
-                )
+            if state.plan_fingerprint and not fingerprint_matches(state.plan_fingerprint, doc):
+                if state.objects:
+                    raise ReconciliationError(
+                        f"the plan for {doc.slug!r} changed after "
+                        f"{len(state.objects)} object(s) were created on Meta.\n"
+                        "Continuing would apply a different plan to existing "
+                        "structure. Either restore the plan that produced them, or "
+                        "start a new campaign slug for the new plan."
+                    )
+                # Nothing exists on Meta yet, so the edited plan is simply the
+                # plan. Its fingerprint has to replace the old one here: left
+                # behind, it would block the resume after the first object is
+                # created, although the plan never changed after that.
+                state.plan_fingerprint = plan_fingerprint(doc)
+                self._flush(state)
+            elif not state.plan_fingerprint and not state.objects:
+                state.plan_fingerprint = plan_fingerprint(doc)
+                self._flush(state)
             return state
 
         state = CampaignState(

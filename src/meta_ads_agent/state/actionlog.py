@@ -94,12 +94,14 @@ class ActionLog:
         if not self.path.is_file():
             return []
         records: list[ActionRecord] = []
-        for line in self.path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
+        # Decoded line by line: one byte that is not UTF-8 spoils its own
+        # line, not every line after it.
+        for raw in self.path.read_bytes().splitlines():
+            if not raw.strip():
                 continue
             try:
-                records.append(ActionRecord.model_validate(json.loads(line)))
-            except (json.JSONDecodeError, ValueError):
+                records.append(ActionRecord.model_validate(json.loads(raw.decode("utf-8"))))
+            except (json.JSONDecodeError, ValueError):  # UnicodeDecodeError is a ValueError
                 continue
         if limit is None:
             return records

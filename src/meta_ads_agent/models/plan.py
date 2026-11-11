@@ -408,6 +408,14 @@ class CreativePlan(StrictModel):
         ),
     )
     assets: list[AssetRef] = Field(default_factory=list)
+    thumbnail: AssetRef | None = Field(
+        default=None,
+        description=(
+            "Only with mode=single_video: the image shown before the video plays. "
+            "Meta's ads_create_creative wants one with a video; leave it out and "
+            "the agent has to pick one of the frames Meta generated."
+        ),
+    )
     cards: list[CarouselCard] = Field(
         default_factory=list, description="Only with mode=carousel, 2 to 10"
     )
@@ -417,6 +425,8 @@ class CreativePlan(StrictModel):
     def asset_refs(self) -> list[tuple[str, AssetRef]]:
         """Every asset with its path in the plan: the creative's own, then each card's."""
         refs = [(f"assets[{i}]", a) for i, a in enumerate(self.assets)]
+        if self.thumbnail:
+            refs.append(("thumbnail", self.thumbnail))
         refs += [(f"cards[{i}].asset", c.asset) for i, c in enumerate(self.cards)]
         return refs
 
@@ -442,6 +452,17 @@ class CreativePlan(StrictModel):
     def _mode_requirements(self) -> CreativePlan:
         if self.cards and self.mode is not CreativeMode.CAROUSEL:
             raise ValueError(f"cards are only valid with mode=carousel, not {self.mode.value}")
+        if self.thumbnail:
+            if self.mode is not CreativeMode.SINGLE_VIDEO:
+                raise ValueError(
+                    f"thumbnail is only valid with mode=single_video, not {self.mode.value}"
+                )
+            if self.thumbnail.video_id or (
+                self.thumbnail.local_path and looks_like_video(self.thumbnail.local_path)
+            ):
+                raise ValueError("a thumbnail is an image, not a video")
+            if self.thumbnail.placement:
+                raise ValueError("a thumbnail cannot be pinned to a placement")
         if self.instagram_media_id and self.mode is not CreativeMode.EXISTING_POST:
             raise ValueError(
                 f"instagram_media_id is only valid with mode=existing_post, not {self.mode.value}"

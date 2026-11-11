@@ -285,6 +285,25 @@ class TestResumeAfterPartialCreation:
         edited.campaign.ad_sets[0].ads[0].creative.variants[0].headline = "New headline"
         assert store.load_or_create_state(edited).slug == plan.slug
 
+    def test_an_edit_before_the_first_object_does_not_block_the_resume_after_it(
+        self, workspace: Workspace, plan
+    ) -> None:  # type: ignore[no-untyped-def]
+        # The stale fingerprint used to stay behind: the edit was accepted,
+        # one object was created, and the next resume - same plan - was refused.
+        store = StateStore(workspace)
+        store.load_or_create_state(plan)
+        edited = plan.model_copy(deep=True)
+        edited.campaign.ad_sets[0].ads[0].creative.variants[0].headline = "New headline"
+
+        state = store.load_or_create_state(edited)
+        assert fingerprint_matches(state.plan_fingerprint, edited)
+        store.record_object(state, campaign())
+
+        resumed = store.load_or_create_state(edited)
+        assert [o.id for o in resumed.objects] == [campaign().id]
+        with pytest.raises(ReconciliationError, match="changed after"):
+            store.load_or_create_state(plan)
+
     def test_state_from_another_account_is_refused(self, workspace: Workspace, plan) -> None:  # type: ignore[no-untyped-def]
         store = StateStore(workspace)
         store.load_or_create_state(plan)

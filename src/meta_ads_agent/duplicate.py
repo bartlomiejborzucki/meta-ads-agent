@@ -6,7 +6,7 @@ plan is reviewed, rendered and validated, then built PAUSED, and nothing
 about the source is touched.
 
 The input is what the agent read from Meta, saved as JSON in the Marketing
-API's field names (docs/reference/duplicate-input.md)::
+API's field names (skills/meta-ads-campaign/references/duplicate-input.md)::
 
     {"ad_account_id": "act_...", "currency": "PLN",
      "campaign": {...}, "ad_sets": [{..., "ads": [{"name": ..., "creative": {...}}]}]}
@@ -18,7 +18,9 @@ What is copied, and what is deliberately not:
   refused rather than guessed.
 * Schedules are not copied: the source's dates are usually in the past.
 * Targeting fields the plan models are mapped; every other targeting key is
-  kept verbatim in ``targeting.raw``, so nothing narrows silently.
+  kept verbatim in ``targeting.raw``, so nothing narrows silently. Placements
+  are mapped when the plan can express them - every platform with positions,
+  or none - and otherwise stay in ``raw``, with a note.
 * A creative is mapped when its shape is one the plan can express: a single
   image or video link ad, a carousel, or an existing post. A multi-variant
   creative (``asset_feed_spec``) is refused, naming the ad: its rules do not
@@ -86,18 +88,23 @@ def duplicate_plan(
     account_id = _account(account or source.get("ad_account_id") or campaign.get("account_id"))
 
     def money(value: Any, where: str) -> Decimal | None:
-        if value in (None, "", "0", 0):
+        minor = _minor_units(value, where)
+        if minor is None:
             return None
         if code is None:
             raise ValidationError(
                 f"{where} is {value} in minor units, and no currency was given. Pass "
                 "--currency with the account's currency (read it from Meta)."
             )
-        return Money.from_minor(int(str(value)), code, offset=offset).display
+        return Money.from_minor(minor, code, offset=offset).display
 
     campaign_budget = _budget(campaign, "campaign", money, code)
     plan_ad_sets = []
     for index, raw_set in enumerate(ad_sets):
+        if not isinstance(raw_set, dict):
+            raise ValidationError(
+                f"ad_sets[{index}] is not an object; each ad set is its fields as read from Meta"
+            )
         where = f"ad_sets[{index}] {raw_set.get('name', '')!r}".rstrip()
         plan_ad_sets.append(_ad_set(raw_set, where, money, code, campaign_budget, notes))
 
@@ -125,6 +132,9 @@ def duplicate_plan(
     }
     if campaign_budget:
         data["campaign"]["budget"] = campaign_budget
+    spend_cap = money(campaign.get("spend_cap"), "campaign spend_cap")
+    if spend_cap is not None:
+        data["campaign"]["spend_cap"] = {"amount": str(spend_cap), "currency": code}
     dsa = {
         key: next((str(s[f"dsa_{key}"]) for s in ad_sets if s.get(f"dsa_{key}")), None)
         for key in ("beneficiary", "payor")
@@ -142,6 +152,33 @@ def duplicate_plan(
     except PydanticValidationError as exc:
         raise ValidationError(f"the copied plan is not valid: {exc}") from exc
     return Duplicate(document, notes)
+
+
+def _minor_units(value: Any, where: str) -> int | None:
+    """A budget, bid or cap as Meta returns it: whole minor units, often a string."""
+    if value is None or isinstance(value, bool) or value == "":
+        return None
+    try:
+        amount = Decimal(str(value).strip())
+    except ArithmeticError as exc:
+        raise ValidationError(f"{where} is {value!r}, which is not an amount") from exc
+    if not amount.is_finite() or amount != amount.to_integral_value():
+        raise ValidationError(
+            f"{where} is {value!r}; Meta returns whole minor units (7000 for 70.00). "
+            "Save the value as Meta returned it."
+        )
+    return int(amount) or None
+
+
+def _ids(items: Any, where: str) -> list[str]:
+    """Audience ids, whether Meta's ``{"id": ..., "name": ...}`` objects or bare ids."""
+    out = []
+    for item in items or []:
+        value = item.get("id") if isinstance(item, dict) else item
+        if not value or isinstance(value, (dict, list, bool)):
+            raise ValidationError(f"{where}: an audience entry has no id: {item!r}")
+        out.append(str(value))
+    return out
 
 
 def _account(value: Any) -> str:
@@ -197,7 +234,20 @@ def _ad_set(
 
     placements = _placements(raw.get("targeting") or {})
     if placements:
-        out["placements"] = {"mode": "manual", "positions": placements}
+        out["placements"] = {"mode": "manual", **placements}
+        raw_targeting = out["targeting"].get("raw") or {}
+        for key in ("publisher_platforms", *_POSITION_KEYS.values()):
+            raw_targeting.pop(key, None)
+        if raw_targeting:
+            out["targeting"]["raw"] = raw_targeting
+        else:
+            out["targeting"].pop("raw", None)
+    elif (raw.get("targeting") or {}).get("publisher_platforms"):
+        notes.append(
+            f"{where}: its placements mix whole platforms with chosen positions, which a "
+            "plan's placements cannot say. They are kept as read in targeting.raw and the "
+            "plan says automatic - review them before building"
+        )
 
     tracking: dict[str, Any] = {}
     promoted = raw.get("promoted_object") or {}
@@ -211,13 +261,19 @@ def _ad_set(
         out["tracking"] = tracking
 
     ads = raw.get("ads") or []
-    if not ads:
+    if not isinstance(ads, list) or not ads:
         raise ValidationError(f"{where} has no ads; read them with the ad set")
-    out["ads"] = [_ad(ad, f"{where} ad {ad.get('name', i)!r}") for i, ad in enumerate(ads)]
+    out["ads"] = []
+    for i, ad in enumerate(ads):
+        if not isinstance(ad, dict):
+            raise ValidationError(f"{where} ad {i} is not an object")
+        out["ads"].append(_ad(ad, f"{where} ad {ad.get('name', i)!r}"))
     return out
 
 
-def _targeting(raw: dict[str, Any], where: str) -> dict[str, Any]:
+def _targeting(raw: Any, where: str) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise ValidationError(f"{where}: targeting is not an object")
     geo = raw.get("geo_locations") or {}
     countries = geo.get("countries") or []
     if not countries:
@@ -231,10 +287,8 @@ def _targeting(raw: dict[str, Any], where: str) -> dict[str, Any]:
             out[key] = int(raw[key])
     genders = sorted(set(raw.get("genders") or []))
     out["genders"] = {(1,): "male", (2,): "female"}.get(tuple(genders), "all")
-    out["custom_audience_ids"] = [str(a["id"]) for a in raw.get("custom_audiences") or []]
-    out["excluded_custom_audience_ids"] = [
-        str(a["id"]) for a in raw.get("excluded_custom_audiences") or []
-    ]
+    out["custom_audience_ids"] = _ids(raw.get("custom_audiences"), where)
+    out["excluded_custom_audience_ids"] = _ids(raw.get("excluded_custom_audiences"), where)
     automation = raw.get("targeting_automation") or {}
     if "advantage_audience" in automation:
         out["advantage_audience"] = bool(automation["advantage_audience"])
@@ -248,19 +302,37 @@ def _targeting(raw: dict[str, Any], where: str) -> dict[str, Any]:
     return out
 
 
-def _placements(targeting: dict[str, Any]) -> list[str]:
-    platforms = targeting.get("publisher_platforms") or []
-    positions: list[str] = []
-    for platform in platforms:
-        for position in targeting.get(_POSITION_KEYS.get(platform, ""), []) or []:
-            positions.append(_PLACEMENT_NAMES.get((platform, position), f"{platform}_{position}"))
-        if not targeting.get(_POSITION_KEYS.get(platform, "")):
-            positions.append(platform)
-    return positions
+def _placements(targeting: dict[str, Any]) -> dict[str, list[str]] | None:
+    """The source's placements as a plan says them, or None when it cannot.
+
+    A plan's placements are either positions (``facebook_feed``) or whole
+    platforms (``instagram``, every position on it). A source that picks
+    positions on one platform and takes all of another is neither; the caller
+    leaves that in ``targeting.raw``.
+    """
+    platforms = [str(p) for p in targeting.get("publisher_platforms") or []]
+    if not platforms:
+        return None
+    chosen = {p: targeting.get(_POSITION_KEYS.get(p, "")) or [] for p in platforms}
+    if not any(chosen.values()):
+        return {"platforms": platforms}
+    if not all(chosen.values()):
+        return None
+    return {
+        "positions": [
+            _PLACEMENT_NAMES.get((platform, position), f"{platform}_{position}")
+            for platform, positions in chosen.items()
+            for position in positions
+        ]
+    }
 
 
 def _ad(ad: dict[str, Any], where: str) -> dict[str, Any]:
     creative = ad.get("creative") or {}
+    if not isinstance(creative, dict):
+        raise ValidationError(
+            f"{where}: creative is not an object. Read the creative's fields, not only its id."
+        )
     return {
         "name": _required(ad, "name", where),
         "creative": _creative(creative, where),
@@ -308,10 +380,18 @@ def _creative(c: dict[str, Any], where: str) -> dict[str, Any]:
         link = (cta.get("value") or {}).get("link")
         if not link:
             raise ValidationError(f"{where}: the video creative has no call_to_action link")
+        if not video.get("video_id"):
+            raise ValidationError(f"{where}: the video creative has no video_id")
+        thumbnail = (
+            {"thumbnail": {"image_hash": str(video["image_hash"])}}
+            if video.get("image_hash")
+            else {}
+        )
         return {
             "mode": "single_video",
             "destination_url": link,
             "assets": [{"video_id": str(video["video_id"])}],
+            **thumbnail,
             "variants": [
                 _variant(where, video.get("message"), video.get("title"),
                          video.get("link_description"), cta.get("type"))

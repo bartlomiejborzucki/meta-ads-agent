@@ -37,7 +37,7 @@ from meta_ads_agent import __version__
 from meta_ads_agent.api.version import DEFAULT_GRAPH_API_VERSION, graph_api_version
 from meta_ads_agent.capabilities import load_registry
 from meta_ads_agent.cli.output import echo, emit_json, heading, status_line
-from meta_ads_agent.errors import MetaAdsAgentError
+from meta_ads_agent.errors import ConfigError, MetaAdsAgentError
 from meta_ads_agent.redaction import fingerprint
 from meta_ads_agent.workspace import Workspace
 
@@ -165,7 +165,16 @@ def _check_package(diagnosis: Diagnosis) -> None:
     else:
         diagnosis.add("capability registry", "OK", detail)
 
-    configured = graph_api_version()
+    try:
+        configured = graph_api_version()
+    except ConfigError as exc:
+        # One bad environment variable must not end the whole diagnosis: the
+        # checks after this one are the ones the user came for. Not a FAIL -
+        # only the deprecated API fallback reads this value, the MCP does not.
+        diagnosis.add(
+            "graph api version", "INVALID", str(exc), "Unset META_GRAPH_API_VERSION, or fix it."
+        )
+        return
     diagnosis.add(
         "graph api version",
         "OK" if configured == DEFAULT_GRAPH_API_VERSION else "INFO",
@@ -263,7 +272,8 @@ def _binary_version(path: str) -> str:
         )
     except (OSError, subprocess.SubprocessError):
         return ""
-    return (result.stdout or result.stderr or "").strip().splitlines()[0][:40]
+    lines = (result.stdout or result.stderr or "").strip().splitlines()
+    return lines[0][:40] if lines else ""
 
 
 def _check_mcp_connection(diagnosis: Diagnosis) -> None:

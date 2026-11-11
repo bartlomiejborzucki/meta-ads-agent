@@ -33,13 +33,18 @@ from meta_ads_agent.analysis.insights import InsightRow, Totals
 from meta_ads_agent.analysis.pacing import DailyPacing, LifetimePacing
 from meta_ads_agent.cli.output import echo, emit_json, fail, heading
 from meta_ads_agent.cli.validate_cmd import load_brand
-from meta_ads_agent.errors import MetaAdsAgentError
+from meta_ads_agent.errors import ConfigError, MetaAdsAgentError
 from meta_ads_agent.models.brand import Thresholds
 from meta_ads_agent.workspace import Workspace
 
 
-def _thresholds(brand_path: str | None) -> Thresholds:
-    brand = load_brand(brand_path, Workspace.locate(required=False))
+def _thresholds(brand_path: str | None) -> Thresholds | None:
+    """The brand's thresholds, or the defaults. None (exit 2) for an unusable --brand-file."""
+    try:
+        brand = load_brand(brand_path, Workspace.locate(required=False))
+    except ConfigError as exc:
+        fail(str(exc))
+        return None
     return brand.thresholds if brand else Thresholds()
 
 
@@ -84,6 +89,8 @@ def run_compare(
     if rows is None:
         return 2
     t = _thresholds(brand_path)
+    if t is None:
+        return 2
     try:
         result = compare_periods(
             rows,
@@ -201,6 +208,8 @@ def run_breakdown(
     if rows is None:
         return 2
     t = _thresholds(brand_path)
+    if t is None:
+        return 2
     try:
         result = breakdown_by_placement(
             rows,
@@ -294,6 +303,8 @@ def run_fatigue(
     if rows is None:
         return 2
     t = _thresholds(brand_path)
+    if t is None:
+        return 2
     try:
         report = assess_fatigue(
             rows,

@@ -163,6 +163,13 @@ def load_rows(source: Path | str | Any) -> list[InsightRow]:
             payload = json.loads(source.read_text(encoding="utf-8"))
         except FileNotFoundError as exc:
             raise ValidationError(f"{source} not found") from exc
+        except UnicodeDecodeError as exc:
+            raise ValidationError(
+                f"{source} is not UTF-8 text. A file redirected from PowerShell 5 is "
+                "UTF-16; save it as UTF-8."
+            ) from exc
+        except OSError as exc:
+            raise ValidationError(f"{source} could not be read: {exc.strerror or exc}") from exc
         except json.JSONDecodeError as exc:
             raise ValidationError(f"{source} is not valid JSON: {exc}") from exc
     elif isinstance(source, str):

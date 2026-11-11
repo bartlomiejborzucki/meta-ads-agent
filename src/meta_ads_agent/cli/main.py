@@ -7,6 +7,7 @@ and YAML, which is what makes the default install credential-free and small.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as _dt
 import sys
 from decimal import Decimal, InvalidOperation
@@ -19,8 +20,9 @@ from meta_ads_agent.redaction import redact
 _EPILOG = """\
 This CLI is deliberately small.
 Meta's official Ads MCP is the primary execution layer, and your agent calls
-it directly. These commands only cover local prerequisites, validation, state,
-and the few capabilities the official MCP does not expose.
+it directly. These commands cover local prerequisites, plan scaffolding and
+validation, state, and report arithmetic. The `api` commands are deprecated:
+the MCP has covered what they did since 2026-11-04.
 
   meta-ads-agent doctor              is everything ready?
   meta-ads-agent install             copy the skills where your agent reads them
@@ -147,7 +149,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="turn a campaign read from Meta into a new plan, everything PAUSED",
         description=(
             "Reads a campaign, its ad sets, ads and creatives, saved as JSON in the "
-            "Marketing API's field names (docs/reference/duplicate-input.md), and "
+            "Marketing API's field names "
+            "(skills/meta-ads-campaign/references/duplicate-input.md), and "
             "builds a new plan. Budgets and bids become display amounts; schedules "
             "are not copied. Prints the plan; writes only with --write."
         ),
@@ -159,6 +162,73 @@ def build_parser() -> argparse.ArgumentParser:
     duplicate.add_argument("--account", help="ad account, when the source does not say")
     duplicate.add_argument("--write", action="store_true", help="save it in the workspace")
     duplicate.add_argument("--json", action="store_true")
+
+    # -- new-plan ----------------------------------------------------------
+    new_plan = subparsers.add_parser(
+        "new-plan",
+        help="draft a plan from the offer, brand.yaml and the cached account",
+        description=(
+            "Fills a campaign plan from what the workspace already knows: the offer's "
+            "landing page and call to action, brand.yaml's account defaults (Page, "
+            "Instagram account, dataset, countries, objective), EU transparency fields, "
+            "special ad categories and Advantage preferences, and the cached account's "
+            "id and currency. A flag overrides any of them. Nothing is invented: what is "
+            "missing is listed, with where to put it. Prints the plan; writes only with "
+            "--write."
+        ),
+    )
+    new_plan.add_argument("--slug", required=True, help="slug for the new plan")
+    new_plan.add_argument(
+        "--budget", required=True, type=_amount, help="display amount, e.g. 70 for 70.00"
+    )
+    new_plan.add_argument("--budget-type", choices=("daily", "lifetime"), default="daily")
+    new_plan.add_argument(
+        "--budget-level",
+        choices=("campaign", "ad_set"),
+        default="campaign",
+        help="where the budget sits (default: campaign)",
+    )
+    new_plan.add_argument("--offer", help="offer brief to promote: offers/<OFFER>.yaml")
+    new_plan.add_argument(
+        "--name", help="campaign name (default: brand.yaml's naming template, rendered)"
+    )
+    new_plan.add_argument("--objective", help="e.g. OUTCOME_SALES (default: brand.yaml)")
+    new_plan.add_argument("--optimization-goal", help="valid for the objective; no default")
+    new_plan.add_argument("--countries", help="comma-separated, e.g. PL,DE (default: brand.yaml)")
+    new_plan.add_argument("--age-min", type=int)
+    new_plan.add_argument("--age-max", type=int)
+    new_plan.add_argument("--currency", help="account currency (default: the cached account's)")
+    new_plan.add_argument("--account", help="ad account (default: brand.yaml, or the cached one)")
+    new_plan.add_argument("--page-id", help="Facebook Page (default: brand.yaml)")
+    new_plan.add_argument("--instagram-account-id", help="Instagram account (default: brand.yaml)")
+    new_plan.add_argument("--url", help="destination (default: the offer's landing page)")
+    new_plan.add_argument(
+        "--assets", nargs="+", default=[], metavar="FILE", help="local images or videos"
+    )
+    new_plan.add_argument(
+        "--image-hash", action="append", default=[], help="an image already on the account"
+    )
+    new_plan.add_argument(
+        "--video-id", action="append", default=[], help="a video already on the account"
+    )
+    new_plan.add_argument(
+        "--copy",
+        help="YAML list of copy variants (default: campaigns/<slug>/copy.yaml)",
+    )
+    new_plan.add_argument(
+        "--split",
+        choices=("auto", "per-asset", "per-variant", "matrix", "multi-variant"),
+        default="auto",
+        help=(
+            "how copy and assets become ads: one ad per asset, one per variant, one per "
+            "pairing (matrix), or one ad Meta mixes (multi-variant). auto picks the only "
+            "sensible one, and asks when there are several of both"
+        ),
+    )
+    new_plan.add_argument("--end", type=_date, help="last day; required for a lifetime budget")
+    new_plan.add_argument("--brand-file", help="brand config (default: workspace)")
+    new_plan.add_argument("--write", action="store_true", help="save it in the workspace")
+    new_plan.add_argument("--json", action="store_true")
 
     # -- report ------------------------------------------------------------
     report = subparsers.add_parser(
@@ -175,16 +245,20 @@ def build_parser() -> argparse.ArgumentParser:
     report_common = argparse.ArgumentParser(add_help=False)
     report_common.add_argument("insights", help="insights JSON file")
     report_common.add_argument("--currency", help="account currency, for labelling amounts")
-    report_common.add_argument(
+    report_common.add_argument("--json", action="store_true")
+    # `fatigue` is per ad by definition and always reads ad rows. It accepted
+    # --level and ignored it; the flag stays (flag names are not removed within
+    # a major version) and now says so.
+    report_level = argparse.ArgumentParser(add_help=False)
+    report_level.add_argument(
         "--level",
         choices=("ad", "adset", "campaign", "account"),
         help="use only rows of this level; needed when the export mixes levels",
     )
-    report_common.add_argument("--json", action="store_true")
 
     compare = report_sub.add_parser(
         "compare",
-        parents=[report_common],
+        parents=[report_common, report_level],
         help="two equal-length periods, rates from sums, noise and volume stated",
     )
     compare.add_argument("--days", type=int, required=True, help="length of each window")
@@ -204,7 +278,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     breakdown = report_sub.add_parser(
         "breakdown",
-        parents=[report_common],
+        parents=[report_common, report_level],
         help="each placement's cost per result (or per click) indexed against the whole",
     )
     breakdown.add_argument("--days", type=int, help="last N days only (default: every row)")
@@ -221,11 +295,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="per-ad CTR vs its own baseline, frequency, spend since decline, siblings",
     )
     fatigue.add_argument("--days", type=int, default=7, help="window length (default 7)")
+    fatigue.add_argument(
+        "--level",
+        choices=("ad", "adset", "campaign", "account"),
+        help="deprecated and ignored: fatigue is always read per ad",
+    )
     fatigue.add_argument("--end", type=_date, help="last day of the current window")
     fatigue.add_argument("--brand-file", help="brand config for thresholds (default: workspace)")
 
     pacing = report_sub.add_parser(
-        "pacing", parents=[report_common], help="spend against a daily or lifetime budget"
+        "pacing",
+        parents=[report_common, report_level],
+        help="spend against a daily or lifetime budget",
     )
     budget_kind = pacing.add_mutually_exclusive_group(required=True)
     budget_kind.add_argument("--daily-budget", type=_amount, help="display amount per day")
@@ -279,6 +360,7 @@ def build_parser() -> argparse.ArgumentParser:
     state.add_argument("--list", action="store_true", help="list all campaigns")
     state.add_argument("--account", help="list only this ad account's campaigns")
 
+    _add_build_parsers(subparsers)
     _add_install_parsers(subparsers)
 
     api: argparse.ArgumentParser = _add_api_parser(subparsers)
@@ -286,6 +368,139 @@ def build_parser() -> argparse.ArgumentParser:
     # subcommand show the right help without poking at argparse internals.
     api.set_defaults(api_help=api.print_help)
     return parser
+
+
+def _add_build_parsers(
+    subparsers: argparse._SubParsersAction,  # type: ignore[type-arg]
+) -> None:
+    """plan-calls, record and cache-account: the build's bookkeeping, in code.
+
+    None of them calls Meta. `plan-calls` says what to send; the agent sends it
+    through the MCP; `record` writes down what came back.
+    """
+    calls = subparsers.add_parser(
+        "plan-calls",
+        help="a validated plan as the Meta MCP calls that build it",
+        description=(
+            "Prints the tool and arguments for every object the plan needs, in build "
+            "order: budgets in minor units, targeting and creative as JSON strings, ids "
+            "that do not exist yet as <id:PLAN_REF>. Objects already recorded are marked "
+            "done. The plan is validated first; a plan with errors produces no calls. "
+            "Argument names follow Meta's tool schemas as read on a stated date - a "
+            "rejected call is settled by its error. Changes nothing, calls nothing."
+        ),
+    )
+    calls.add_argument("plan", help="path to plan.yaml")
+    calls.add_argument("--account-file", help="cached account facts (default: workspace)")
+    calls.add_argument("--brand-file", help="brand config (default: workspace)")
+    calls.add_argument("--skip-assets", action="store_true", help="do not read local asset files")
+    calls.add_argument("--json", action="store_true")
+
+    record = subparsers.add_parser(
+        "record",
+        help="write an id, stage or failure from a build into campaign state",
+        description=(
+            "Records what happened on Meta, through the state store: one writer at a "
+            "time, two sessions merged rather than overwritten, ids tied to the plan "
+            "that produced them. Calls nothing - the agent's MCP calls act, this records."
+        ),
+    )
+    record_sub = record.add_subparsers(dest="record_command", metavar="<what>")
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("slug", help="campaign slug")
+    common.add_argument("--json", action="store_true")
+
+    obj = record_sub.add_parser(
+        "object", parents=[common], help="an id Meta returned, against its plan element"
+    )
+    obj.add_argument(
+        "--type",
+        required=True,
+        dest="object_type",
+        choices=("campaign", "ad_set", "ad", "creative", "image", "video"),
+    )
+    obj.add_argument("--id", required=True, dest="object_id", help="the id Meta returned")
+    obj.add_argument(
+        "--plan-ref",
+        required=True,
+        help="the plan element, as plan-calls names it: campaign, ad_sets[0], ad_sets[0].ads[1]",
+    )
+    obj.add_argument("--name")
+    obj.add_argument("--parent-id", help="the campaign of an ad set, the ad set of an ad")
+    obj.add_argument("--status", help="the status Meta reported: PAUSED, or DRAFT")
+    obj.add_argument("--provider", choices=("official_mcp", "api_fallback"), default="official_mcp")
+
+    stage = record_sub.add_parser(
+        "stage", parents=[common], help="a stage with no object of its own"
+    )
+    stage.add_argument(
+        "stage",
+        choices=("validated", "previewed", "qa_passed", "awaiting_approval"),
+        help="object stages follow from `record object`; activation has its own command",
+    )
+
+    failure = record_sub.add_parser(
+        "failure", parents=[common], help="a call that failed, and whether a retry is safe"
+    )
+    failure.add_argument(
+        "--stage",
+        required=True,
+        choices=(
+            "campaign_created",
+            "ad_sets_created",
+            "assets_uploaded",
+            "creatives_created",
+            "ads_created",
+            "previewed",
+            "activated",
+        ),
+        help="the stage the failed call belonged to",
+    )
+    failure.add_argument("--message", required=True)
+    failure.add_argument("--code", type=int, help="Meta's error code")
+    failure.add_argument("--subcode", type=int, help="Meta's error subcode")
+    failure.add_argument("--plan-ref", help="the plan element the call was for")
+    failure.add_argument(
+        "--retry-safe",
+        action="store_true",
+        help=(
+            "Meta refused the call outright, so nothing was created. Leave it off after "
+            "a timeout or an unclear answer: the object may exist"
+        ),
+    )
+
+    record_sub.add_parser(
+        "activation", parents=[common], help="the campaign was published or activated"
+    )
+
+    asset = record_sub.add_parser(
+        "asset", parents=[common], help="a local file's id on Meta, so it uploads once"
+    )
+    asset.add_argument("--file", required=True, help="the local file that was uploaded")
+    asset.add_argument("--image-hash")
+    asset.add_argument("--video-id")
+    asset.add_argument("--plan-ref", help="also record it in state against this plan element")
+    asset.add_argument(
+        "--provider", choices=("official_mcp", "api_fallback"), default="official_mcp"
+    )
+    record.set_defaults(record_help=record.print_help)
+
+    cache = subparsers.add_parser(
+        "cache-account",
+        help="save account facts read from Meta for the validator",
+        description=(
+            "Takes the account as Meta returned it (ads_get_ad_accounts) - one object, a "
+            'list, or {"data": [...]} - and writes the facts validate-plan checks a plan '
+            "against: currency and its offset, timezone, status, minimum budget. Unknown "
+            "fields are dropped. A second account gets accounts/<id>.yaml."
+        ),
+    )
+    cache.add_argument("source", help="JSON file, or - for stdin")
+    cache.add_argument("--account", help="which account, when the input has several")
+    cache.add_argument("--pages", help="comma-separated Page ids available to the account")
+    cache.add_argument("--instagram-accounts", help="comma-separated Instagram account ids")
+    cache.add_argument("--datasets", help="comma-separated dataset (pixel) ids")
+    cache.add_argument("--json", action="store_true")
 
 
 def _add_install_parsers(
@@ -411,12 +626,14 @@ def _add_api_parser(
 ) -> argparse.ArgumentParser:
     api: argparse.ArgumentParser = subparsers.add_parser(
         "api",
-        help="Marketing API fallback for capabilities the official MCP lacks",
+        help="deprecated Marketing API fallback; Meta's MCP now does all of this",
         description=(
-            "These commands use the official Meta Business SDK and need "
-            "META_ACCESS_TOKEN plus the [api] extra. They exist only for gaps "
-            "in Meta's official Ads MCP - run 'meta-ads-agent capabilities "
-            "--gaps' to see which. They are not a way around the approval model."
+            "DEPRECATED. These commands use the official Meta Business SDK and need "
+            "META_ACCESS_TOKEN plus the [api] extra. They were written for gaps in "
+            "Meta's official Ads MCP, which has covered every one since 2026-11-04 "
+            "('meta-ads-agent capabilities --gaps' lists none); they remain for one "
+            "release, for a terminal host with a local file and no public URL. They "
+            "are not a way around the approval model."
         ),
     )
     api_sub = api.add_subparsers(dest="api_command", metavar="<subcommand>")
@@ -431,7 +648,7 @@ def _add_api_parser(
     image = api_sub.add_parser(
         "upload-image",
         parents=[common_parent],
-        help="upload a local image (MCP has no local-file ingestion)",
+        help="upload a local image (deprecated: the MCP's ads_creative_upload_media does this)",
     )
     image.add_argument("path", help="local image file")
 
@@ -499,9 +716,10 @@ def _add_api_parser(
         parents=[common_parent],
         help="delete a campaign, ad set, or ad (prefer pausing)",
         description=(
-            "Meta's official MCP has no delete tool, so this is a real gap - "
-            "but deleted objects lose their optimisation history permanently "
-            "while paused objects keep it. Requires --approved and a reason."
+            "Deprecated: through the MCP a delete is ads_update_entity with "
+            "status DELETED. Deleted objects lose their optimisation history "
+            "permanently while paused objects keep it. Requires --approved - "
+            "pass it only after the user approved this deletion - and a reason."
         ),
     )
     delete.add_argument("object_id", help="object id to delete")
@@ -627,6 +845,63 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
             as_json=args.json,
         )
 
+    if args.command == "new-plan":
+        from meta_ads_agent.cli.new_plan_cmd import run_new_plan
+
+        return run_new_plan(
+            slug=args.slug,
+            budget=args.budget,
+            offer_slug=args.offer,
+            objective=args.objective,
+            budget_type=args.budget_type,
+            budget_level=args.budget_level,
+            currency=args.currency,
+            countries=args.countries,
+            age_min=args.age_min,
+            age_max=args.age_max,
+            account_id=args.account,
+            page_id=args.page_id,
+            instagram_account_id=args.instagram_account_id,
+            url=args.url,
+            optimization_goal=args.optimization_goal,
+            assets=args.assets,
+            image_hashes=args.image_hash,
+            video_ids=args.video_id,
+            copy_path=args.copy,
+            split=args.split,
+            name=args.name,
+            end=args.end,
+            brand_path=args.brand_file,
+            write=args.write,
+            as_json=args.json,
+        )
+
+    if args.command == "plan-calls":
+        from meta_ads_agent.cli.plan_calls_cmd import run_plan_calls
+
+        return run_plan_calls(
+            args.plan,
+            account_path=args.account_file,
+            brand_path=args.brand_file,
+            as_json=args.json,
+            skip_assets=args.skip_assets,
+        )
+
+    if args.command == "record":
+        return _dispatch_record(args)
+
+    if args.command == "cache-account":
+        from meta_ads_agent.cli.record_cmd import run_cache_account
+
+        return run_cache_account(
+            args.source,
+            account=args.account,
+            pages=args.pages,
+            instagram_accounts=args.instagram_accounts,
+            datasets=args.datasets,
+            as_json=args.json,
+        )
+
     if args.command == "report":
         return _dispatch_report(args, parser)
 
@@ -642,6 +917,51 @@ def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         return _dispatch_api(args, parser)
 
     parser.print_help()
+    return 2
+
+
+def _dispatch_record(args: argparse.Namespace) -> int:
+    from meta_ads_agent.cli import record_cmd
+
+    what = args.record_command
+    if what == "object":
+        return record_cmd.run_record_object(
+            args.slug,
+            object_type=args.object_type,
+            object_id=args.object_id,
+            plan_ref=args.plan_ref,
+            name=args.name,
+            parent_id=args.parent_id,
+            status=args.status,
+            provider=args.provider,
+            as_json=args.json,
+        )
+    if what == "stage":
+        return record_cmd.run_record_stage(args.slug, stage=args.stage, as_json=args.json)
+    if what == "failure":
+        return record_cmd.run_record_failure(
+            args.slug,
+            stage=args.stage,
+            message=args.message,
+            code=args.code,
+            subcode=args.subcode,
+            retry_safe=args.retry_safe,
+            plan_ref=args.plan_ref,
+            as_json=args.json,
+        )
+    if what == "activation":
+        return record_cmd.run_record_activation(args.slug, as_json=args.json)
+    if what == "asset":
+        return record_cmd.run_record_asset(
+            args.slug,
+            file=args.file,
+            image_hash=args.image_hash,
+            video_id=args.video_id,
+            plan_ref=args.plan_ref,
+            provider=args.provider,
+            as_json=args.json,
+        )
+    args.record_help()
     return 2
 
 
@@ -790,6 +1110,13 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
             level=args.level,
         )
     if args.report_command == "fatigue":
+        if args.level and args.level != "ad":
+            from meta_ads_agent.cli.output import warn
+
+            warn(
+                f"--level {args.level} is ignored: fatigue is always read per ad. "
+                "The flag is deprecated here."
+            )
         return report_cmd.run_fatigue(
             args.insights,
             days=args.days,
@@ -821,7 +1148,10 @@ def _dispatch_report(args: argparse.Namespace, parser: argparse.ArgumentParser) 
             power=args.power,
             as_json=args.json,
         )
-    parser.parse_args(["report", "--help"])
+    # No analysis named: show what there is, and say so with the exit code.
+    # argparse's --help exits 0 by itself, which read as success to a script.
+    with contextlib.suppress(SystemExit):
+        parser.parse_args(["report", "--help"])
     return 2
 
 

@@ -138,8 +138,8 @@ def delete_object(
         detail=(
             f"deleted {object_type.value} {object_id} "
             f"({previous_name or 'unnamed'}), previously {previous_status or 'unknown'}. "
-            f"Reason: {reason.strip()}. Used the Business SDK fallback because "
-            "Meta's official Ads MCP has no delete tool."
+            f"Reason: {reason.strip()}. Used the deprecated Business SDK "
+            "fallback; the MCP deletes with ads_update_entity, status DELETED."
         ),
     )
 

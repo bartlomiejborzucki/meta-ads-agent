@@ -379,7 +379,12 @@ def run_create_creative(
                 if not video_id:
                     fail("--video-id is required for a video creative")
                     return 2
-                assert variant is not None
+                if variant is None:
+                    fail(
+                        "a video creative takes one copy: give --primary-text. "
+                        "--variants-file is for --multi-variant."
+                    )
+                    return 2
                 result = create_video_creative(
                     client=client,
                     ad_account_id=target,

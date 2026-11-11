@@ -1,0 +1,48 @@
+{
+  "_about": "Argument names of Meta's Ads MCP create tools, as their schemas listed them to a connected session on 2026-11-11 (read, not called). `required` is each schema's own required list. `properties` holds the arguments meta-ads-agent's plan-calls can emit, each checked against the schema that day - not the schema's full list. tests/test_mcp_calls.py holds the compiler to these names. When Meta changes a schema, re-read it, update this file and src/meta_ads_agent/mcp_calls.py together, and rename the file to the new date.",
+  "read": "2026-11-11",
+  "tools": {
+    "ads_create_campaign": {
+      "required": ["ad_account_id", "campaign_name", "objective", "buying_type"],
+      "properties": [
+        "ad_account_id", "campaign_name", "objective", "buying_type",
+        "special_ad_categories", "special_ad_category_country",
+        "campaign_daily_budget", "campaign_lifetime_budget", "campaign_bid_strategy",
+        "campaign_spend_cap", "campaign_start_time", "campaign_stop_time"
+      ]
+    },
+    "ads_create_ad_set": {
+      "required": ["ad_account_id", "campaign_id", "ad_set_name", "billing_event", "optimization_goal", "targeting"],
+      "properties": [
+        "ad_account_id", "campaign_id", "ad_set_name", "billing_event", "optimization_goal",
+        "targeting", "daily_budget", "lifetime_budget", "bid_amount", "bid_strategy",
+        "start_time", "end_time", "dsa_beneficiary", "dsa_payor", "promoted_object"
+      ]
+    },
+    "ads_creative_upload_media": {
+      "required": ["ad_account_id", "upload_source"],
+      "properties": ["ad_account_id", "upload_source", "media_type", "media_url", "name"]
+    },
+    "ads_create_creative": {
+      "required": ["ad_account_id"],
+      "properties": [
+        "ad_account_id", "name", "page_id", "instagram_user_id", "link_url", "display_link",
+        "call_to_action_type", "image_hash", "video_id", "message", "headline", "description",
+        "primary_texts", "headlines", "descriptions", "cards", "multi_media",
+        "placement_customizations", "degrees_of_freedom_spec"
+      ],
+      "nested": {
+        "cards": ["image_hash", "video_id", "link", "headline", "description"],
+        "multi_media": ["image_hash", "video_id"],
+        "placement_customizations": [
+          "image_hash", "video_id", "publisher_platforms",
+          "facebook_positions", "instagram_positions"
+        ]
+      }
+    },
+    "ads_create_ad": {
+      "required": ["ad_account_id", "ad_set_id", "ad_name"],
+      "properties": ["ad_account_id", "ad_set_id", "ad_name", "creative"]
+    }
+  }
+}

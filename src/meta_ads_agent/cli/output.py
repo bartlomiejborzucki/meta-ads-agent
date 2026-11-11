@@ -65,6 +65,7 @@ def status_line(label: str, status: str, detail: str = "") -> None:
         "OK": ("green",),
         "READY": ("green",),
         "MISSING": ("yellow",),
+        "INVALID": ("yellow",),
         "OPTIONAL": ("dim",),
         "FAIL": ("red",),
         "INFO": ("dim",),

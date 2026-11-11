@@ -536,6 +536,20 @@ class TestState:
         assert "FALLBACK" in out
         assert "API fallback" in out
 
+    def test_a_plan_changed_before_anything_exists_is_not_drift(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from meta_ads_agent.models.plan import CampaignPlanDocument
+
+        store, _, _ = self._saved(tmp_path, capsys)
+        changed = plan_dict()
+        changed["campaign"]["name"] = "A different campaign"
+        store.save_plan(CampaignPlanDocument.model_validate(changed))
+
+        code, out, _ = run(["state", "acme-webinar", "--json"], capsys)
+        assert code == 0
+        assert json.loads(out)["plan_drift"] is False
+
     def test_a_state_without_its_plan_cannot_plan_a_resume(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:

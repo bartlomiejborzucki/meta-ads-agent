@@ -82,7 +82,12 @@ def run_init(
         target.parent.mkdir(parents=True, exist_ok=True)
         content = source.read_text(encoding="utf-8")
         if brand_name and target_rel == "brand.yaml":
-            content = content.replace("name: Your Brand", f"name: {brand_name}")
+            # Through YAML's own quoting: "Acme: Shoes" written bare is a
+            # mapping, and "#1 Shop" a comment that leaves the name empty.
+            scalar = yaml.safe_dump(
+                brand_name.strip(), default_style='"', allow_unicode=True, width=10_000
+            ).strip()
+            content = content.replace("name: Your Brand", f"name: {scalar}", 1)
         atomic_write(target, content)
         echo(f"  wrote      {target_rel}")
 
@@ -161,20 +166,23 @@ def _validate_file(path: Path, model: type[BaseModel], label: str) -> int:
     return 0
 
 
-def write_account_cache(workspace: Workspace, payload: dict[str, object]) -> Path:
-    """Persist account facts read from Meta into ``account.yaml``.
+def write_account_cache(
+    workspace: Workspace, payload: dict[str, object], *, path: Path | None = None
+) -> Path:
+    """Persist account facts read from Meta into ``account.yaml``, or *path*.
 
     A cache for the validator, explicitly stamped with a read time so nobody
     mistakes it for current truth.
     """
+    target = path or workspace.account_file
     data = {"schema_version": 1, "read_at": _dt.datetime.now(_dt.UTC).isoformat()}
     data.update(payload)
     workspace.write_yaml(
-        workspace.account_file,
+        target,
         data,
         header=(
             "# Cached account facts read from Meta. A cache, not a source of\n"
             "# truth - Meta is authoritative. Safe to delete."
         ),
     )
-    return workspace.account_file
+    return target
