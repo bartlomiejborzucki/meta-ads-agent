@@ -17,7 +17,7 @@ Dependencies are installed from PyPI at their own licenses and are not redistrib
 | [`pydantic`](https://github.com/pydantic/pydantic) | MIT | yes |
 | [`PyYAML`](https://github.com/yaml/pyyaml) | MIT | yes |
 | [`tzdata`](https://github.com/python/tzdata) | Apache-2.0 | on Windows only |
-| [`facebook-business`](https://github.com/facebook/facebook-python-business-sdk) | Facebook Platform License | **no** — optional `api` extra |
+| [`facebook-business`](https://github.com/meta/facebook-python-business-sdk) | Facebook Platform License | **no** — optional `api` extra |
 
 ### facebook-business (Meta Business SDK)
 

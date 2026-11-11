@@ -98,7 +98,7 @@ meta-ads-agent doctor
 Look for:
 
 ```
-Meta Business SDK             OK       facebook-business 26.0.1
+Meta Business SDK             OK       facebook-business 26.0.4
 META_ACCESS_TOKEN             OK       sha256:a1b2c3d4e5f6 (len 213)
 
 READY FOR API FALLBACK        yes

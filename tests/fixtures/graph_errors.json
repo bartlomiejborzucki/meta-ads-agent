@@ -89,6 +89,45 @@
     },
     "kind": "transient"
   },
+  "buc_ads_insights": {
+    "http_status": 400,
+    "body": {
+      "error": {
+        "message": "There have been too many calls from this ad-account. Wait a bit and try again.",
+        "type": "OAuthException",
+        "code": 80000,
+        "fbtrace_id": "AbCdEfGhIjK",
+        "is_transient": true
+      }
+    },
+    "kind": "transient"
+  },
+  "buc_custom_audience": {
+    "http_status": 400,
+    "body": {
+      "error": {
+        "message": "There have been too many calls from this ad-account. Wait a bit and try again.",
+        "type": "OAuthException",
+        "code": 80003,
+        "fbtrace_id": "AbCdEfGhIjK",
+        "is_transient": true
+      }
+    },
+    "kind": "transient"
+  },
+  "buc_ads_management": {
+    "http_status": 400,
+    "body": {
+      "error": {
+        "message": "There have been too many calls from this ad-account. Wait a bit and try again.",
+        "type": "OAuthException",
+        "code": 80004,
+        "fbtrace_id": "AbCdEfGhIjK",
+        "is_transient": true
+      }
+    },
+    "kind": "transient"
+  },
   "session_invalid": {
     "http_status": 400,
     "body": {
