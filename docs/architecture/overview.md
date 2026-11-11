@@ -35,15 +35,15 @@ which it covers as of 2026-11-04, so the fallback is deprecated
 │  DETERMINISTIC HELPERS          │          │  CAPABILITY REGISTRY    │
 │  src/meta_ads_agent/            │          │  config/capabilities.   │
 │  money · validation · state     │◄─────────┤  yaml                   │
-│  fingerprints · redaction       │          │  who owns what, dated   │
+│  plan drafting · MCP arguments  │          │  who owns what, dated   │
 └──────┬──────────────────────────┘          └─────────────────────────┘
        │
-       │ only for capabilities the MCP lacks
+       │ deprecated: the MCP has done all of this since 2026-11-04
        │
 ┌──────▼──────────────────────────┐          ┌─────────────────────────┐
 │  API FALLBACK (optional)        │          │  OFFICIAL META ADS MCP  │
 │  meta-ads-agent api ...         │          │  mcp.facebook.com/ads   │
-│  facebook-business SDK          │          │  ~90 tools, Meta OAuth  │
+│  facebook-business SDK          │          │  ~100 tools, Meta OAuth │
 │  local upload · video creative  │          │  PRIMARY for everything │
 │  existing post · delete         │          │  it covers              │
 └──────┬──────────────────────────┘          └────────────┬────────────┘

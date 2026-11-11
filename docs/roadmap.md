@@ -98,7 +98,7 @@ themselves are recorded as not supported: their template creative is not
 something the MCP is documented to build, and catalogs stay MCP-only. What
 was planned:
 
-- **Catalog and dynamic ads:** a skill workflow over the 34 `ads_catalog_*`
+- **Catalog and dynamic ads:** a skill workflow over the 33 `ads_catalog_*`
   tools - catalog health first, then product sets, then a catalog campaign.
 - **More than one ad account per workspace**, with every plan, state file and
   asset record already keyed by account.
@@ -116,16 +116,19 @@ version check on read, and migrations tested from every earlier version.
 
 ## Blocked on a test account
 
-Still open after 1.0:
+Still open:
 
 - running the live tests;
-- the first campaign created on a real account;
-- Meta confirming the fallback's request shapes;
-- introspecting the MCP tool list from our own authenticated session (the
-  tooling is ready: `capabilities --compare`).
+- Meta confirming the fallback's request shapes (moot once the fallback is
+  deleted);
+- a build of each creative format the 2026-11-03 campaign did not cover, and
+  of the calls `plan-calls` proposes.
 
-**Blocked on a Codex install:** installing the plugin in Codex on Linux and
-on Windows, and writing up what differs from the documented steps.
+Done since: the first campaign on a real account (2026-11-03, section 1.4
+below), and introspecting the MCP tool list from an authenticated session
+(2026-11-04, and again by name on 2026-11-11).
+
+**Blocked on a Codex install:** Windows. Linux is done (After 1.3, below).
 
 Until then the README keeps these under "Never run against Meta".
 
@@ -242,6 +245,28 @@ keeping at most local-file upload for hosts without Meta's upload app, and
 check the open questions the build left - whether `page_id` beside an
 Instagram post fills Ads Manager's Page field, and what status a published
 draft really takes.
+
+## After 1.4 - a review, and the build done in code
+
+A review on 2026-11-11 compared the capability map with a connected session
+again and read the code end to end. Meta had dropped
+`ads_update_custom_audience_users` - the MCP no longer changes a customer
+list's members - and a lookalike no longer takes a country. The larger finding
+was in this project: the state store, the asset manifest and `brand.yaml`'s
+account defaults were all written, tested, and called by nothing on the MCP
+path, so the agent wrote `state.json`, `account.yaml` and the plan by hand.
+
+What that became: `new-plan` (a plan drafted from the workspace), `plan-calls`
+(the plan as MCP arguments, dated to the schemas it follows), `record` and
+`cache-account` (the state store's callers), a check of copy against the
+brand's `banned_phrases`, and the image tools Meta's MCP has had since
+2026-11-04 written into the creative skill. The CHANGELOG has the fixes.
+
+Still next: delete the deprecated fallback, and run what is listed under
+"Blocked on a test account". Ideas not built: picking the best ads from an
+insights export as the source for `duplicate-plan`; plan fields for lead forms,
+app promotion and messaging destinations; Meta's `url_tags` in place of UTMs
+appended to the URL.
 
 ## Ongoing
 

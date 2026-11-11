@@ -48,6 +48,29 @@ arithmetic (which has a by-hand route), and uploading a local file in a host
 without Meta's upload app (a public URL works without it).
 <!-- shared:preflight end -->
 
+## One post, promoted: the short path
+
+"Boost this Reel" does not need a plan file. When the whole request is one
+existing Instagram post, one audience and one budget:
+
+1. `ads_get_ig_media` for the account, with a `limit` and a date or
+   `product_type` filter - it returns full media URLs, and an unfiltered read
+   is enormous. Show the user the candidates and let them pick; never choose
+   the post for them.
+2. `ads_boost_ig_post` with `confirmed=false`. It creates nothing and returns
+   the plan Meta would build. Its defaults are not the user's - US targeting,
+   about 5 USD a day for 6 days, `OUTCOME_TRAFFIC` - so set the country,
+   budget, duration and objective from what the user said, and show them the
+   plan it returns, in their currency.
+3. Only after they approve that plan: `confirmed=true`. The approval hook asks
+   here too. Everything is created PAUSED.
+4. Preview, report, and ask before activating - steps 6 to 8 below, unchanged.
+
+Use the full pipeline instead when there is more than one ad or ad set, when
+the copy or media is new, when EU transparency fields or a special ad category
+need a decision, or when the user wants the build recorded and resumable: the
+short path writes no plan and no state.
+
 ## The pipeline
 
 ```
@@ -67,7 +90,18 @@ Meta or the workspace, so reading first makes the conversation shorter.
 
 **From Meta** (`ads_get_ad_accounts`, `ads_get_user_pages`,
 `ads_get_ig_accounts`, `ads_get_datasets`): account id, currency, timezone,
-eligibility, Page, Instagram identity, datasets and their event volume.
+eligibility, Page, Instagram identity, datasets and their event volume. Save
+the account as Meta returned it and cache it, so the plan is checked against
+the account it is for - its currency, its minor-unit offset, its timezone:
+
+```bash
+meta-ads-agent cache-account account.json --pages <ids> --instagram-accounts <ids> --datasets <ids>
+```
+
+**Media already on the account** (`ads_get_ad_images`, `ads_get_ad_videos`):
+look before asking for files. An image that is there has an `image_hash`, a
+video a `video_id`, and either goes straight into the plan with no upload. Ask
+for a file only for what is not there.
 
 **From the workspace** (`.meta-ads/brand.yaml`, `offers/<slug>.yaml`,
 `voice.md`): naming conventions, UTM templates, DSA beneficiary and payor,
@@ -96,6 +130,10 @@ Decisions to make explicitly, and record why in the plan's `notes`:
   (`OUTCOME_*`), never a retired objective from an old example.
 - **Optimisation goal** - must be valid for the objective. If it optimises for
   conversions, a dataset and an event with recent volume are required.
+  Meta's `ads_insights_advertiser_context` is described as an overview of the
+  advertiser's business and funnel "to determine the most relevant
+  optimization goal" (read 2026-11-11, not yet called here): read it before
+  proposing a goal, and treat what it returns as one input, not the answer.
 - **Budget level** - campaign (CBO) or ad set (ABO), never both. Meta rejects
   both, and so does the validator.
 - **Audience** - broad or defined. Both are defensible; this is a media-buying
@@ -106,8 +144,8 @@ Decisions to make explicitly, and record why in the plan's `notes`:
 - **Placements** - automatic unless specific creative demands otherwise. When
   the campaign belongs on one platform (a Reel optimised for ThruPlay or
   reach on Instagram, say), take **every** position on it -
-  `platforms: [instagram]` with no `positions` - and let delivery find the
-  cheap ones. *Heuristic, default on:* a hand-picked subset of positions
+  `mode: manual` with `platforms: [instagram]` and no `positions` - and let
+  delivery find the cheap ones. *Heuristic, default on:* a hand-picked subset of positions
   narrows the auction and lowers Meta's campaign score; use one only for a
   reason you write into `deviations`.
 - **Spend cap** - optional. Meta rejected a PLN campaign cap below 500 PLN on
@@ -127,13 +165,40 @@ Background, with the uncertainty marked:
 `.meta-ads/campaigns/<slug>/plan.yaml`. Schema and every field, annotated:
 [assets/campaign-plan.yaml](assets/campaign-plan.yaml).
 
+**Start from a draft, not a blank file.** With the CLI:
+
+```bash
+meta-ads-agent new-plan --slug <slug> --offer <offer> --budget 70 \
+  --assets creatives/a.jpg creatives/b.jpg --write
+```
+
+It fills the plan from the offer brief, `brand.yaml` (its `account:` block,
+EU transparency fields, special ad categories, Advantage preferences, naming
+and UTMs) and the cached account, and prints where each value came from. Copy
+comes from `--copy`, or from `campaigns/<slug>/copy.yaml` where
+`meta-ads-creative` saves the variants the user chose; media already on the
+account goes in with `--image-hash` or `--video-id`. It invents nothing: what
+it cannot find it lists, with the flag or the `brand.yaml` field that supplies
+it - ask the user for exactly those, and offer to save the lasting ones in
+`brand.yaml` so the next campaign does not ask again.
+
+With several copy variants **and** several assets it stops and asks how they
+combine, because the two answers are different tests. Put that to the user in
+these terms: `--split matrix` is one ad per pairing, each with its own numbers,
+all sharing the ad set's budget; `--split multi-variant` is one ad Meta mixes,
+with one result and no per-pairing numbers.
+
+The draft has one ad set, the countries, and nothing it would have had to
+guess. Add what step 2 decided - the optimisation goal, the audience beyond
+countries and ages, placements, `deviations` - by editing the file.
+
 Budgets are **display amounts** with a currency - `70` and `PLN`, never `7000`.
 Statuses are PAUSED; there is no field for anything else.
 
-Names follow the brand's conventions: copy the `naming` templates from
-`brand.yaml` into the plan's names as written - `{brand} | {objective} |
-{date}`, `{audience}`, `{variant}` - and let the CLI expand them, together with
-the brand's UTM parameters, rather than expanding them yourself:
+Names and UTMs in a drafted plan are already rendered. In a plan you write or
+edit by hand, copy the `naming` templates from `brand.yaml` into the names as
+written - `{brand} | {objective} | {date}`, `{audience}`, `{variant}` - and let
+the CLI expand them, with the brand's UTM parameters:
 
 ```bash
 meta-ads-agent render-plan .meta-ads/campaigns/<slug>/plan.yaml          # show
@@ -141,9 +206,10 @@ meta-ads-agent render-plan .meta-ads/campaigns/<slug>/plan.yaml --write  # save
 ```
 
 It never overwrites a UTM parameter already in a URL, and `{date}` is the
-plan's own creation date, so two builds agree on it. The validator refuses a
-name that still contains a token. With no CLI, write the names and URLs out in
-full instead, and say that you did.
+plan's own creation date in the account's timezone, so two builds agree on it.
+Meta's own macros - `{{ad.name}}`, `{{placement}}` - pass through untouched.
+The validator refuses a name that still contains a token. With no CLI, write
+the names and URLs out in full instead, and say that you did.
 
 Show the plan to the user before creating anything. A plan is cheap to change
 and a campaign is not.
@@ -160,9 +226,16 @@ write.** Warnings are for the user to see, not for you to suppress.
 It checks the account exists and is active and payable, the currency matches,
 budgets convert cleanly and sit on one level only, the Page and Instagram
 identity exist on this account, the dataset and event exist, the destination is
-a reachable public URL, EU transparency fields are present when the plan
-targets the EU/EEA, special ad categories are consistent with brand config, and
-local assets exist and are the type they claim.
+a public https URL with nothing left unfilled (its shape only - it does not
+load the page, so open it yourself), EU transparency fields are present when the
+plan targets the EU/EEA, special ad categories are consistent with brand
+config, and local assets exist and are the type the plan uses them as.
+
+It also holds the copy to the brand's own list: a phrase in `banned_phrases` is
+an error wherever it appears. Reword the copy; do not edit the list to get
+through. And it warns when an asset's shape does not fit the only placements
+it can serve in - a landscape image in an ad set that runs Stories and Reels
+alone. That one is a prompt to look at the preview, not a verdict.
 
 It also reports which layer will perform each step. Since 2026-11-04 every
 creative mode is the MCP's; a `routing.fallback` finding means a token will be
@@ -206,20 +279,62 @@ Offering no route forward is not an answer, and neither is quietly proceeding.
 
 ## 5. Create, PAUSED or as drafts, recording as you go
 
+Ask the CLI for the calls, rather than translating the plan yourself:
+
+```bash
+meta-ads-agent plan-calls .meta-ads/campaigns/<slug>/plan.yaml --json
+```
+
+It returns every call in order - `ads_create_campaign`, each
+`ads_create_ad_set`, the uploads, each `ads_create_creative`, each
+`ads_create_ad` - with the arguments ready: budgets in minor units, `targeting`
+and `creative` as JSON strings, the account id as Meta wants it. Three things
+about it:
+
+- **`needs`** lists what a call cannot be made without - an optimisation goal
+  the plan left out, a video's thumbnail, the reason Advantage+ audience is
+  off. Settle each with the user or the plan; do not fill one in to get past it.
+- **`<id:PLAN_REF>`** stands for an id that does not exist yet. Replace it with
+  the id Meta returned for that element.
+- **Its argument names carry a date** (`schema_read`). Meta changes its tools.
+  If a call is rejected, the error is right and the proposal is stale: read
+  the error, follow the schema in front of you, and tell the user the map has
+  moved.
+
+Add the fields every Meta call carries about the conversation yourself
+(`meta-ads-core`).
+
 Record each id **before starting the next call**. This is what makes a failure
-resumable instead of duplicating.
+resumable instead of duplicating. Each call comes with its `record` command:
 
-```
-1. ads_create_campaign   → record id, stage campaign_created
-2. ads_create_ad_set     → record each id, stage ad_sets_created
-3. assets                → see below, stage assets_uploaded
-4. creative              → record id, stage creatives_created
-5. ads_create_ad         → record each id, stage ads_created
+```bash
+meta-ads-agent record object <slug> --type campaign --plan-ref campaign --id <id> --status PAUSED
+meta-ads-agent record object <slug> --type ad_set --plan-ref 'ad_sets[0]' --id <id>
 ```
 
-If a call fails, stop. Do not continue past a failure, and do not retry a write
-without querying Meta first - a timeout does not tell you whether the object
-was created.
+The stage follows from what is recorded; there is nothing else to set. The
+record goes through a lock and is tied to the plan it was built from, so a
+second session, or a resume, reads the same truth. Do not write `state.json` by
+hand when the CLI is there.
+
+```
+1. ads_create_campaign   → record
+2. ads_create_ad_set     → record each
+3. uploads               → record asset, see below
+4. ads_create_creative   → record each
+5. ads_create_ad         → record each
+```
+
+If a call fails, stop, and record that too - without `--retry-safe` unless Meta
+refused the call outright:
+
+```bash
+meta-ads-agent record failure <slug> --stage creatives_created --message "<Meta's message>" \
+  --code <code> --subcode <subcode> --plan-ref 'ad_sets[0].ads[0].creative'
+```
+
+Do not continue past a failure, and do not retry a write without querying Meta
+first - a timeout does not tell you whether the object was created.
 
 Where Meta has turned on draft mode for the account, each create returns
 `status=DRAFT` and any problems in `active_errors`. Fix those with
@@ -248,8 +363,18 @@ the CLI, the deprecated fallback (`meta-ads-agent api upload-image` /
 `upload-video`, which needs the `[api]` extra and a token). Do not describe
 the upload as done.
 
-If the user already has an `image_hash` or `video_id`, use it and skip the
-upload entirely.
+If the user already has an `image_hash` or `video_id` - or step 1 found the
+media on the account - use it and skip the upload entirely.
+
+When an upload returns, remember it against the file, not only in state:
+
+```bash
+meta-ads-agent record asset <slug> --file creatives/a.jpg --image-hash <hash> \
+  --plan-ref 'ad_sets[0].ads[0].creative.assets[0]'
+```
+
+The file is fingerprinted, so the next plan that uses it - renamed or not - gets
+the hash from `plan-calls` and no upload.
 
 ### Creative
 
@@ -267,6 +392,11 @@ the tool descriptions):
 | carousel, 2 to 10 cards | `ads_create_creative` - `cards` |
 
 The CLI's `api create-creative` modes still work, as a deprecated fallback.
+
+A creative's content cannot be changed once it exists - `ads_creative_update`
+renames and labels only. To change what an ad shows, build a new creative and
+point the ad at it; before reusing or retiring one, `ads_get_creative_ads`
+lists the ads that use it.
 
 **An Instagram post goes inline in the ad.** Give `ads_create_ad` a `creative`
 of `source_instagram_media_id` (the `id` from `ads_get_ig_media`),
@@ -292,7 +422,9 @@ Say which one you used and why. Copy and angles come from `meta-ads-creative`.
 
 Hand off to `meta-ads-preview`. Render the placements the campaign actually
 targets, not just Feed, and check identity, copy, destination, crops, safe
-zones, and truncation before anyone is asked to approve spending.
+zones, and truncation before anyone is asked to approve spending. Then
+`meta-ads-agent record stage <slug> previewed`, and `qa_passed` once QA is
+clean.
 
 ## 7. Report, then ask
 
@@ -332,7 +464,7 @@ delivery. Before calling it live:
    reviewing; `ACTIVE` once it passes. A draft that vanished is not proof it
    was published - the live read-back is.
 2. **`ads_get_errors`** for the campaign. Report anything there verbatim.
-3. **Record it.** Stage `activated` in `state.json` with the ids, and write
+3. **Record it.** `meta-ads-agent record activation <slug>`, and write
    `baseline.yaml` in the campaign directory: today's date and anything Meta
    cannot give back later - for a follower goal, the Instagram follower count
    on launch day and the organic growth before it (`meta-ads-report` explains
@@ -355,7 +487,8 @@ plain JSON and records the stage, every id, and the plan fingerprint.
 
 It reports what exists, which stage failed, whether the failure was retry-safe,
 and what comes next. Then re-read those objects from Meta, confirm they match,
-and continue from the first incomplete stage.
+and run `plan-calls` again: what is recorded comes back `done` with its id
+filled into the calls that remain, so you continue from the first one pending.
 
 If the plan changed after objects were created, the tool blocks the resume -
 correctly. Restore the plan that produced them, or start a new slug.

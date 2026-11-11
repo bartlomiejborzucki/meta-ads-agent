@@ -127,9 +127,12 @@ deletion, say why pausing is insufficient.
 
 Through the MCP, deleting a campaign, ad set or ad is `ads_update_entity` with
 `{"status": "DELETED"}`; `ads_creative_delete` deletes a creative no ad uses.
-Discarding drafts is the same class. The deprecated CLI path enforces this
-too: `--approved` and `--reason` are both required, an ACTIVE object is
-refused outright, and `--dry-run` shows what would go.
+Discarding drafts is the same class. The deprecated CLI path refuses an
+ACTIVE object outright and `--dry-run` shows what would go. It also requires
+`--approved` and `--reason` - but those are flags you pass yourself, and the
+approval hook does not see a shell command. They record that the user approved;
+they do not check it. Pass `--approved` only after the user approved this
+deletion, in this conversation.
 
 ### `bulk` - show the list, then get approval
 
@@ -139,8 +142,11 @@ one and have the user confirm it.
 
 ### `pii_upload` - explicit instruction and a lawful basis
 
-`ads_update_custom_audience_users` uploads hashed personal data. The
-highest-risk operation available.
+Uploading the members of a customer list - hashed personal data - is the
+highest-risk operation there is. **Meta's MCP does not do it** as of
+2026-11-11: the tool for it is gone, a customer-list audience is created
+empty, and the user adds people in Ads Manager > Audiences. The class stays,
+for any tool that uploads customer data, now or later:
 
 - Only on explicit instruction. Never as a step you inferred.
 - Confirm the user has a lawful basis and consent.

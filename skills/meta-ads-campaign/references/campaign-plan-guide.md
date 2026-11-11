@@ -12,7 +12,8 @@ Schema, with every field annotated:
 ```
 .meta-ads/campaigns/<slug>/
   plan.yaml       intent          ← reviewed by a human
-  state.json      outcome         ← written as objects are created
+  state.json      outcome         ← written by `record` as objects are created
+  copy.yaml       the copy variants chosen ← read by `new-plan`
   creatives.json  creative detail
   qa.md           preview QA notes
   report.md       latest report
@@ -20,6 +21,15 @@ Schema, with every field annotated:
 
 `<slug>` is lowercase letters, digits, and hyphens. It names the directory, so
 it must be filesystem-safe.
+
+## Start from a draft
+
+`meta-ads-agent new-plan` writes the first version from the offer brief,
+`brand.yaml` and the cached account, and says where each value came from. It
+leaves out what it would have had to guess - the optimisation goal, the
+audience beyond countries and ages, placements - so those are the edits to
+make. What follows is what to know when making them, or when writing a plan
+with no CLI.
 
 ## The parts that cause mistakes
 
@@ -57,6 +67,23 @@ assets:
 ```
 
 Exactly one. Two is ambiguous and none is useless.
+
+`single_image` and `single_video` take **one** asset; more is an error from
+`validate-plan` (`creative.one_asset`). Several images are a `multi_variant`
+creative or several ads. A video's cover image is not a second
+asset; it has its own field, and Meta wants one with every video:
+
+```yaml
+mode: single_video
+assets:
+  - local_path: ./creatives/demo.mp4
+thumbnail:
+  local_path: ./creatives/demo-cover.jpg     # or image_hash
+```
+
+A file is checked by its contents, not its name: a `.jpg` that is really an
+MP4 is refused before the build, and a HEIC or AVIF photo has to be exported
+as JPEG or PNG first.
 
 Relative paths resolve against the **plan's directory**, not the current
 working directory, so a workspace is portable between machines.
@@ -105,7 +132,20 @@ assets:
 In any other mode `placement` is refused, because nothing would honour it.
 A multi-variant creative takes images or videos, not both, and an asset pinned
 to a placement the ad set's manual placements leave out is refused too - it
-would never serve.
+would never serve. It takes up to 10 assets and up to five different primary
+texts, headlines and descriptions (Meta's tool description, read 2026-11-11);
+more is an error. With one asset and several texts under a Traffic or App
+objective the validator warns: Meta documents text variants on a single image
+or video for Awareness, Engagement, Leads and Sales only.
+
+### Destination URLs and Meta's macros
+
+Meta fills its own parameters when the ad is delivered - `{{ad.name}}`,
+`{{ad.id}}`, `{{adset.name}}`, `{{adset.id}}`, `{{campaign.name}}`,
+`{{campaign.id}}`, `{{placement}}`, `{{site_source_name}}`. They may appear in
+a destination URL or a UTM template and are left exactly as written. Anything
+else in braces is one of this project's tokens, and must be rendered before
+the plan validates.
 
 ### Age under Advantage+ audience
 
@@ -189,7 +229,7 @@ Useful flags:
 
 ```bash
 --json                 machine-readable findings and provider routing
---skip-assets          do not read local files (faster; skips crop checks)
+--skip-assets          do not read local files (faster; skips the file checks)
 --strict               treat warnings as failure
 --account-file PATH    cached account facts
 --brand-file PATH      brand config
@@ -204,9 +244,12 @@ Without account facts, the currency, identity, dataset, and eligibility checks
 cannot run, and the report says `account.not_read`. A plan validated with no
 account context is **not** a plan cleared for execution.
 
-After reading the account from Meta, cache it in `.meta-ads/account.yaml` - or,
-in a workspace that works with more than one ad account, in
-`.meta-ads/accounts/<act_id>.yaml`, one per account. `validate-plan` picks the
+After reading the account from Meta, cache it: save the response as JSON and
+run `meta-ads-agent cache-account account.json` (with `--pages`,
+`--instagram-accounts` and `--datasets` for the ids the other discovery tools
+returned). It writes `.meta-ads/account.yaml` - or, in a workspace that works
+with more than one ad account, `.meta-ads/accounts/<act_id>.yaml`, one per
+account. With no CLI, write the file by hand. `validate-plan` picks the
 file for the plan's own `ad_account_id`, and never validates against another
 account's facts: an `account.yaml` for a different account is ignored, with a
 hint. The
@@ -232,7 +275,15 @@ ERROR    dsa.missing_fields    targeting PL requires beneficiary, payor
 WARNING  currency.unverified   plan budgets are in PLN, not verified against the account
 INFO     budget.resolved       daily budget at ad_set level: 70.00 PLN (7000 minor units)
 INFO     plan.deviation        placements differs from Meta's recommendation (Advantage+ placements): ...
+ERROR    copy.banned_phrase    contains 'risk free', which brand.yaml's banned_phrases says this brand never uses
+ERROR    brand.unreadable      brand.yaml could not be used: ... The checks that read it did not run
+WARNING  asset.aspect_placement  cover.png is 1200x628, and instagram_stories is full-screen vertical (9:16)
 ```
+
+`copy.banned_phrase` is the advertiser's own rule, so it blocks: reword the
+copy. `asset.aspect_placement` appears only when the plan itself says where an
+asset serves - pinned to a placement, or in an ad set whose manual placements
+are all Stories and Reels or all Feed - and is a reason to look at the preview.
 
 The `Execution routing` section names which layer performs each step. Since
 2026-11-04 every creative mode routes to Meta's MCP; a `routing.fallback`
@@ -243,7 +294,8 @@ finding would mean the plan needs the token-based fallback, so tell the user
 
 The plan's fingerprint is stored with the state. Editing the plan after objects
 have been created blocks the resume, because continuing would apply a different
-plan to existing structure.
+plan to existing structure. Editing it before anything exists is just editing a
+plan.
 
 Two honest options: restore the plan that produced them, or start a new slug
 for the new plan. There is no third option that does not risk a mismatch

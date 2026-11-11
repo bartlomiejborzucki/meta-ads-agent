@@ -22,14 +22,14 @@
   "interface": {
     "displayName": "Meta Ads Agent",
     "shortDescription": "Run Meta Ads safely from your agent",
-    "longDescription": "Turns a coding agent into a careful Meta Ads operator on top of Meta's official Ads MCP server. Audits an account and separates fact from interpretation. Turns a brief into a validated campaign plan, then builds the campaign, ad set, creative, and ads - all PAUSED - and records every id so an interrupted build resumes instead of duplicating. Renders placement previews and QAs them before anyone is asked to approve spending. Compares equal-length periods with the attribution window stated. Diagnoses a decline before proposing a change, and checks the activity log before blaming the creative. Activation, budget changes, deletion, and customer-list uploads all require explicit approval. A small local CLI fills the few gaps Meta's MCP does not cover - notably uploading an image or video from your filesystem.",
+    "longDescription": "Turns a coding agent into a careful Meta Ads operator on top of Meta's official Ads MCP server. Audits an account and separates fact from interpretation. Turns a brief into a validated campaign plan, then builds the campaign, ad set, creative, and ads - all PAUSED - and records every id so an interrupted build resumes instead of duplicating. Renders placement previews and QAs them before anyone is asked to approve spending. Compares equal-length periods with the attribution window stated. Diagnoses a decline before proposing a change, and checks the activity log before blaming the creative. Activation, budget changes, deletion, and customer-list uploads all require explicit approval. A small local CLI drafts the plan from your brand and offer files, validates it, turns it into the arguments Meta's tools take, and records every id as it is created.",
     "developerName": "meta-ads-agent contributors",
     "category": "Marketing",
     "capabilities": [
       "Audit a Meta ad account read-only",
       "Plan and validate a campaign before any write",
       "Build campaigns, ad sets, and ads paused by default",
-      "Upload local images and videos, deduplicated by content",
+      "Draft a plan from your brand and offer files, with nothing invented",
       "Render and QA placement previews before launch",
       "Report on equal-length periods with attribution stated",
       "Diagnose performance declines before proposing changes"

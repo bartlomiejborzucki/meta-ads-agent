@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "meta-ads-agent",
-  "description": "Agent-native Meta (Facebook/Instagram) Ads toolkit built on Meta's official Ads MCP, with a narrow Marketing API fallback for the few capabilities that server does not expose.",
+  "description": "Agent-native Meta (Facebook/Instagram) Ads toolkit built on Meta's official Ads MCP: a reviewable campaign plan, validation before the first write, resumable state, and an approval gate on anything that spends.",
   "owner": {
     "name": "meta-ads-agent contributors"
   },

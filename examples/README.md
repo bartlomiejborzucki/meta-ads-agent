@@ -47,11 +47,12 @@ the structural choices, which is what makes a plan reviewable rather than just
 readable.
 
 **`state.json`** - a build that **failed partway**, which is the interesting
-case. The campaign, ad set, video, and creative exist; the ads stage never
+case. The campaign, ad set, image, and creative exist; the ads stage never
 completed. Three things to notice:
 
-- The video and creative record `provider: api_fallback` - Meta's MCP creates
-  single-image link creatives only, so that step used the Business SDK.
+- Every object records `provider: official_mcp`, and the uploaded image is
+  recorded against the plan's asset by its hash - which is what lets
+  `plan-calls` skip the upload on a resume.
 - The recorded failure is `retry_safe: false`, carrying Meta's error code
   100/1885183. The next step is to **query Meta** for an ad under the ad set,
   not to retry the create.

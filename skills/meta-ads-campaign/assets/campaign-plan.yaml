@@ -145,8 +145,14 @@ campaign:
             # Exactly one source per asset: local_path, image_hash, or video_id.
             # A local file is fingerprinted, uploaded once, and reused on every
             # later run - retries never re-upload.
+            # single_image and single_video take ONE asset; several go in
+            # mode: multi_variant, or in separate ads.
             assets:
               - local_path: ./creatives/time-saved.jpg
+            # Only with mode: single_video - the image shown before it plays.
+            # Meta wants one with every video.
+            #   thumbnail: {local_path: ./creatives/cover.jpg}
+            thumbnail: null
 
             # `angle` is the CONCEPT, not the wording. Two variants with the
             # same angle and different phrasing are one idea, not two, and the

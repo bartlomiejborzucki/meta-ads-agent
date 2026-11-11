@@ -44,6 +44,7 @@ Widening the percentage addresses 2 and sometimes 4. It does nothing for 1 or
 
 ## Reporting a lookalike
 
-Always with: its source (and the source's size and date range), the country,
-the percentage, its status, and its current size estimate. A lookalike
+Always with: its source (and the source's size and date range), the
+percentage, the countries of the ad sets that use it (the audience itself has
+none), its status, and its current size estimate. A lookalike
 reported as a name alone cannot be judged by anyone reading the report.

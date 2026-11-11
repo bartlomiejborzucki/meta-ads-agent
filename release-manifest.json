@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "1.4.0",
   "payload_root": "skills",
-  "digest": "6356dafa5185f7fdd5bdb43fbfa7c7408856a49bd6018fbeb8fd7d364c9e30ae",
+  "digest": "ec3d9bd427ef860481c9fadbf3d4caca426053a380a6b8a2c0dcd7f0d26425a3",
   "skills": [
     "meta-ads-audiences",
     "meta-ads-audit",
@@ -27,13 +27,13 @@
   "files": [
     {
       "path": "meta-ads-audiences/SKILL.md",
-      "sha256": "07ba57c5403e9968bf716e3943ae49f3983f4d00f84d3d6aba25cfeda7233e68",
-      "size": 11236
+      "sha256": "c91851c83887920f943bbd34c9d694b1c9d2c3863debb694543139e8e21484c4",
+      "size": 12129
     },
     {
       "path": "meta-ads-audiences/references/lookalike-sources.md",
-      "sha256": "8451c40969a39f8ddbb8d6490800150d9466c578394f0ff5de779836d58a8848",
-      "size": 2015
+      "sha256": "72ef84838c7fcb949d1a31da873ad065d94ebc5320ff3753e9789ae2a453387d",
+      "size": 2075
     },
     {
       "path": "meta-ads-audit/SKILL.md",
@@ -47,23 +47,23 @@
     },
     {
       "path": "meta-ads-campaign/SKILL.md",
-      "sha256": "201fb78b358827cd1ce6aba3ff2a47632a7c87018951b467d2e98c3801c5faec",
-      "size": 18884
+      "sha256": "a4fbb1a4530295bb94bf1ceb476b4841c2a6ca95217291394b685371a9db1d26",
+      "size": 25619
     },
     {
       "path": "meta-ads-campaign/assets/campaign-plan.yaml",
-      "sha256": "355b4ad1e8c21afe33ac064f311c84975226b4a829dbe7d36b7b580dff1cd529",
-      "size": 6887
+      "sha256": "fb6f15de93b27a3c1a152d8163e4a08d13548834513d3abb658ede45937d6d0b",
+      "size": 7232
     },
     {
       "path": "meta-ads-campaign/references/campaign-plan-guide.md",
-      "sha256": "3b529c226b0e1dc8baa62fd95736183edf32122f16a91f6a11ce06850cba44fa",
-      "size": 9526
+      "sha256": "a321db8c76bbdc5b618fbf61bf758a667774c8aeb3d0db63b4a741206caa4c86",
+      "size": 12328
     },
     {
       "path": "meta-ads-campaign/references/duplicate-input.md",
-      "sha256": "348c94634475f7c88ea1071c1070a1dcb3475b8b49f0233966cf37fa145a0fb3",
-      "size": 2772
+      "sha256": "99c01c0803c363434880b2fd4001d03b2b95d3c1fcaff0dd6f1e30b9d5738259",
+      "size": 3111
     },
     {
       "path": "meta-ads-campaign/references/objectives-and-optimization.md",
@@ -72,8 +72,8 @@
     },
     {
       "path": "meta-ads-campaign/references/special-categories-and-dsa.md",
-      "sha256": "4720acae51345c78da02d5bdbadfb05052dff095225e3b1c78a16b997b156474",
-      "size": 4448
+      "sha256": "ee55af10c575f160c9619aef1f09fe7b869a4dfbaf9f15cb8712fbe32a507f1b",
+      "size": 5005
     },
     {
       "path": "meta-ads-catalog/SKILL.md",
@@ -87,8 +87,8 @@
     },
     {
       "path": "meta-ads-core/SKILL.md",
-      "sha256": "1a7c7e325d92e206c0a2a5d5a674008ccb649ddf3dd6d2e3d1bdd97b7a507c65",
-      "size": 12134
+      "sha256": "7e7bbce5aa459092fc2aea31fe876568fdb7106ea9ccd1baa8b0a94ae2e22da8",
+      "size": 12792
     },
     {
       "path": "meta-ads-core/assets/account.yaml",
@@ -122,8 +122,8 @@
     },
     {
       "path": "meta-ads-core/references/mcp-tool-map.md",
-      "sha256": "33ba45a4f66764dea45d47d6c6d99e50e3885ac566e480ebb4aa96481fc8eb64",
-      "size": 12394
+      "sha256": "178e034ef6ef5f6557340a59b31f96144ad02e9169f7551677f3c1f60ef54228",
+      "size": 14571
     },
     {
       "path": "meta-ads-core/references/meta-errors.md",
@@ -132,18 +132,18 @@
     },
     {
       "path": "meta-ads-core/references/safety-policy.md",
-      "sha256": "a14a9c8806da5c1ce4ac552bcd701d57eb860ebad7c445bfe78a36823ff4592e",
-      "size": 9308
+      "sha256": "0f390be02863c2607f91fc0e88756cb7548af76e58bda1d30af10dc3355057aa",
+      "size": 9762
     },
     {
       "path": "meta-ads-core/references/workspace-and-state.md",
-      "sha256": "2740b5539356464478ca17df8ccdb98ea6fab26a8b3d049e3ffd62d04ebe0594",
-      "size": 6678
+      "sha256": "48e3733ce8d121886aace3e2531b4963da17b3687fb81bf19686353efff3d05a",
+      "size": 8233
     },
     {
       "path": "meta-ads-creative/SKILL.md",
-      "sha256": "862bfc4618a355d81ed310f5ad75b62f82888e9688ba2a063f7ae8bc8603c32c",
-      "size": 8614
+      "sha256": "4f1e40cd64caf4e639a2f2aec408a9579e02eab2c92f64a3b2ac46eb386a13b1",
+      "size": 12113
     },
     {
       "path": "meta-ads-creative/references/angles-and-copy.md",
@@ -202,8 +202,8 @@
     },
     {
       "path": "meta-ads-research/SKILL.md",
-      "sha256": "97cf5ffe8f4a24876810babc47cf8cc42087c77e179e3ae88f4b428743d4cfca",
-      "size": 7084
+      "sha256": "31f76ebaa469fc2c45df759a9d988bb4c988adcc9f6123aaade4370f274210f4",
+      "size": 7727
     },
     {
       "path": "meta-ads-tracking/SKILL.md",

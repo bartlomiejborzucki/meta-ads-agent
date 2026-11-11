@@ -2,7 +2,7 @@
 name: meta-ads-audiences
 description: >-
   Plan and build Meta (Facebook/Instagram) custom and lookalike audiences:
-  choosing a lookalike's source, country and size, website and engagement
+  choosing a lookalike's source and size, website and engagement
   audiences, exclusions, and checking an audience before it is used. Use for
   "build a lookalike", "who should we target", "create an audience from our
   customers", "exclude existing buyers", or "why is this audience so small".
@@ -49,9 +49,8 @@ without Meta's upload app (a public URL works without it).
 ads_get_ad_account_custom_audiences  → what exists already
 ads_get_custom_audience              → one audience: size, status, subtype
 ads_get_custom_audience_adsets       → where it is used - check before changing it
-ads_create_custom_audience           → website, engagement, lookalike, customer file
-ads_update_custom_audience           → name, description, rule
-ads_update_custom_audience_users     → customer-list members: PII, highest risk
+ads_create_custom_audience           → website, engagement, app, lookalike; a customer list is created empty
+ads_update_custom_audience           → name, description, rule, labels - not members
 ads_get_help_article                 → Meta's current rules, to quote rather than recall
 ```
 
@@ -88,7 +87,7 @@ The routes, in the order to offer them:
 | Listing, reading, sizing | `read` | changes nothing |
 | Creating a website, engagement or lookalike audience | `update_active` - explicit approval | no PII and no delivery change by itself, but the capability map classes it here, and it is a new object in their account |
 | Attaching an audience to a **live** ad set, or excluding one | `update_active` | delivery shifts the moment it is saved |
-| Adding people to a customer-list audience | `pii_upload` | the highest-risk operation on the server - see below |
+| Adding people to a customer-list audience | not through the MCP | the user does it in Ads Manager - see below |
 | Deleting an audience | `delete` | check `ads_get_custom_audience_adsets` first: deleting one in use breaks those ad sets |
 
 ## Lookalikes: the source decides everything
@@ -116,11 +115,16 @@ with `ads_get_help_article` and quote them with the date, rather than stating
 them from memory. A source below the minimum cannot be used; one barely above
 it produces a lookalike of a handful of people's quirks.
 
-**Country and percentage.** A lookalike is built within one or more
-countries, as a percentage of each country's population. Smaller is closer to
-the source and smaller in reach; larger is broader and looser. For a first
-lookalike, the closest band is the usual starting point, widened only when
-delivery is limited. Say what the choice trades, in those words.
+**Percentage, and no country.** `ads_create_custom_audience` takes a source
+(`origin_audience_id`) and a `lookalike_ratio` from 0.01 to 0.20 - 1% to 20%.
+It takes no country: its description says geography is handled automatically
+and tells you not to ask for one (read 2026-11-11). Where the lookalike
+delivers is the ad set's own targeting, so a "lookalike for Poland" is this
+audience in an ad set that targets PL. The source cannot be another
+lookalike. Smaller is closer to the source and smaller in reach; larger is
+broader and looser. For a first lookalike, the closest band is the usual
+starting point, widened only when delivery is limited. Say what the choice
+trades, in those words.
 
 **It takes time to populate.** A new lookalike is not ready the moment it is
 created. Check its status before building an ad set on it, and do not
@@ -133,8 +137,8 @@ LOOKALIKE PROPOSAL
 
 Source        Purchasers, last 180 days (dataset 1234567890)
               4,120 people - above Meta's minimum (help article, read 2026-09-24)
-Country       PL
-Size          1% - closest match, smallest reach
+Size          1% (lookalike_ratio 0.01) - closest match, smallest reach
+Delivers in   PL - set on the ad set; the audience itself takes no country
 Why           Purchasers describe the customer better than visitors, and
               180 days describes today's customer better than all-time.
 Alternative   3%, if 1% under-delivers after the learning phase.
@@ -210,21 +214,25 @@ Every proposed change edits a live ad set's targeting: `update_active`, one
 approval per ad set, or the whole list shown first when there are several
 (`bulk`).
 
-## Customer lists: `pii_upload`
+## Customer lists: the members go in through Ads Manager
 
-A customer-file audience is built from personal data. Everything in the core
-safety policy's `pii_upload` class applies, without exception:
+Meta's MCP does not add, replace or remove the people in a customer list
+(tool descriptions, read 2026-11-11): `ads_create_custom_audience` with
+subtype `CUSTOM` creates the audience **empty**, and
+`ads_update_custom_audience` changes its name, description and labels only.
+The tool that used to upload members is gone from the server.
 
-- explicit instruction from the user, for this list, now;
-- a lawful basis the user has stated - their consent records or legitimate
-  interest, not an assumption;
-- identifiers hashed before they leave the machine;
-- nothing from the list written to a log, a state file, a report, or this
-  conversation;
-- the source file never committed.
+So the route is: create the empty audience if the user wants it (it needs
+`customer_file_source` - ask where the data came from, do not guess), then
+tell them to open Ads Manager > Audiences, select it, Edit, and Add
+customers. "Replace customers" swaps the whole list; say so before they pick
+it. The list can take a few hours to process.
 
-If any of those is missing, stop and say which. There is no fallback for this
-path on purpose: one route, maximum scrutiny.
+Do not offer to take the file. Nothing from a customer list belongs in this
+conversation, a log, a state file or a report, and the source file is never
+committed. If a tool that uploads members reappears, it is the core safety
+policy's `pii_upload` class: explicit instruction for this list, a lawful
+basis the user states, identifiers hashed before they leave the machine.
 
 ## Before an audience is used
 
@@ -238,7 +246,8 @@ approves an audience they can see rather than a name.
   Read Meta's help, or say you have not.
 - Treat approval to create an audience as approval to attach it to a live ad
   set. They are two steps.
-- Put any member of a customer list anywhere but Meta's upload.
+- Take a customer list into the conversation, or put any member of one
+  anywhere but Meta's own upload in Ads Manager.
 - Delete an audience without checking which ad sets use it.
 
 Audience sizing and source-quality details:

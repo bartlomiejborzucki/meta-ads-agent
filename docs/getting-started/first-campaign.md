@@ -58,11 +58,20 @@ first time, so you can see for yourself.
 
 ## 4. Review the plan
 
-The agent writes `.meta-ads/campaigns/<slug>/plan.yaml` and validates it:
+The agent drafts `.meta-ads/campaigns/<slug>/plan.yaml` from your offer,
+`brand.yaml` and the account it just read, adds what only it can decide - the
+optimisation goal, the audience - and validates it:
 
 ```bash
+meta-ads-agent new-plan --slug acme-webinar-q4 --offer webinar --budget 70 \
+  --assets creatives/hero.jpg --write
 meta-ads-agent validate-plan .meta-ads/campaigns/acme-webinar-q4/plan.yaml
 ```
+
+`new-plan` prints where each value came from, and lists anything it could not
+find instead of guessing - a Page id, say, if `brand.yaml` has none. Put the
+lasting ones under `account:` in `brand.yaml` and the next campaign will not
+ask.
 
 ```
 INFO     budget.resolved     daily budget at ad_set level: 70.00 PLN (7000 minor units)
@@ -96,7 +105,10 @@ Where Meta has turned on draft mode for the account, the same objects come
 back as `DRAFT` instead of `PAUSED`: they sit in Ads Manager's draft until they
 are published.
 
-Each id is written to `state.json` the moment it exists. If the build fails
+The agent gets the arguments for each call from `meta-ads-agent plan-calls` -
+70.00 PLN as 7000 minor units, targeting as the JSON string Meta's tool takes -
+and writes each id to `state.json` with `meta-ads-agent record` the moment it
+exists. If the build fails
 halfway, `meta-ads-agent state <slug>` tells you what exists and where to
 resume - it will not create a second campaign.
 

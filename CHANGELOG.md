@@ -7,6 +7,149 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+**A review, and the build done in code.** `MIGRATION: none required`. A review
+on 2026-11-11 compared the capability map with a connected session again
+(tool names, and the descriptions of the tools named below - read, not
+called) and read the code end to end. Nothing here has been run against a
+live account.
+
+### Added
+
+- **`new-plan`** drafts a plan from the offer brief, `brand.yaml` and the
+  cached account, and prints where each value came from. `brand.yaml`'s
+  `account:` block, `default_destination_url` and `advantage_defaults` were
+  documented as pre-filling a plan and read by nothing; now they do. It
+  invents nothing - what it cannot find it lists, with the flag or field that
+  supplies it. `--split` turns copy variants and assets into ads: one per
+  asset, one per variant, one per pairing (`matrix`), or one ad Meta mixes
+  (`multi-variant`); with several of both it asks rather than choosing.
+- **`plan-calls`** prints the Meta MCP calls that build a validated plan, in
+  order: budgets in minor units with the account's own offset, `targeting`
+  and `creative` as JSON strings, one parameter set per creative format, ids
+  that do not exist yet as `<id:PLAN_REF>`. It lists what it will not guess
+  (`needs`), marks what state already holds as done, and skips the upload of
+  a file the asset manifest knows. Its argument names follow the tool schemas
+  as read on 2026-11-11 (`tests/fixtures/mcp-schemas-2026-11-11.json`); it has
+  **not** been run against Meta, and says so in its output.
+- **`record`** (`object`, `asset`, `stage`, `failure`, `activation`) and
+  **`cache-account`**. The state store - a lock, a merge of two sessions'
+  ids, a plan fingerprint - and the asset manifest were called only by tests
+  and by the deprecated fallback; on the MCP path the agent wrote
+  `state.json` and `account.yaml` by hand, so none of those safeguards
+  applied. These commands are their callers. The stage follows from what is
+  recorded.
+- **Validator:**
+  - `copy.banned_phrase` (error): a phrase from `brand.yaml`'s
+    `banned_phrases` in any primary text, headline, description or carousel
+    card. Until now only the creative skill's prose read that list.
+  - `creative.multi_variant_limits` (error) above 10 assets or five of a
+    text; `creative.text_variants_objective` (warning) for text variants on
+    one asset under an objective Meta documents as not taking them.
+  - `asset.aspect_placement` (warning) when the plan itself says where an
+    asset serves - pinned, or manual placements that are all Stories and
+    Reels or all Feed - and its shape does not fit. Silent with automatic
+    placements.
+  - `special_category.retired` (warning) for `CREDIT`, with its replacement.
+  - `brand.unreadable` (error), `currency.scale_from_account` (info).
+- **Plan:** `creative.thumbnail`, for `single_video` - Meta wants a cover
+  image with every video and the plan had nowhere to say which. Optional; a
+  plan that uses it is not readable by 1.4.0 or earlier.
+- **Skills:** the short path for promoting one existing Instagram post
+  (`ads_get_ig_media`, then `ads_boost_ig_post` plan-first); images already on
+  the account before asking for files (`ads_get_ad_images`,
+  `ads_get_ad_videos`); Meta's generative image tools
+  (`ads_creative_create_image_variations`, `ads_creative_update_image_elements`,
+  `ads_get_async_result`) with the rules for using them, and the
+  `self_ai_disclosure` question that is the advertiser's to answer;
+  `ads_insights_advertiser_context` when choosing an optimisation goal;
+  `ads_get_creative_ads` before reusing a creative; Ad Library findings kept
+  in `.meta-ads/research/`; the chosen copy saved as
+  `campaigns/<slug>/copy.yaml`; the fields every Meta call now carries
+  (`client_conversation_id`, `advertiser_job`, `advertiser_request`) and the
+  `next_actions` queue.
+
+### Changed
+
+- **Customer-list uploads are no longer something the MCP does.**
+  `ads_update_custom_audience_users` was gone from the server on 2026-11-11;
+  `ads_update_custom_audience` says membership changes belong in Ads Manager,
+  and `ads_create_custom_audience` creates a customer list empty. The
+  capability is now unsupported, with that route in its note; the hook keeps
+  the `pii_upload` question for the tool by name, should it return.
+- **A lookalike takes no country.** The tool's description says geography is
+  handled automatically and not to ask for one; the audiences skill no longer
+  proposes a country, and says where the lookalike delivers is the ad set's
+  targeting.
+- **The hook refuses input it cannot read**, where it used to ask. With no
+  readable input the host is unknown, and Codex runs a call when a hook
+  answers `ask`. It also asks for an unknown tool whose name has a read word
+  and one of twenty more write verbs (`apply`, `launch`, `enable`, ...), and
+  its class table now honours a capability's `requires_confirmation`.
+- **`single_image` and `single_video` take one asset** (`creative.one_asset`,
+  an error from `validate-plan`). Several used to validate, with nothing to
+  say which one the ad would show. A plan written that way still loads; it
+  cannot be built until it is one. A video's cover goes in `thumbnail`.
+- **A file is checked against how the plan uses it, in every mode** - a
+  `.jpg` that is an MP4 used to pass unless the mode was `single_video`. HEIC
+  and AVIF stills are no longer taken for video.
+- **`duplicate-plan`**: whole platforms become `placements.platforms` (they
+  were written into `positions`, which targeted nothing); mapped placements
+  leave `targeting.raw`; a mix of the two stays in `raw` with a note; the
+  campaign's `spend_cap` and a video's thumbnail are copied.
+- **`render-plan`**: `{date}` is the account's calendar day when the account
+  is cached; a UTM template is rendered only for a parameter the URL lacks;
+  Meta's own macros (`{{ad.name}}`, `{{placement}}`, ...) pass through a
+  template and are accepted in a destination URL, where they used to be
+  refused as unfilled.
+- A workspace `brand.yaml` that cannot be read fails `validate-plan`. It was
+  "ignored", the special-category and EU checks were skipped, and the plan
+  came back valid.
+- A special ad category the brand declares and the plan omits is an error
+  even when the plan declares another.
+- `report fatigue --level` is deprecated: it was accepted and ignored, and
+  now says so. `report` with no analysis exits 2, not 0. A missing `--brand-file` exits 2 for
+  `render-plan` and `report`, as it did for `validate-plan`.
+- Capability entries whose tool names were confirmed against the session are
+  dated 2026-11-11. That is a check of names, not a re-reading of each tool.
+- `--approved` on `api delete` is described as what it is: a flag the agent
+  passes, recorded, not checked.
+
+### Fixed
+
+- **A plan edited before anything was built blocked the resume after the
+  first object.** The old fingerprint stayed in state; `state` also reported
+  the edit as drift with nothing created.
+- A currency missing from the built-in table was refused even when Meta had
+  supplied its offset; the offset comparison ran across two different
+  currencies.
+- `init --brand "Acme: Shoes"` wrote invalid YAML, and `--brand "#1 Shop"` an
+  empty name.
+- Tracebacks instead of an error line: a plan, insights file or `brand.yaml`
+  that is UTF-16, a directory or unreadable; `duplicate-plan` on a budget
+  written `7000.0`, audiences given as bare ids, or an ad set that is not an
+  object; `doctor` when a host binary prints nothing for `--version`, and a
+  malformed `META_GRAPH_API_VERSION` ending the diagnosis; `report power
+  --lift 1e-20`; `api create-creative --video --variants-file`.
+- One byte that is not UTF-8 made the whole action log unreadable.
+- A rendered name containing `{brand}` (from `{{brand}}`) was expanded by the
+  next render; it is now refused.
+- Stale statements: the plugin manifests and CLI help still described the
+  fallback as filling gaps in the MCP; the README said nothing had been built
+  on a real account and that the capability map was never introspected; the
+  catalog tool count was 34 for 33; `examples/state.json` recorded a video
+  for an ad the example plan gives an image; the release workflow did not
+  lint `hooks/`.
+
+### Not verified
+
+- Every call `plan-calls` proposes. The names are from the schemas; no call
+  has been sent.
+- `ads_insights_advertiser_context`, the image tools and the short boost
+  path: written from the tool descriptions.
+- `offer_report`, the one tool without the `ads_` prefix, is described in the
+  tool map and not matched by the hook. Its description says it creates
+  nothing.
+
 ## [1.4.0] - 2026-11-04
 
 **Meta's MCP as it is on 2026-11-04.** `MIGRATION: none required`. Found by a

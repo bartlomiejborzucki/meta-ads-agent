@@ -72,16 +72,24 @@ Edit `config/capabilities.yaml`:
 ```yaml
 - name: local_video_upload
   preferred_provider: official_mcp     # was api_fallback
-  fallback_provider: api_fallback      # kept during deprecation
-  mcp_tools: [ads_upload_video]        # the tool you verified
-  deprecated_fallback: true
-  deprecated_since: 2026-11-xx
-  removal_target: 1.4.0               # one minor after the deprecation (compatibility.md)
-  last_reviewed: 2026-11-xx
+  fallback_provider: api_fallback      # kept for one release; this pair is what
+                                       # marks the fallback deprecated
+  mcp_tools: [ads_creative_upload_media]   # the tool you verified
+  last_reviewed: 2026-11-04
   notes: >
-    Meta added ads_upload_video, verified <date>. The SDK fallback is
-    deprecated and will be removed in 0.3.0.
+    DEPRECATED fallback. Meta's ads_creative_upload_media uploads a video
+    from a URL or a local file, verified <date>. `api upload-video` stays for
+    one release and is then removed.
 ```
+
+There is no separate "deprecated" key: an entry whose preferred provider is
+the MCP and whose fallback is still `api_fallback` is a deprecated fallback
+(`capabilities --gaps` counts them), and its note must say `DEPRECATED`.
+
+When Meta **removes** a tool, the other direction: take the name out of the
+research document and the entry's `mcp_tools`, and if nothing else does the
+job set `preferred_provider: none` with a note saying where the user does it
+instead. `upload_customer_list` (2026-11-11) is the worked example.
 
 Then:
 

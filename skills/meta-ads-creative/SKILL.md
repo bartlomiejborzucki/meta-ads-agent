@@ -144,7 +144,23 @@ five inconclusive results.
 ## Output format
 
 Give the user something they can review, then hand the chosen variants to
-`meta-ads-campaign` as plan input.
+`meta-ads-campaign` as plan input: save the ones they picked - only those - as
+`.meta-ads/campaigns/<slug>/copy.yaml`, where `meta-ads-agent new-plan` reads
+them:
+
+```yaml
+- angle: time recovered
+  primary_text: Friday afternoon, gone again. The report can write itself.
+  headline: Stop rebuilding the weekly report
+  cta_type: SIGN_UP
+- angle: error risk
+  primary_text: One wrong cell, and the board sees last month's number.
+  headline: A report nobody has to check twice
+```
+
+`angle` and `primary_text` are required; `headline`, `description` and
+`cta_type` are optional. The angle is the concept, in a few words - it becomes
+the ad's name and its `utm_content`, so it is how the results are told apart.
 
 ```
 ANGLE 1 — Time recovered
@@ -164,6 +180,16 @@ ANGLE 2 — Error risk
 Always state what proof each angle relies on. It makes an unsupported claim
 visible before it ships, and it shows the user exactly which claims they are
 vouching for.
+
+## The brand's own list is enforced
+
+`banned_phrases` in `brand.yaml` is checked by `validate-plan` against every
+primary text, headline, description and carousel card, whatever the case or
+spacing, and a hit blocks the build. Read the list before writing, not after
+the validator says so - and when a banned phrase is the natural way to say
+something, that is a reason to find the angle again, not to respell the
+phrase. `claims_policy` and an offer's `restrictions` are prose and no code
+reads them: holding to those is yours.
 
 ## Placement matters to copy
 
@@ -199,8 +225,49 @@ which is one more reason the post goes inline in `ads_create_ad` (the
 `meta-ads-campaign` skill has the build). `ads_boost_ig_post` fills the
 profile link itself.
 
+## More images from one that works
+
+Meta's MCP can make new images from one already on the account. Both tools
+write a new ad image and attach it to nothing; using it is a separate,
+ordinary step (read from the tool descriptions on 2026-11-11, not yet used in
+a build here).
+
+- **Variations** - `ads_creative_create_image_variations`: several new takes
+  on a seed image, or the same product on a new background
+  (`background_generation`). It needs a seed already on the account - its
+  `image_hash` from `ads_get_ad_images` or an upload; it does not generate
+  from a description. Pass the user's own wording as `prompt_text`, or none.
+  It may answer `RUNNING` with a `job_id`: collect that job with
+  `ads_get_async_result` - calling the tool again starts a second generation.
+  Fewer images than asked for is not an error.
+- **One edit** - `ads_creative_update_image_elements`: a single concrete
+  change, as an instruction ("remove the price tag", "replace the background
+  with a sunlit kitchen"). A vague wish ("make it pop") is a question to ask
+  the user, not a prompt. The original is untouched.
+
+Rules that are ours, not the tools':
+
+- **The user sees every image before it goes near a plan.** Show the
+  `preview_url` of each and let them choose; the images do not appear in the
+  account's Media Library, so the preview is the only place to look.
+- **Nothing in the image may be invented.** Use only text the user gave.
+  Never add or change a price, an offer, a claim or legal text, and leave the
+  logo, brand colours and product as they are unless the user asked. The
+  offer's `proof` and `restrictions` bind an image exactly as they bind copy.
+- **A variation is one idea again.** Four images from one seed are four
+  executions, not four angles - say so, as you would for copy.
+- **Tell the user about disclosure.** `ads_create_creative` takes
+  `self_ai_disclosure` (`OPT_IN` or `OPT_OUT`) for media created or edited
+  with generative AI, and it cannot be set afterwards. Whether to declare it
+  is the advertiser's decision: put the question to them, and do not answer it
+  for them.
+
+A chosen image goes into the plan by its `image_hash`
+(`new-plan --image-hash`), like any other image on the account.
+
 ## Competitor research
 
+If `.meta-ads/research/` has a file on this category, start there.
 `meta-ads-research` and `ads_library_search` show what a category is saying.
 Extract **themes**: angles in use, offers, formats, positioning, what nobody is
 saying.

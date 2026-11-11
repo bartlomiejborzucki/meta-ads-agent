@@ -62,7 +62,8 @@ what you want; naming the skill is optional.
 ## How it works
 
 **Meta's MCP does the work.** Meta ships a first-party MCP server at
-`https://mcp.facebook.com/ads` with around **90 tools** — accounts, campaigns,
+`https://mcp.facebook.com/ads` with about **100 tools** (104 on 2026-11-04) —
+accounts, campaigns,
 ad sets, ads, creatives, previews, insights, audiences, datasets, pixel rules,
 catalogs, experiments, activity logs and Ad Library search. It authenticates
 through your browser with Meta OAuth and is generally available. So this
@@ -300,20 +301,28 @@ the MCP. The whole reference is [cli.md](docs/reference/cli.md).
 | Command | For |
 | --- | --- |
 | `doctor` · `init` | readiness checks; creating the workspace |
+| `new-plan` | a plan drafted from the offer, `brand.yaml` and the cached account - nothing invented, everything it could not find listed |
 | `render-plan` | applying the brand's naming and UTM templates to a plan |
 | `duplicate-plan` | a campaign read from Meta, as a new plan to review and build PAUSED |
 | `validate-plan` | the gate before the first write |
+| `plan-calls` | the plan as the MCP calls that build it: minor units, JSON-string arguments, what is already built marked done |
+| `record` · `cache-account` | writing ids, failures and uploads into state as the build goes; saving the account facts a plan is checked against |
 | `state` | what exists on Meta for a campaign, and where a resume starts |
 | `report compare` · `breakdown` · `fatigue` · `pacing` · `power` | period comparisons, placements, fatigue signals, budget pacing, test sizing |
 | `capabilities` | what routes where; `--compare` checks a live session's tools against the map |
 | `install` · `upgrade` · `migrate` · `mcp-config` · `open-url` | installing and updating skills, and Codex/WSL set-up |
 | `api …` | the deprecated fallback: uploads, video / existing-post / multi-variant / carousel creatives, deletion - all covered by Meta's MCP since 2026-11-04 |
 
-**Plan, validate, then build.** Validation checks what **Meta** enforces —
-account state and payment, currency and its minor units, budget level and
-minimums, bids, identities, dataset and events, destinations, EU transparency
-fields, special ad categories, placements, local asset types — and nothing
-that is merely a media-buying opinion
+**Draft, validate, then build.** `new-plan` fills a plan from the offer brief,
+`brand.yaml` and the cached account, so the Page, the dataset, the countries
+and the EU transparency fields are typed once, not per campaign; with several
+texts and several images it asks whether you want one ad per pairing or one ad
+Meta mixes, because those are different tests. Validation then checks what
+**Meta** enforces — account state and payment, currency and its minor units,
+budget level and minimums, bids, identities, dataset and events, destinations,
+EU transparency fields, special ad categories, placements, local asset types —
+and the one rule that is yours, the brand's `banned_phrases`. Nothing that is
+merely a media-buying opinion blocks
 ([ADR-007](docs/architecture/adr/ADR-007-heuristics-vs-constraints.md)).
 
 ```
@@ -327,10 +336,19 @@ INFO     plan.deviation      placements differs from Meta's recommendation: the 
 BLOCKED: 1 error(s), 1 warning(s), 2 note(s)
 ```
 
+**The translation is done in code.** `plan-calls` turns the validated plan into
+the arguments Meta's tools take — 70.00 PLN as 7000, targeting as a JSON
+string, one parameter set per creative format — and lists what it will not
+guess (an optimisation goal, a video's thumbnail) instead of filling it in. Its
+argument names follow Meta's tool schemas as read on a date it prints; it has
+not been run against a live account, and when Meta rejects a call the error
+wins.
+
 **Interrupted builds resume.** None of the eleven projects audited persists
 created ids as it goes, so a failure after the ad set leaves an orphan and a
-rerun makes a second campaign. Here every id is written the moment it exists,
-and two sessions on one campaign merge rather than overwrite each other:
+rerun makes a second campaign. Here `record` writes every id the moment it
+exists, under a lock, and two sessions on one campaign merge rather than
+overwrite each other:
 
 ```
 $ meta-ads-agent state acme-webinar-q4
@@ -401,17 +419,19 @@ Details: [privacy.md](docs/reference/privacy.md).
 
 ## Status
 
-**1.0 — the formats are stable; Meta has not yet confirmed the requests.**
+**1.x — the formats are stable; one campaign has been built on a real account.**
 
 1.0 is a promise about what this project controls: within 1.x the workspace
 files, the CLI's `--json` output and exit codes, and the skill and risk-class
 names do not break, and tests hold each of those to the promise
 ([compatibility](docs/reference/compatibility.md)).
 
-It is **not** a claim about Meta's acceptance. No code here has yet created
-anything on a real ad account: the fallback's requests are checked offline
-against Meta's own SDK descriptions and documentation, and the live tests that
-would confirm them are written and have not run — see
+It is **not** a claim about Meta's acceptance. One campaign has been built
+through Meta's MCP with these skills, on 2026-11-03 - an Instagram-post ad
+with a media upload. Everything else is unconfirmed: the other creative
+formats, the arguments `plan-calls` proposes, and the deprecated fallback's
+requests, which are checked offline against Meta's own SDK descriptions and
+whose live tests are written and have not run — see
 [Never run against Meta](#never-run-against-meta). Use it on an account you are
 willing to watch, start with paused builds, and read on.
 
@@ -423,8 +443,13 @@ The honest gap list, grouped by what each gap needs.
 
 The largest gap, and the one to read first.
 
-- **Nothing here has created a campaign on a real Meta account.** The MCP path
-  is prose the agent follows; the fallback has only run against a faked SDK.
+- **One campaign, one format.** The single live build (2026-11-03, a PLN
+  account) covered an Instagram-post ad, media upload and draft mode. Video,
+  carousel, multi-media and placement-customised creatives, and deletion
+  through the MCP, are as the tool descriptions say and have not been run.
+  `plan-calls` builds its arguments from the tool schemas as read on
+  2026-11-11; no call it proposes has been sent. The fallback has only run
+  against a faked SDK.
   What *has* been checked offline: every request the fallback builds is held
   to the real `facebook-business` SDK's description of each object — fields,
   types, enum values — and to Meta's documentation, and every documented error
@@ -434,10 +459,12 @@ The largest gap, and the one to read first.
   answer are in [`tests/live/`](tests/live/README.md). They need a designated
   test ad account and never run in CI — by design, so no token with
   `ads_management` sits in repository secrets.
-- **The capability map was read, not introspected.** It records Meta's
-  published tool reference as of 2026-09-16. Anyone with a connected session
-  can check it in one command: `meta-ads-agent capabilities --compare` takes
-  the session's tool list and reports every difference.
+- **The capability map is dated, and Meta moves.** It was refreshed from a
+  connected session on 2026-11-04 and its tool names re-checked on 2026-11-11 -
+  by which time one tool had gone and customer-list uploads with it. Anyone
+  with a connected session can check it in one command: `meta-ads-agent
+  capabilities --compare` takes the session's tool list and reports every
+  difference.
 - **Codex has installed the plugin, not run it.** On Linux, Codex 0.160
   installs it from GitHub and lists all twelve skills to the model; no
   session has used them against Meta, and Windows is untested.

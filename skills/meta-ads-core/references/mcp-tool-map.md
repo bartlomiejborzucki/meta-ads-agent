@@ -3,7 +3,8 @@
 **Recorded 2026-11-04 from the tool list and tool descriptions a connected
 session exposed** (read, not called), on top of Meta's published reference of
 2026-09-16. Where a behaviour was confirmed by a real build on 2026-11-03 it
-says so.
+says so. The tool names were compared with a session again on 2026-11-11;
+what changed is marked with that date.
 
 This is a dated map, not a contract. Meta can rename, add, or remove tools
 without telling us. Trust in this order:
@@ -63,11 +64,11 @@ almost every time.
 | `ads_creative_upload_local_image`, `ads_finalize_local_ad_image_upload`, `ads_delete_local_ad_image` | The upload app's own steps; the app drives them |
 | `ads_creative_update` | Rename, label, set ACTIVE. Content is immutable. |
 | `ads_creative_delete` | `delete`. Only a creative no ad uses. |
-| `ads_creative_update_image_elements`, `ads_creative_create_image_variations` | Meta's generative edits of an existing ad image; each result is a new image, attached to nothing |
-| `ads_get_async_result` | Collect a long-running job, e.g. image variations |
+| `ads_creative_update_image_elements`, `ads_creative_create_image_variations` | Meta's generative edits of an image already on the account (a seed `image_hash` is required); each result is a new image, attached to nothing and not shown in the Media Library. Rules in `meta-ads-creative` |
+| `ads_get_async_result` | Collect a job that answered `RUNNING` with a `job_id`, e.g. image variations. Never start the original tool again to check |
 | `ads_get_creatives` | List creatives, with `effective_object_story_id` and `effective_instagram_media_id` |
 | `ads_get_creative_ads` | Which ads use a creative - check before changing one |
-| `ads_get_ad_images` | Images already uploaded |
+| `ads_get_ad_images` | Images already uploaded - look here before asking for a file. A listing returns `hash` and `name` only; pass `hashes` for dimensions and URLs |
 | `ads_get_ad_videos` | Videos already uploaded, with processing status |
 | `ads_get_ad_preview` | Render a placement preview and a `preview_url`. Use it before every activation. |
 | `ads_get_ad_preview_screenshot` | Documented as app-only. Do not call it; open `preview_url` in a browser tool instead. |
@@ -120,17 +121,18 @@ A pixel object existing proves nothing. `stats` and `quality` are the evidence.
 
 `ads_get_ad_account_custom_audiences`, `ads_get_custom_audience`,
 `ads_get_custom_audience_adsets`, `ads_create_custom_audience`,
-`ads_update_custom_audience`, `ads_update_custom_audience_users`,
-`ads_delete_custom_audience`.
+`ads_update_custom_audience`, `ads_delete_custom_audience`.
 
-`ads_update_custom_audience_users` uploads hashed PII - see the `pii_upload`
-class in [safety-policy.md](safety-policy.md). Check
-`ads_get_custom_audience_adsets` before changing or deleting an audience: live
-ad sets may target it.
+Customer-list **members** are not something the MCP changes (2026-11-11): a
+`CUSTOM` audience is created empty and `ads_update_custom_audience` edits
+metadata only; the user adds people in Ads Manager > Audiences. A lookalike
+takes `origin_audience_id` and `lookalike_ratio` (0.01-0.20) and no country.
+Check `ads_get_custom_audience_adsets` before changing or deleting an
+audience: live ad sets may target it.
 
 ## Catalogs
 
-34 tools. MCP-only; no fallback exists or is planned. Every change below is
+33 tools. MCP-only; no fallback exists or is planned. Every change below is
 read by live catalog ads without any campaign being touched - name the live
 ad sets that use the object before asking.
 
@@ -153,6 +155,38 @@ ad sets that use the object before asking.
 - `ads_library_search`: public Meta Ad Library. Research only.
 - `ads_get_help_article`: Business Help Center search. Good for policy
   questions - better than guessing at policy.
+
+## On every call
+
+Read on 2026-11-11 from the tool schemas; follow the schema in front of you
+if it differs.
+
+- `client_conversation_id` - the schemas say "required on every call". On
+  the first Meta Ads call of a conversation, make up 20 random letters and
+  digits; after that, send the value the most recent Meta Ads result
+  returned. It identifies the conversation: never an account, campaign or
+  user id, and never sent to another server's tools.
+- `advertiser_job` - what the user is trying to get done, from the schema's
+  own list (`create_and_launch_new_ads`, `update_existing_campaigns`,
+  `assess_and_optimize_performance`, ...). Keep one value for the whole
+  request, lookups included.
+- `advertiser_request` - the user's request in their own words. Leave out
+  names, contact details and anything else personal.
+- `client_model` - only the exact model id your context states; omit it
+  rather than guess.
+
+`ads_get_ad_entities` can return `next_actions.actions`. The server asks that
+the ones marked `strength=required`, `read_only=true` and
+`requires_user_confirmation=false` are run, in `step` order, before you
+answer. Anything that needs confirmation is the user's decision - show it, do
+not run it.
+
+`offer_report` is the one tool without the `ads_` prefix. It offers the user
+a scheduled report after an analysis; it creates nothing and changes no ad.
+The read tools' own schemas say when to call it - once, after the other
+results are back, when the answer analysed an account - so follow them there.
+The approval hook does not see it (it matches `ads_*`), which is right for a
+tool that writes nothing.
 
 ## Not used by these skills
 

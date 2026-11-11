@@ -149,9 +149,23 @@ CAVEAT          Longevity is the only performance signal available. No spend,
 Describe competitors' angles in your own words. Do not paste their copy into a
 report - the report is where "inspiration" quietly becomes duplication.
 
+## Keep it
+
+Save the report as `.meta-ads/research/<topic>-<date>.md`, the topic and
+market in the name - project-management-pl, then the date. A finding that
+lives only in
+this conversation is gone by the time someone writes the ads, and the same
+search gets run again next month with nothing to compare it to. The file
+holds what the report above holds: themes, formats, longevity, the gaps, the
+caveat. No competitor copy goes into it, for the same reason none goes into
+the report.
+
+Before a new search, read what is already there. A category read three weeks
+ago is a baseline: say what changed, not only what is.
+
 ## Handing off to creative
 
-Pass `meta-ads-creative`:
+Point `meta-ads-creative` at the file, and pass:
 
 - the angles in market, and how crowded each is
 - the unclaimed angles

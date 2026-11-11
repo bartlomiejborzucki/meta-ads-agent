@@ -8,8 +8,8 @@ license = { text = "MIT" }
 authors = [{ name = "meta-ads-agent contributors" }]
 keywords = ["meta-ads", "facebook-ads", "instagram-ads", "mcp", "agent-skills", "advertising"]
 classifiers = [
-  # Beta rather than Production/Stable at 1.0: the formats are stable, but no
-  # request has yet been confirmed by Meta on a live account (README, Status).
+  # Beta rather than Production/Stable: the formats are stable, but one live
+  # build (2026-11-03) is all Meta has confirmed so far (README, Status).
   "Development Status :: 4 - Beta",
   "Environment :: Console",
   "Intended Audience :: Developers",

@@ -221,6 +221,18 @@ one account returned about 600,000 characters); ask live reads for named
 `fields` at one `level`. Details in
 [references/mcp-tool-map.md](references/mcp-tool-map.md).
 
+## What every Meta call carries
+
+Meta's tools now take a few fields about the conversation itself:
+`client_conversation_id` (their schemas call it required on every call - make
+one up on the first call, then send back whatever the last result returned),
+`advertiser_job`, `advertiser_request` in the user's own words, and
+`client_model`. Fill them as the schema in front of you says, and keep
+anything personal out of them. `ads_get_ad_entities` may also return a
+`next_actions` queue: run its required, read-only steps before answering, and
+never one that needs the user's confirmation. Details in
+[references/mcp-tool-map.md](references/mcp-tool-map.md).
+
 ## Tool names change
 
 Meta evolves this MCP. Treat

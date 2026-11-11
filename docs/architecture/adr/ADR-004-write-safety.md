@@ -60,7 +60,12 @@ spend-affecting commands support `--dry-run`.
 cheap and previews make it concrete. Users can hand the agent a vague brief without risk.
 
 **Bad, and accepted.**
-- **The model is advisory.** Because the write tools belong to Meta's server, a
+- **The model is advisory.** *(Revised by
+  [ADR-011](ADR-011-hooks-enforce-approvals.md): since 1.3 a PreToolUse hook
+  asks before the consequential Meta calls and refuses a create that is not
+  PAUSED. What follows describes the model before that, and still holds where
+  the hook cannot run - no `python3`, or a write made from a shell.)* Because
+  the write tools belong to Meta's server, a
   sufficiently confused agent can still call `ads_activate_entity`. We shape behaviour with
   skills; we cannot enforce it in a transport we do not own. This is stated in the README
   rather than glossed over, and it is the argument a future opt-in proxy would have to answer

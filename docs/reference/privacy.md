@@ -76,13 +76,16 @@ Two consequences worth stating plainly:
 
 ## Customer data and PII
 
-`ads_update_custom_audience_users` uploads hashed personal data and is the
-highest-risk operation available.
+Uploading the members of a customer list is the highest-risk operation there
+is, and as of 2026-11-11 **nothing here does it**: Meta's MCP creates a
+customer-list audience empty and does not change its members, and this project
+deliberately has no fallback for it. You add people in Ads Manager > Audiences;
+the skills tell the agent not to take the file.
 
-The skills require: explicit instruction, a confirmed lawful basis and consent,
-SHA-256 hashing of email and phone before transmission, no logging, no
-persistence, and honouring opt-outs and suppression lists. There is deliberately
-**no fallback implementation** for it - one path, maximum scrutiny.
+If Meta's server offers such a tool again, the skills require: explicit
+instruction, a confirmed lawful basis and consent, SHA-256 hashing of email and
+phone before transmission, no logging, no persistence, and honouring opt-outs
+and suppression lists.
 
 If you are not certain data may be used this way, do not upload it.
 

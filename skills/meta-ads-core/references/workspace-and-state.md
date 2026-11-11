@@ -20,11 +20,13 @@ ships, so with no CLI you can write them out yourself and lose nothing.
   assets/manifest.json    local fingerprint -> remote image hash / video id
   campaigns/<slug>/
     plan.yaml             intent
-    state.json            what exists on Meta
+    state.json            what exists on Meta, written by `record`
+    copy.yaml             the copy variants chosen, read by `new-plan`
     creatives.json        creative detail as built
     qa.md                 preview QA notes
     baseline.yaml         what the account looked like on launch day
     report.md             latest report
+  research/<topic>.md     Ad Library findings, for the creative work that follows
   reports/                account-level reports
   actions.jsonl           append-only audit log
 ```
@@ -40,7 +42,9 @@ policy, DSA beneficiary, the user's own thresholds.
 
 ### The cached account
 
-`account.yaml` is what the agent last read from Meta. `validate-plan` checks a
+`account.yaml` is what the agent last read from Meta, written by
+`meta-ads-agent cache-account` from the account as Meta returned it (by hand,
+with no CLI). `validate-plan` checks a
 plan's Pages, Instagram identities, datasets and custom audiences against it,
 so it goes stale the moment something is created. After creating a custom
 audience, add its id to `available_custom_audience_ids` there - or read the
@@ -98,6 +102,27 @@ Record each id **the moment it exists**, before starting the next write. An id
 that exists on Meta but not on disk is an orphan, and the next run will create
 a duplicate.
 
+```bash
+meta-ads-agent record object <slug> --type ad_set --plan-ref 'ad_sets[0]' --id <id>
+meta-ads-agent record asset <slug> --file creatives/a.jpg --image-hash <hash>
+meta-ads-agent record failure <slug> --stage ads_created --message "<Meta's message>"
+meta-ads-agent record stage <slug> previewed
+meta-ads-agent record activation <slug>
+```
+
+Use these rather than editing `state.json`. They take a lock, so two sessions
+do not overwrite each other; they merge what the other session recorded; they
+refuse a second id for a plan element that already has one; and they stamp the
+state with a fingerprint of the plan, which is what lets a resume notice that
+the plan changed underneath it. A hand-written file has none of that - and a
+hand-written fingerprint that does not match blocks the resume. With no CLI,
+write the file by hand, leave `plan_fingerprint` out, and say that the
+safeguards are off.
+
+The stage is worked out from what is recorded, so there is no stage to set
+while building. `plan-calls` names each plan element (`campaign`,
+`ad_sets[0]`, `ad_sets[0].ads[1].creative`); use its names as `--plan-ref`.
+
 `state.json` records, per object: id, type, name, provider (`official_mcp` or
 `api_fallback`), plan reference, parent, status at creation, and timestamp. Plus
 the current pipeline stage, any failures, and a fingerprint of the plan that
@@ -119,7 +144,9 @@ and what comes next. Then:
    look as recorded.
 2. If the failed write may have partially applied, search for the object by
    name and parent before creating anything.
-3. Continue from the first incomplete stage. Do not restart.
+3. Continue from the first incomplete stage. Do not restart. `meta-ads-agent
+   plan-calls` on the same plan lists what is left: recorded objects come back
+   `done`, with their ids already in the calls that follow.
 
 If the plan changed after objects were created, the tool blocks the resume.
 That is correct: continuing would apply a different plan to existing structure.

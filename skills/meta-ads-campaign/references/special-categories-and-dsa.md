@@ -13,6 +13,15 @@ Categories Meta has used: credit, employment, housing, social issues,
 elections, and politics. The exact enum values change - discover them with
 `ads_get_field_context` rather than hardcoding a list.
 
+They had changed by 2026-11-11. `ads_create_campaign`'s description then
+listed `EMPLOYMENT`, `HOUSING` (which also covers mortgages and home loans),
+`FINANCIAL_PRODUCTS_SERVICES`, `ISSUES_ELECTIONS_POLITICS` and
+`ONLINE_GAMBLING_AND_GAMING`, and said `CREDIT` is retired: other credit,
+loans, insurance and financial products are `FINANCIAL_PRODUCTS_SERVICES`.
+`validate-plan` warns on a plan that still says `CREDIT`. The same description
+wants `special_ad_category_country` to list every country the ad sets target;
+`plan-calls` fills it from the plan.
+
 ### When it applies
 
 Not by industry, but by **what the ad is about**. A bank advertising a graduate

@@ -55,12 +55,13 @@ onto these names rather than guessing.
 | `currency` (or `--currency`) | every budget and bid's currency | required when any budget or bid is set: they arrive in minor units |
 | `daily_budget`, `lifetime_budget` | a display-amount budget | on the campaign, or on each ad set; a campaign budget wins |
 | `bid_amount` | a display-amount bid | |
+| `spend_cap` (campaign) | the campaign's `spend_cap`, as a display amount | |
 | `targeting` | countries, ages, genders, custom audiences, Advantage audience | every other key is kept verbatim in `targeting.raw` |
-| `publisher_platforms`, `*_positions` | manual placements | also kept in `targeting.raw` |
+| `publisher_platforms`, `*_positions` | manual placements: `positions` when every platform lists its positions, `platforms` when none does | then removed from `targeting.raw`. A mix of the two cannot be said in a plan: it stays in `targeting.raw`, the plan says automatic, and a note tells you to review it |
 | `promoted_object` | the dataset and conversion event | |
 | `dsa_beneficiary`, `dsa_payor` | the campaign's DSA fields | the first ad set that has them |
 | `object_story_spec.link_data` | a single-image ad, or a carousel with `child_attachments` | |
-| `object_story_spec.video_data` | a single-video ad | the link is the call to action's |
+| `object_story_spec.video_data` | a single-video ad | the link is the call to action's; its `image_hash` becomes the `thumbnail` |
 | `object_story_id`, `source_instagram_media_id` | an existing-post ad | |
 | `asset_feed_spec` | refused | a multi-variant creative is planned by hand; the MCP can rebuild it with `multi_media` or `placement_customizations` |
 | `start_time`, `end_time`, `stop_time` | not copied | the source's dates are usually past |
