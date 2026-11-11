@@ -25,6 +25,9 @@ classifiers = [
 dependencies = [
   "pydantic>=2.7,<3",
   "PyYAML>=6.0,<7",
+  # Windows ships no timezone database, and zoneinfo has none of its own.
+  # render-plan and new-plan name {date} in the ad account's timezone.
+  "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
