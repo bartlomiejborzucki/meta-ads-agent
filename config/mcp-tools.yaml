@@ -115,7 +115,6 @@ documented:
 - ads_pixel_parameter_read
 - ads_pixel_parameter_update
 - ads_update_custom_audience
-- ads_update_custom_audience_users
 - ads_update_entity
 unverified:
 - ads_creative_upload_image

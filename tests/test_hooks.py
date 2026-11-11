@@ -185,16 +185,36 @@ class TestAsk:
     def test_an_unknown_read_tool_is_left_alone(self) -> None:
         assert run_hook("ads_get_something_new") is None
 
+    @pytest.mark.parametrize(
+        "tool",
+        [
+            "ads_insights_apply_recommendation",
+            "ads_library_import_creative",
+            "ads_get_and_launch_campaign",
+            "ads_check_and_enable_ad",
+            "ads_list_archive_campaigns",
+            "ads_insights_send_report",
+        ],
+    )
+    def test_a_read_word_does_not_excuse_an_unknown_write(self, tool: str) -> None:
+        assert decision(run_hook(tool)) == "ask"
+
     def test_any_server_name_is_covered(self) -> None:
         answer = run_hook("mcp__plugin_x_meta__ads_activate_entity")
         assert decision(answer) == "ask"
 
 
 class TestFailure:
-    def test_input_it_cannot_read_still_asks(self) -> None:
-        answer = run_hook("", raw="{not json")
-        assert decision(answer) == "ask"
-        assert "could not check" in reason(answer)
+    @pytest.mark.parametrize("raw", ["{not json", "", "[]", '"a string"', "null"])
+    def test_input_it_cannot_read_is_refused(self, raw: str) -> None:
+        # Not `ask`: with no readable input the host is unknown, and a host
+        # that cannot ask (Codex) runs the call when a hook answers `ask`.
+        answer = run_hook("", raw=raw)
+        assert decision(answer) == "deny"
+        assert "could not read" in reason(answer)
+
+    def test_unreadable_input_is_still_let_through_when_the_hook_is_off(self) -> None:
+        assert run_hook("", raw="{not json", env={"META_ADS_AGENT_HOOKS": "0"}) is None
 
     def test_a_tool_that_is_not_meta_is_ignored(self) -> None:
         assert run_hook("mcp__github__create_issue") is None

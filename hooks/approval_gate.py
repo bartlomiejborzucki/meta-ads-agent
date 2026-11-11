@@ -36,6 +36,9 @@ _TOOL_NAME = re.compile(r"^mcp__.+__(ads_[a-z0-9_]+)$")
 _WRITE_WORDS = (
     "create", "update", "delete", "activate", "boost", "connect", "upload",
     "schedule", "set", "remove", "add", "pause", "duplicate", "copy", "publish",
+    "apply", "launch", "start", "enable", "disable", "submit", "archive",
+    "cancel", "send", "assign", "replace", "edit", "modify", "discard",
+    "finalize", "import", "sync", "share", "unshare", "run",
 )  # fmt: skip
 _READ_WORDS = ("get", "read", "list", "search", "check", "insights", "library", "help")
 _STATUS_KEYS = {"status", "configured_status", "effective_status"}
@@ -44,6 +47,13 @@ _BUDGET_WORDS = ("budget", "bid_amount", "spend_cap")
 # Entities that deliver. A creative or an audience with status ACTIVE
 # spends nothing; a campaign, ad set or ad can.
 _DELIVERING_CREATES = {"ads_create_campaign", "ads_create_ad_set", "ads_create_ad"}
+
+# Tools decide() answers for from their arguments, before the class table.
+_OWN_RULE = {"ads_update_entity", "ads_boost_ig_post"}
+
+# Not on Meta's server as of 2026-11-11, so not in the class table. Kept by
+# name: if it comes back, the question must say what it uploads.
+_PII_TOOLS = {"ads_update_custom_audience_users"}
 
 _WHY = {
     "update_active": "it changes something live: delivery, or what live ads read",
@@ -182,6 +192,12 @@ def decide(payload: dict[str, Any], classes: dict[str, Any] | None) -> dict[str,
 
     known = (classes or {}).get("tools", {})
     level = known.get(tool)
+    if level is None and tool in _PII_TOOLS:
+        return _decision(
+            "ask",
+            f"{tool} is `pii_upload`: {_WHY['pii_upload']}. Approve only if you asked "
+            "for this specific change.",
+        )
     if level is None:
         if _looks_like_a_read(tool):
             return None
@@ -193,6 +209,14 @@ def decide(payload: dict[str, Any], classes: dict[str, Any] | None) -> dict[str,
         return _decision(
             "ask",
             f"{tool} is `{level}`: {why}. Approve only if you asked for this specific change.",
+        )
+    # A capability can ask for approval its class does not demand. Tools with
+    # a rule of their own above are decided there, by their arguments.
+    if tool in set((classes or {}).get("confirm", ())) and tool not in _OWN_RULE:
+        return _decision(
+            "ask",
+            f"{tool} is `{level}`, and meta-ads-agent's capability map asks for explicit "
+            "approval of it. Approve only if you asked for this specific change.",
         )
     return None
 
@@ -239,9 +263,25 @@ def main() -> int:
         return 0
     payload: Any = None
     try:
-        payload = json.loads(sys.stdin.read() or "{}")
+        payload = json.loads(sys.stdin.read())
         if not isinstance(payload, dict):
             raise ValueError("the hook input is not a JSON object")
+    except Exception as exc:
+        # Nothing readable arrived, so neither the tool nor the host is known.
+        # ``ask`` is not safe here: a host that cannot ask (Codex) runs the
+        # call. The only answer that holds everywhere is ``deny``.
+        sys.stdout.write(
+            json.dumps(
+                _decision(
+                    "deny",
+                    f"the approval hook could not read this call ({exc}), so it cannot "
+                    "tell a read from a write. Retry; if it repeats, the host is not "
+                    "passing hook input, and META_ADS_AGENT_HOOKS=0 turns the hook off.",
+                )
+            )
+        )
+        return 0
+    try:
         answer = decide(payload, _load_classes())
     except Exception as exc:  # any failure must still ask
         answer = _decision("ask", f"the approval hook could not check this call ({exc}).")

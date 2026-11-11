@@ -6,6 +6,12 @@ MCP to a connected session (a claude.ai account connector), read without calling
 A campaign built against the same server on 2026-11-03 confirmed the Instagram-post creative
 and media upload paths live; the rest of what this file says about creatives, upload, draft
 mode and deletion is what the tool descriptions say, dated 2026-11-04.
+**Checked 2026-11-11:** the tool names a connected session exposed (103 `ads_*` names and
+`offer_report`), and the descriptions of `ads_create_custom_audience`,
+`ads_update_custom_audience` and `offer_report`, read without calling any tool. One name
+from 2026-11-04 was gone - `ads_update_custom_audience_users` - and the two audience
+descriptions now say customer-list membership is not supported by the MCP. Everything else
+here is still dated 2026-11-04.
 **Method (2026-09-16, superseded):** Meta's published `Ads MCP Server` documentation tree
 under `developers.facebook.com/documentation/ads-commerce/ads-ai-connectors/ads-mcp-server/`,
 plus the Marketing API changelog and the `facebook-business` PyPI release history. No live
@@ -52,7 +58,9 @@ its plugin manifests: a hardcoded `client_id` would be wrong for every user. See
 [ADR-006](../architecture/adr/ADR-006-mcp-connection-is-user-owned.md).
 
 Third-party write-ups circulating in 2026 claim the server exposes "29 tools". A connected
-session on 2026-11-04 exposed about 110 distinct `ads_*` names, listed below.
+session on 2026-11-04 exposed 104 distinct `ads_*` names, listed below; on 2026-11-11 it was
+103, plus `offer_report` - the one tool without the prefix, which offers the user a scheduled
+report after an analysis and creates nothing.
 
 ## Marketing API / SDK versions
 
@@ -156,14 +164,13 @@ exists" and "events are actually arriving". The tracking skill requires both.
 | `ads_get_ad_account_custom_audiences` | List audiences, optional subtype filter | |
 | `ads_get_custom_audience` | One audience: size, status, subtype | |
 | `ads_get_custom_audience_adsets` | Ad sets targeting an audience | Check before mutating |
-| `ads_create_custom_audience` | Customer file, website, lookalike, app, engagement, offline | |
-| `ads_update_custom_audience` | Name, description, rule, labels | |
-| `ads_update_custom_audience_users` | Add/remove users via hashed personal data | **PII. Highest-risk tool on the server.** |
+| `ads_create_custom_audience` | Customer list (created **empty**), website, engagement, mobile app, lookalike | A lookalike takes a source and a ratio (0.01-0.20) and **no country**: "geography is handled automatically" (2026-11-11) |
+| `ads_update_custom_audience` | Name, description, rule, labels | Not membership: "Ads MCP does not support membership changes; use Ads Manager" (2026-11-11) |
 | `ads_delete_custom_audience` | Delete an audience | Destructive |
 
 ### Catalogs and commerce
 
-34 tools under the `ads_catalog_*` prefix in the 2026-11-04 session, covering businesses,
+33 tools under the `ads_catalog_*` prefix in the 2026-11-04 session, covering businesses,
 catalogs, products, product sets, product feeds, feed rules, partner integrations and
 event-source connections: `ads_catalog_get_businesses`, `ads_catalog_list_catalogs`,
 `ads_catalog_list_dpa_eligible_catalogs`, `ads_catalog_create`,
@@ -222,9 +229,10 @@ Business SDK. `BOTH` = MCP can do it but a narrow local path is still justified.
 | Multi-variant / placement-specific creative | `OFFICIAL_MCP` | `multi_media`, `placement_customizations` (tool description, 2026-11-04) |
 | Carousel creative | `OFFICIAL_MCP` | `cards` (tool description, 2026-11-04) |
 | Delete campaign / ad set / ad | `OFFICIAL_MCP` | `ads_update_entity` with `status: DELETED` (tool description, 2026-11-04). Pause is almost always the better answer |
-| Custom audiences | `OFFICIAL_MCP` | Full coverage including PII upload. We add no fallback here on purpose |
+| Custom audiences | `OFFICIAL_MCP` | Create, update metadata, delete, lookalike. We add no fallback here on purpose |
+| Customer-list members (add / replace / remove) | `UNSUPPORTED` | The MCP does not change membership (tool descriptions, 2026-11-11); `ads_update_custom_audience_users`, listed on 2026-11-04, is gone. Ads Manager > Audiences |
 | Datasets / pixels / custom conversions | `OFFICIAL_MCP` | Full coverage |
-| Catalogs | `OFFICIAL_MCP` | 34 tools |
+| Catalogs | `OFFICIAL_MCP` | 33 tools |
 | Catalog / dynamic ad creative (template) | `UNSUPPORTED` | `ads_create_creative` is not documented to build template creatives; catalogs stay MCP-only |
 | Experiments | `OFFICIAL_MCP` | Full coverage |
 | Ad Library research | `OFFICIAL_MCP` | `ads_library_search` |

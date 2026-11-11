@@ -9,6 +9,9 @@
     "pii_upload",
     "update_active"
   ],
+  "confirm": [
+    "ads_boost_ig_post"
+  ],
   "tools": {
     "ads_account_get_activity_logs": "read",
     "ads_activate_entity": "activate",
@@ -115,7 +118,6 @@
     "ads_pixel_parameter_read": "read",
     "ads_pixel_parameter_update": "update_active",
     "ads_update_custom_audience": "update_active",
-    "ads_update_custom_audience_users": "pii_upload",
     "ads_update_entity": "delete"
   }
 }

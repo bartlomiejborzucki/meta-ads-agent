@@ -32,8 +32,8 @@ jobs:
       - name: Tests, lint, types
         run: |
           uv run pytest -m "not live"
-          uv run ruff format --check src tests scripts
-          uv run ruff check src tests scripts
+          uv run ruff format --check src tests scripts hooks
+          uv run ruff check src tests scripts hooks
           uv run mypy
 
       - name: Templates, examples, manifests

@@ -1,8 +1,9 @@
 """Compare a live session's Meta Ads MCP tools with what this project expects.
 
-The capability map was read from Meta's published reference, never
-introspected (the README's "Never run against Meta"). Anyone with a
-connected session can close that gap by pasting the session's tool list -
+The capability map is dated: read from Meta's published reference, then
+refreshed from what a connected session exposed. Meta changes the server
+without notice, so anyone with a connected session can check the map by
+pasting the session's tool list -
 the agent's own list of available tools, ``/mcp`` output, JSON, anything
 containing the names. This module finds the ``ads_*`` names in that text
 and reports four things:

@@ -132,12 +132,20 @@ class TestApprovalClassification:
             ("change_budget", True),
             ("activate_entity", True),
             ("delete_entity", True),
-            ("upload_customer_list", True),
             ("delete_custom_audience", True),
         ],
     )
     def test_approval_requirements(self, registry, capability: str, expected: bool) -> None:  # type: ignore[no-untyped-def]
         assert registry.route(capability).requires_approval is expected
+
+    def test_a_customer_list_upload_has_no_route_and_still_needs_approval(self, registry) -> None:  # type: ignore[no-untyped-def]
+        # Meta's MCP dropped the tool (2026-11-11). The capability stays in the
+        # map, unsupported, and keeps its class for the day a tool returns.
+        cap = registry.get("upload_customer_list")
+        assert cap.requires_approval is True
+        assert cap.mcp_tools == ()
+        with pytest.raises(CapabilityError, match="Ads Manager"):
+            registry.route("upload_customer_list")
 
     def test_risk_class_wins_over_a_yaml_typo(self, registry) -> None:  # type: ignore[no-untyped-def]
         """A registry entry cannot opt out of an approval its class demands."""

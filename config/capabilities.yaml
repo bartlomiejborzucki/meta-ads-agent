@@ -39,7 +39,12 @@ notes: |
   session exposed (read, not called). A campaign built on 2026-11-03 confirmed
   the Instagram-post creative and media upload live. Every former fallback gap
   is covered by the MCP as of 2026-11-04 (ADR-012); the `api` commands stay as
-  deprecated fallbacks for one release. Re-verify with
+  deprecated fallbacks for one release. On 2026-11-11 the tool NAMES were
+  compared with a connected session again (`capabilities --compare`): one was
+  gone, ads_update_custom_audience_users, and customer-list membership is no
+  longer something the MCP does. Entries dated 2026-11-11 were checked by
+  name only, except the audience entries, whose descriptions were read.
+  Re-verify with
   docs/reference/capability-refresh.md before relying on any single tool name.
 
 capabilities:
@@ -52,7 +57,7 @@ capabilities:
     mcp_tools: [ads_get_ad_accounts]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       Returns currency and timezone. Read this before interpreting any budget
       number. Community-reported eligibility fields worth checking before a
@@ -65,7 +70,7 @@ capabilities:
     mcp_tools: [ads_get_user_pages, ads_get_ad_account_pages, ads_get_pages_for_business]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: A Facebook Page is mandatory ad identity. Resolve it before planning.
 
   - name: list_instagram_accounts
@@ -75,7 +80,7 @@ capabilities:
     mcp_tools: [ads_get_ig_accounts, ads_get_ig_media]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
 
   - name: field_metadata
     area: diagnostics
@@ -84,7 +89,7 @@ capabilities:
     mcp_tools: [ads_get_field_context]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       The supported way to discover current enum values (objectives,
       optimization goals, CTA types) instead of hardcoding them. Prefer this
@@ -98,7 +103,7 @@ capabilities:
     mcp_tools: [ads_get_ad_entities]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
 
   - name: create_campaign
     area: campaigns
@@ -121,7 +126,7 @@ capabilities:
     mcp_tools: [ads_create_ad_set]
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       Budget lives here for ABO and on the campaign for CBO; never both.
       entity_type is spelled ad_set (community-reported).
@@ -133,7 +138,7 @@ capabilities:
     mcp_tools: [ads_create_ad]
     risk_level: create_paused
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
 
   - name: update_entity_inactive
     area: campaigns
@@ -142,7 +147,7 @@ capabilities:
     mcp_tools: [ads_update_entity]
     risk_level: update_inactive
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: Editing a paused entity cannot move money today.
 
   - name: update_entity_active
@@ -152,7 +157,7 @@ capabilities:
     mcp_tools: [ads_update_entity]
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: Same tool, different risk. Changing a live entity can shift delivery.
 
   - name: change_budget
@@ -162,7 +167,7 @@ capabilities:
     mcp_tools: [ads_update_entity]
     risk_level: budget_increase
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       Always show current and proposed in account currency, read from Meta.
       Budgets are minor currency units (community-reported); use
@@ -445,7 +450,7 @@ capabilities:
     mcp_tools: [ads_account_get_activity_logs]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       Distinguishes "performance drifted" from "someone edited the ad set on
       Tuesday". Use it in every regression investigation.
@@ -457,7 +462,7 @@ capabilities:
     mcp_tools: [ads_get_errors, ads_get_help_article]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
 
   # -- Signals -------------------------------------------------------------
   - name: dataset_health
@@ -472,7 +477,7 @@ capabilities:
       - ads_get_customconversions
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       stats and quality are the difference between "a pixel exists" and
       "events are arriving". Never claim tracking works from existence alone.
@@ -484,7 +489,7 @@ capabilities:
     mcp_tools: [ads_pixel_event_read, ads_pixel_parameter_read]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-25
+    last_reviewed: 2026-11-11
 
   - name: pixel_rules
     area: pixels
@@ -497,7 +502,7 @@ capabilities:
       - ads_pixel_parameter_update
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-25
+    last_reviewed: 2026-11-11
     notes: Event rules are created inactive; updating a live rule changes what is counted.
 
   - name: delete_pixel_rules
@@ -507,7 +512,7 @@ capabilities:
     mcp_tools: [ads_pixel_event_delete, ads_pixel_parameter_delete]
     risk_level: delete
     requires_confirmation: true
-    last_reviewed: 2026-09-25
+    last_reviewed: 2026-11-11
     notes: >
       Deleting a rule can break reporting and the optimisation that depends on
       its events - the same class as deleting an audience or a catalog object.
@@ -523,7 +528,7 @@ capabilities:
       - ads_get_custom_audience_adsets
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
 
   - name: create_custom_audience
     area: audiences
@@ -532,7 +537,7 @@ capabilities:
     mcp_tools: [ads_create_custom_audience, ads_update_custom_audience]
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
       A lookalike or website audience contains no PII. A customer-file audience
       does - see upload_customer_list. Creating an audience does not change
@@ -542,17 +547,21 @@ capabilities:
 
   - name: upload_customer_list
     area: audiences
-    preferred_provider: official_mcp
+    preferred_provider: none
     fallback_provider: none
-    mcp_tools: [ads_update_custom_audience_users]
+    mcp_tools: []
     risk_level: pii_upload
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: >
-      Highest-risk operation available. Requires explicit instruction and a
-      lawful basis. Hash email and phone before transmission. Never log the
-      data, never write it to state, never commit the source file. We add no
-      fallback here on purpose: one path, maximum scrutiny.
+      Not available through Meta's MCP as of 2026-11-11: the tool that did it
+      (ads_update_custom_audience_users, listed on 2026-11-04) is gone, and
+      ads_update_custom_audience says "Ads MCP does not support membership
+      changes; use Ads Manager". ads_create_custom_audience creates a customer
+      list EMPTY; the user fills it in Ads Manager > Audiences. We add no
+      fallback on purpose - customer data stays out of this project. If Meta
+      brings the tool back it is pii_upload: explicit instruction, a lawful
+      basis, hashed identifiers, nothing logged or written to state.
 
   - name: delete_custom_audience
     area: audiences
@@ -561,7 +570,7 @@ capabilities:
     mcp_tools: [ads_delete_custom_audience]
     risk_level: delete
     requires_confirmation: true
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: Check ads_get_custom_audience_adsets first - live ad sets may target it.
 
   # -- Catalogs, experiments, research ------------------------------------
@@ -632,7 +641,7 @@ capabilities:
       - ads_catalog_product_set_delete
     risk_level: delete
     requires_confirmation: true
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-11
     notes: >
       Deleting a product set or feed breaks every ad set that uses it.
 
@@ -661,7 +670,7 @@ capabilities:
       - ads_experiment_lift_get_test
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-11
     notes: >
       Listing tests, checking eligibility and reading results change nothing.
       Check eligibility before proposing a test, not after the user agrees.
@@ -673,7 +682,7 @@ capabilities:
     mcp_tools: [ads_experiment_abtest_create_test, ads_experiment_lift_create_test]
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-11
     notes: >
       A test splits live delivery, so creating one affects spend and what the
       existing campaigns learn. Size it first (meta-ads-agent report power): a
@@ -686,7 +695,7 @@ capabilities:
     mcp_tools: [ads_experiment_abtest_update_test]
     risk_level: update_active
     requires_confirmation: true
-    last_reviewed: 2026-09-24
+    last_reviewed: 2026-11-11
     notes: >
       Ending or changing a running test early invalidates what it measured.
       Say so, with the power it had reached, before doing it.
@@ -698,7 +707,7 @@ capabilities:
     mcp_tools: [ads_library_search]
     risk_level: read
     requires_confirmation: false
-    last_reviewed: 2026-09-16
+    last_reviewed: 2026-11-11
     notes: Research only. Extract themes; never clone a competitor's creative.
 
   # -- Not supported -------------------------------------------------------

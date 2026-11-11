@@ -64,6 +64,11 @@ def build() -> str:
     inventory = load_inventory(REPO / "config" / "mcp-tools.yaml")
 
     classes: dict[str, RiskLevel] = {}
+    # Tools of a capability that opted in to approval (requires_confirmation)
+    # although its risk class does not demand one. Without this the hook would
+    # read only the class and stay silent - Capability.requires_approval honours
+    # the flag, and the hook must not be the looser of the two.
+    confirm: set[str] = set()
     for cap in registry.capabilities.values():
         if cap.preferred_provider is not Provider.OFFICIAL_MCP:
             continue
@@ -71,6 +76,8 @@ def build() -> str:
             current = classes.get(tool)
             if current is None or risk_rank(cap.risk_level) > risk_rank(current):
                 classes[tool] = cap.risk_level
+            if cap.requires_confirmation_declared and cap.risk_level not in APPROVAL_REQUIRED:
+                confirm.add(tool)
 
     for tool, (level, _reason) in UNROUTED.items():
         if tool in classes:
@@ -94,6 +101,7 @@ def build() -> str:
         ),
         "reviewed": str(registry.reviewed) if registry.reviewed else None,
         "approval_required": sorted(str(level) for level in APPROVAL_REQUIRED),
+        "confirm": sorted(confirm),
         "tools": {tool: str(classes[tool]) for tool in sorted(classes)},
     }
     return json.dumps(payload, indent=2) + "\n"
