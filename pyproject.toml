@@ -34,7 +34,7 @@ dependencies = [
 # The Marketing API fallback. Not installed by default: a user who only needs
 # capabilities the official MCP covers never downloads this.
 # Majors track Graph API versions, so the range is pinned to one major.
-api = ["facebook-business>=26.0,<27"]
+api = ["facebook-business>=26.0,<28"]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
